@@ -706,19 +706,18 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   transparent: true, opacity: 0.78,
 });
 {
-  const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 4, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
-  pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
-  for (let i = 0; i <= 280; i++) {                   // bord extérieur : 7 petites bosses rondes, et entre elles des creux ronds (la même courbe, inversée)
-    const t = i / 280, y = Y0 + (Y1 - Y0) * t, c = Math.abs((t * 7 % 1) - 0.5);
-    const x = c < 0.3 ? XO + 1.9 * Math.sqrt(1 - (c / 0.3) ** 2)          // bosse
-                      : XO - 1.3 * Math.sqrt(1 - ((0.5 - c) / 0.2) ** 2); // creux
+  const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
+  for (let i = 0; i <= 280; i++) {                   // bord extérieur : 7 petites bosses rondes et des creux ronds entre elles ; commence et finit pile au pied d'une bosse
+    const t = i / 280, y = Y0 + (Y1 - Y0) * t, c = Math.abs(((0.2 + t * 6.6) % 1) - 0.5);
+    const x = c < 0.3 ? XO + 1.9 * Math.sqrt(Math.max(0, 1 - (c / 0.3) ** 2))          // bosse
+                      : XO - 1.3 * Math.sqrt(Math.max(0, 1 - ((0.5 - c) / 0.2) ** 2)); // creux
     pts.push([x, y]);
   }
-  pts.push([XO - END, Y1]);                          // bout droit écrasé
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
   pts.push([XO - DEPTH, Y0 + (Y1 - Y0) * 0.66], [XO - DEPTH, Y0 + (Y1 - Y0) * 0.34]);
   const BTN_TOP = TH - 0.004, BTN_BOT = 0.02;          // juste au-dessus du verre et de la bande
-  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.009, bevelT: 0.03, seg: 8 })   // arêtes arrondies, surtout dans l'épaisseur pour garder les petites bosses; btn.renderOrder = 11;
+  // arêtes arrondies, surtout dans l'épaisseur pour garder les petites bosses
+  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.009, bevelT: 0.03, seg: 8 }); btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
   g.fillStyle = g.strokeStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
