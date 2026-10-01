@@ -151,7 +151,7 @@ composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new Outp
 // chaque niveau est le même dessin en plus net, donc le passage d'un niveau à l'autre est invisible.
 // repère : X = longueur (broches à droite), Y = largeur (+Y = bord arrière / haut de l'image)
 const chip = new THREE.Group(); chipScene.add(chip);
-const CORE = new THREE.Vector3(0.95, 0, 0);
+const CORE = new THREE.Vector3(0.84, 0, 0);
 const lineMats = [];
 
 const PRIMS = [];
@@ -162,15 +162,6 @@ const dot = (x, y, r, fill, glow = 0, stroke = null, w = 0) => PRIMS.push({ t: '
 const text = (x, y, size, str, col) => PRIMS.push({ t: 'text', x, y, size, str, col, bb: [x, y - size, x + size * str.length * 0.62, y + size * 0.3] });
 const rect = (x0, y0, x1, y1, fill, stroke, w) => poly([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], fill, stroke, w);
 
-// formes d'après le modèle 3D (vue de dessus)
-const GRIP = [[-4.95, -0.42], [-4.73, -0.64], [-4.1, -0.64], [-4.1, -0.5], [-3.7, -0.5], [-3.7, -0.64], [-2.85, -0.64], [-2.85, -0.5], [-2.5, -0.5], [-2.5, -0.64], [-2.0, -0.64],
-  [-2.0, 0.64], [-2.5, 0.64], [-2.5, 0.5], [-2.85, 0.5], [-2.85, 0.64], [-3.7, 0.64], [-3.7, 0.5], [-4.1, 0.5], [-4.1, 0.64], [-4.73, 0.64], [-4.95, 0.42]];
-const GRIP_IN = [[-4.78, -0.25], [-4.66, -0.37], [-2.12, -0.37], [-2.12, 0.37], [-4.66, 0.37], [-4.78, 0.25]];
-const RED = [[-2.06, -0.55], [-1.75, -0.55], [-1.45, -0.84], [3.5, -0.84], [3.5, 0.84], [-1.45, 0.84], [-1.75, 0.55], [-2.06, 0.55]];
-const BODY_FRAME = [[0.55, -0.84], [0.55, -1.0], [1.0, -1.0], [1.0, -0.92], [1.4, -0.92], [1.4, -1.0], [1.8, -1.0], [1.8, -0.92], [2.2, -0.92], [2.2, -1.0],
-  [3.7, -1.0], [4.25, -0.6], [4.25, 0.6], [3.7, 1.0], [2.35, 1.0], [2.35, 0.92], [2.0, 0.92], [2.0, 1.0], [1.65, 1.0], [1.65, 0.84], [3.5, 0.84], [3.5, -0.84]];
-const BOARD = [[-1.3, -0.62], [-0.2, -0.62], [-0.05, -0.7], [1.6, -0.7], [1.75, -0.6], [3.3, -0.6], [3.38, -0.5], [3.38, 0.55], [3.25, 0.68], [1.2, 0.68], [1.05, 0.58], [-0.4, 0.58], [-0.55, 0.7], [-1.3, 0.7], [-1.38, 0.6], [-1.38, -0.54]];
-const METAL = { grad: ['#e2e4ea', '#9a9da6', '#c9ccd3', '#7c7f88'] };
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 function walk(x, y, d, steps, minL, maxL, bx) {
   const pts = [[x, y]];
@@ -196,46 +187,35 @@ function offsetPoly(pts, d) {
 }
 const K_HOT = '#ff3446', K_MID = '#c4182c', K_DIM = '#6e0c18', K_WHITE = '#ffd6da', K_PAD = '#ff8a95';
 
-/* ---------- cadre, poignée, broches ---------- */
-poly(BODY_FRAME, METAL, '#1a1a1e', 0.012);
-poly(GRIP, METAL, '#1a1a1e', 0.012);
-[BODY_FRAME, GRIP].forEach(p => line([...p, p[0]], 0.006, 'rgba(255,255,255,.55)'));            // arête biseautée claire
-poly(GRIP_IN, '#0c0c0f', '#050506', 0.01);
-for (let x = -4.6; x < -2.25; x += 0.09) for (let y = -0.3; y <= 0.31; y += 0.09) {
-  if (x < -4.1 && Math.abs(y) < 0.31) continue;
-  if (x > -4.15 && x < -3.0 && Math.abs(y) < 0.16) continue;
-  dot(x, y, 0.02, '#000', 0, 'rgba(255,255,255,.08)', 0.004);
-}
-{ const ox = -4.42, s = 0.48, e = '#34343b'; // logo R gravé
-  line([[ox - s / 2, -s / 2], [ox + s / 2, -s / 2], [ox + s / 2, s / 2], [ox - s / 2, s / 2], [ox - s / 2, -s / 2]], 0.035, e);
-  const k = s / 2.5;
-  line([[ox - .55 * k, -.68 * k], [ox - .55 * k, .62 * k], [ox + .25 * k, .62 * k], [ox + .58 * k, .3 * k], [ox + .58 * k, .02 * k], [ox + .25 * k, -.25 * k], [ox - .55 * k, -.25 * k]], 0.034, e);
-  line([[ox + .05 * k, -.25 * k], [ox + .6 * k, -.68 * k]], 0.034, e);
-}
-poly([[-4.08, -0.1], [-3.62, -0.1], [-3.57, -0.07], [-3.57, 0.07], [-3.62, 0.1], [-4.08, 0.1], [-4.13, 0.07], [-4.13, -0.07]], { grad: ['#ff6a7a', '#d0102a', '#8a0618', '#5a0410'] }, '#2a0006', 0.01); // capsule
-line([[-4.0, 0.055], [-3.7, 0.055]], 0.018, 'rgba(255,220,225,.6)');
-rect(-3.42, -0.1, -2.82, 0.1, '#b80e24', '#3a0008', 0.01); line([[-3.4, 0.06], [-2.84, 0.06]], 0.012, 'rgba(255,180,190,.35)');
-rect(-2.6, -0.3, -2.32, 0.3, '#18181c', '#050506', 0.01); rect(-2.55, -0.11, -2.37, 0.11, '#4a0c14', '#200408', 0.008);
-rect(-2.58, -0.21, -2.52, 0.21, '#4a0c14'); rect(-2.23, -0.37, -2.17, 0.37, '#141418', '#050506', 0.008);
-rect(-2.27, 0.52, -1.69, 0.72, '#5a0e18', '#1a0306', 0.012); for (let i = 0; i < 5; i++) rect(-2.2 + i * 0.1, 0.53, -2.17 + i * 0.1, 0.71, '#1a0306');
-[-0.36, -0.12, 0.12, 0.36].forEach(y => {
-  poly([[4.25, y - 0.03], [4.66, y - 0.03], [4.66, y + 0.03], [4.25, y + 0.03]], METAL, '#1a1a1e', 0.006);
-  rect(4.66, y - 0.05, 4.71, y + 0.05, '#c9ccd3', '#1a1a1e', 0.006);
-  poly([[4.71, y - 0.02], [4.93, y - 0.02], [4.97, y], [4.93, y + 0.02], [4.71, y + 0.02]], { grad: ['#f4f4f6', '#c8c8cc', '#e8e8ec', '#a8a8ae'] }, '#1a1a1e', 0.005);
-});
+/* ---------- la forme, relevée sur la photo vue de dessus (coordonnées en pixels de la photo) ---------- */
+// photo verticale : broches en haut (y≈182), poignée en bas (y≈1668), axe central x≈620
+const PX = 10 / 1490, IMG = pts => pts.map(([x, y]) => [(925 - y) * PX, (620 - x) * PX]);
+const WINDOW = IMG([[557, 372], [712, 372], [712, 458], [697, 478], [697, 640], [742, 642], [742, 1205], [505, 1205], [505, 858], [527, 840], [527, 458], [557, 445]]);
+const HEAD = IMG([[522, 275], [722, 275], [747, 320], [747, 372], [507, 372], [507, 315]]);
+const RAIL_R = IMG([[712, 370], [747, 370], [747, 452], [718, 470], [718, 490], [751, 505], [751, 642], [697, 642], [697, 478], [712, 458]]);
+const RAIL_L = IMG([[507, 370], [557, 370], [557, 445], [527, 458], [527, 840], [540, 840], [540, 858], [487, 858], [487, 722], [517, 705], [517, 690], [488, 675],
+  [488, 590], [517, 570], [517, 555], [488, 535], [488, 460], [507, 445]]);
+const GRIP_O = IMG([[492, 1268], [755, 1268], [755, 1462], [702, 1488], [702, 1508], [755, 1532], [755, 1640], [735, 1668], [512, 1668], [492, 1640], [492, 1532], [545, 1510], [545, 1490], [492, 1466]]);
+const PLATE = IMG([[548, 1290], [702, 1290], [702, 1318], [720, 1318], [720, 1466], [684, 1486], [684, 1512], [720, 1532], [720, 1640], [530, 1640], [530, 1532], [564, 1512], [564, 1486], [530, 1466], [530, 1318], [548, 1318]]);
+const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
+const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
 
-/* ---------- corps en résine et carte imprimée ---------- */
-poly(RED, '#160204');
-for (let i = 0; i < 40; i++) { const x = rnd(-1.4, 3.4), y = rnd(-0.7, 0.7); PRIMS.push({ t: 'blob', x, y, r: rnd(0.15, 0.45), col: 'rgba(150,0,22,.35)', bb: [x - .45, y - .45, x + .45, y + .45] }); }
-poly(BOARD, '#2a0409', 'rgba(255,60,80,.35)', 0.006);
-for (let i = 0; i < 9000; i++) { const x = rnd(-1.42, 3.45), y = rnd(-0.78, 0.78), L = rnd(0.01, 0.06); line([[x, y], [x + rnd(-0.003, 0.003), y + L]], rnd(0.002, 0.004), 'rgba(255,40,70,1)', 0, rnd(0.08, 0.3)); }
-const BX = [-1.32, -0.6, 3.34, 0.62], anchors = [];
+// fond sombre du corps et bande du connecteur
+rectI(494, 600, 748, 1212, '#0b0306');
+rectI(494, 1204, 752, 1272, '#0d0d11', '#050506', 0.006);
+
+// fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
+poly(WINDOW, '#160308');
+PRIMS.push({ t: 'clip', pts: WINDOW, bb: [-1e9, -1e9, 1e9, 1e9] });
+for (let i = 0; i < 40; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.8, 0.6); PRIMS.push({ t: 'blob', x, y, r: rnd(0.15, 0.45), col: 'rgba(150,0,22,.35)', bb: [x - .45, y - .45, x + .45, y + .45] }); }
+for (let i = 0; i < 9000; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.85, 0.65), L = rnd(0.01, 0.06); line([[x, y], [x + rnd(-0.003, 0.003), y + L]], rnd(0.002, 0.004), 'rgba(255,40,70,1)', 0, rnd(0.08, 0.3)); }
+const BX = [-1.82, -0.78, 3.6, 0.6], anchors = [];
 for (let k = 0; k < 4; k++) { // bus : pistes parallèles, crochets à 45°
-  let x = -1.3, y = [-0.38, -0.08, 0.2, 0.45][k]; const p = [[x, y]];
-  while (x < 3.3) {
+  let x = -1.85, y = [-0.55, -0.25, 0.05, 0.35][k]; const p = [[x, y]];
+  while (x < 3.65) {
     if (Math.random() < 0.55) x += rnd(0.12, 0.45);
-    else { const dy = rnd(0.06, 0.16) * (Math.random() < .5 ? 1 : -1), ny = clamp(y + dy, -0.5, 0.52); x += Math.abs(ny - y); y = ny; }
-    p.push([Math.min(x, 3.3), y]);
+    else { const dy = rnd(0.06, 0.16) * (Math.random() < .5 ? 1 : -1), ny = clamp(y + dy, -0.7, 0.5); x += Math.abs(ny - y); y = ny; }
+    p.push([Math.min(x, 3.65), y]);
   }
   const n = 3 + (Math.random() * 4 | 0);
   for (let j = 0; j < n; j++) {
@@ -244,7 +224,7 @@ for (let k = 0; k < 4; k++) { // bus : pistes parallèles, crochets à 45°
     for (let i = 1; i < q.length; i++) if (Math.random() < 0.5) anchors.push([(q[i - 1][0] + q[i][0]) / 2, (q[i - 1][1] + q[i][1]) / 2]);
   }
 }
-for (let i = 0; i < 170; i++) {
+for (let i = 0; i < 190; i++) {
   const p = walk(rnd(BX[0], BX[2]), rnd(BX[1], BX[3]), Math.random() < .5 ? 0 : 4, 5, 0.03, 0.16, BX);
   line(p, rnd(0.003, 0.006), Math.random() < .35 ? K_MID : K_DIM);
   const [ex, ey] = p[p.length - 1]; dot(ex, ey, 0.012, '#2a0409', 0.008, K_PAD, 0.004); dot(ex, ey, 0.004, K_WHITE, 0.01);
@@ -263,7 +243,7 @@ for (let r = 0; r < 3; r++) { // grille de plots BGA + pistes de sortie
   }
 }
 for (let i = 0; i < 70; i++) { // composants CMS
-  let x, y; do { x = CORE.x + rnd(-0.75, 0.75); y = rnd(-0.55, 0.55); } while (Math.abs(x - CORE.x) < 0.36 && Math.abs(y) < 0.36);
+  let x, y; do { x = CORE.x + rnd(-0.75, 0.75); y = rnd(-0.7, 0.5); } while (Math.abs(x - CORE.x) < 0.36 && Math.abs(y) < 0.36);
   const v = Math.random() < .5, w = v ? 0.018 : 0.04, h = v ? 0.04 : 0.018;
   rect(x - w / 2, y - h / 2, x + w / 2, y + h / 2, '#121216', '#050506', 0.002);
   if (v) { rect(x - w / 2, y - h / 2, x + w / 2, y - h / 2 + 0.007, '#d6d6da'); rect(x - w / 2, y + h / 2 - 0.007, x + w / 2, y + h / 2, '#d6d6da'); }
@@ -277,9 +257,9 @@ for (const [x0, y0] of anchors) { // dendrites organiques
     const v = Math.random() < .35; dot(x, y, 0.004, v ? '#b48cff' : '#ff9aa6', 0.012);
   }
 }
-for (let i = 0; i < 1500; i++) dot(rnd(-1.38, 3.36), rnd(-0.66, 0.66), rnd(0.002, 0.005), `rgba(${170 + rnd(0, 60) | 0},90,255,${rnd(.25, .7)})`, 0.006);
-text(-0.9, -0.3, 0.035, 'ENGRAM // J.SILVERHAND', 'rgba(255,90,105,.6)'); text(2.2, 0.36, 0.03, 'SOULKILLER 2.0.77', 'rgba(255,90,105,.5)');
-text(-0.4, 0.42, 0.025, 'NRL-BUS 0x7F3A', 'rgba(255,90,105,.45)'); text(1.7, -0.5, 0.025, 'REWRITE 37%', 'rgba(255,90,105,.5)');
+for (let i = 0; i < 1500; i++) dot(rnd(-1.9, 3.7), rnd(-0.85, 0.65), rnd(0.002, 0.005), `rgba(${170 + rnd(0, 60) | 0},90,255,${rnd(.25, .7)})`, 0.006);
+text(-1.4, -0.42, 0.035, 'ENGRAM // J.SILVERHAND', 'rgba(255,90,105,.6)'); text(2.0, 0.3, 0.03, 'SOULKILLER 2.0.77', 'rgba(255,90,105,.5)');
+text(-0.8, 0.4, 0.025, 'NRL-BUS 0x7F3A', 'rgba(255,90,105,.45)'); text(1.6, -0.62, 0.025, 'REWRITE 37%', 'rgba(255,90,105,.5)');
 // le noyau et ses niveaux imbriqués (chaque niveau 4× plus petit)
 rect(CORE.x - DIE, -DIE, CORE.x + DIE, DIE, '#120204', 'rgba(255,90,105,.6)', 0.004);
 for (let L = 0; L < 4; L++) {
@@ -315,9 +295,47 @@ for (let L = 0; L < 4; L++) {
   for (let i = 0; i < 6; i++) { const nx = ax + e * rnd(.1, .2), ny = ay + (i % 2 ? e * .08 : 0); line([[ax, ay], [nx, ny]], e * .03, K_WHITE, e * 0.06); ax = nx; ay = ny; }
   dot(CORE.x, 0, e * 0.045, '#fff', e * 0.12);
 }
-// vernis de la résine : reflet doux + liseré
-PRIMS.push({ t: 'gloss', pts: RED, bb: bboxOf(RED, 0) });
-line([...RED, RED[0]], 0.01, 'rgba(255,110,125,.55)');
+PRIMS.push({ t: 'gloss', pts: WINDOW, bb: bboxOf(WINDOW, 0) });
+PRIMS.push({ t: 'unclip', bb: [-1e9, -1e9, 1e9, 1e9] });
+line([...WINDOW, WINDOW[0]], 0.008, 'rgba(255,90,110,.7)');                       // liseré rouge autour de la fenêtre
+
+// tête, rails chromés et carrés rouges
+[HEAD, RAIL_R, RAIL_L].forEach(p => { poly(p, METAL, '#1c1a1b', 0.01); line([...p, p[0]], 0.005, 'rgba(255,255,255,.5)'); });
+rectI(700, 602, 738, 630, '#c8102a', '#3a0008', 0.006); rectI(502, 824, 538, 850, '#c8102a', '#3a0008', 0.006);
+// broches
+[548, 598, 648, 698].forEach(xc => {
+  poly(IMG([[xc - 22, 268], [xc + 22, 268], [xc + 22, 340], [xc - 22, 340]]), METAL, '#1c1a1b', 0.008);
+  poly(IMG([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]]),
+    { grad: ['#f6f1f2', '#c3bbbe', '#ece6e8', '#9a9295'] }, '#1c1a1b', 0.006);
+});
+line(IMG([[526, 342], [718, 342]]), 0.012, '#c8102a');
+
+// poignée : cadre chromé, plaque perforée, logo, capsule, tige
+poly(GRIP_O, METAL, '#1c1a1b', 0.01); line([...GRIP_O, GRIP_O[0]], 0.005, 'rgba(255,255,255,.5)');
+poly(PLATE, '#0a0a0c', '#000', 0.008);
+for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
+  if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
+  if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
+  const [[cx, cy]] = IMG([[x, y]]); dot(cx, cy, 0.017, '#000', 0, 'rgba(255,255,255,.14)', 0.004);
+}
+{ const L = IMG([[584, 1504], [660, 1504], [660, 1588], [584, 1588], [584, 1504]]); line(L, 0.02, '#2c2c33');
+  const k = (a, b) => IMG([[a, b]])[0];
+  line([k(600, 1580), k(600, 1514), k(632, 1514), k(645, 1527), k(645, 1540), k(632, 1552), k(600, 1552)], 0.018, '#2c2c33'); line([k(620, 1552), k(646, 1580)], 0.018, '#2c2c33');
+}
+{ // tige rouge + capsule
+  const tube = IMG([[606, 1205], [648, 1205], [648, 1380], [606, 1380]]);
+  poly(tube, '#3a0c26'); line(IMG([[613, 1205], [613, 1378]]), 0.035, '#e0102c', 0.01); line(IMG([[641, 1205], [641, 1378]]), 0.035, '#e0102c', 0.01);
+  const cap = []; cap.push([597, 1375], [655, 1375]); for (let a = 0; a <= 16; a++) { const t = a / 16 * Math.PI; cap.push([626 + Math.cos(t) * 29, 1458 + Math.sin(t) * 29]); }
+  poly(IMG(cap), { grad: ['#ff5d70', '#e01030', '#c00c26', '#7a0616'] }, '#3a0008', 0.008);
+  line(IMG([[606, 1385], [606, 1450]]), 0.025, 'rgba(255,200,205,.45)');
+}
+// connecteur en E et bouton rouge
+rectI(565, 1220, 675, 1266, '#3a2c40', '#7a6a80', 0.008); rectI(582, 1230, 658, 1256, '#24182a', '#8a7a90', 0.006);
+rectI(602, 1236, 652, 1250, '#5a1838'); rectI(494, 1206, 548, 1270, '#060608');
+{ const b = IMG([[722, 1135], [758, 1126], [768, 1138], [768, 1204], [756, 1214], [722, 1214]]);
+  poly(b, { grad: ['#ff4a5e', '#d0102a', '#a00a20', '#5a0410'] }, '#2a0006', 0.008);
+  for (let y = 1142; y < 1204; y += 8) poly(IMG([[768, y], [774, y + 4], [768, y + 8]]), '#8a0818');
+}
 
 /* ---------- rendu des niveaux ---------- */
 function drawRegion(cx, cy, w, h, pxW, pxH, fadeEdges) {
@@ -331,6 +349,8 @@ function drawRegion(cx, cy, w, h, pxW, pxH, fadeEdges) {
     const gr = g.createLinearGradient(0, y0, 0, y1); f.grad.forEach((c2, i) => gr.addColorStop(i / (f.grad.length - 1), c2)); return gr;
   };
   for (const p of PRIMS) {
+    if (p.t === 'clip') { g.save(); g.beginPath(); p.pts.forEach(([x, y], i) => i ? g.lineTo(...P(x, y)) : g.moveTo(...P(x, y))); g.closePath(); g.clip(); continue; }
+    if (p.t === 'unclip') { g.restore(); continue; }
     const [a, b, cc, d] = p.bb;
     if (cc < X0 || a > X1 || d < Y0 || b > Y1) continue;
     g.save();
@@ -341,7 +361,7 @@ function drawRegion(cx, cy, w, h, pxW, pxH, fadeEdges) {
       g.beginPath(); p.pts.forEach(([x, y], i) => i ? g.lineTo(...P(x, y)) : g.moveTo(...P(x, y))); g.stroke();
     } else if (p.t === 'poly' || p.t === 'gloss') {
       g.beginPath(); p.pts.forEach(([x, y], i) => i ? g.lineTo(...P(x, y)) : g.moveTo(...P(x, y))); g.closePath();
-      if (p.t === 'gloss') { const [, y0] = P(0, 0.84), [, y1] = P(0, -0.84); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, 'rgba(255,200,205,.10)'); gr.addColorStop(.25, 'rgba(255,200,205,.02)'); gr.addColorStop(.8, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fill(); }
+      if (p.t === 'gloss') { const [, y0] = P(0, p.bb[3]), [, y1] = P(0, p.bb[1]); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, 'rgba(255,200,205,.10)'); gr.addColorStop(.25, 'rgba(255,200,205,.02)'); gr.addColorStop(.8, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fill(); }
       else { if (p.fill) { g.fillStyle = fillOf(p.fill, p.pts); g.fill(); } if (p.stroke) { g.shadowBlur = 0; g.strokeStyle = p.stroke; g.lineWidth = Math.max(p.w * sc, 0.6); g.stroke(); } }
     } else if (p.t === 'dot') {
       const r = p.r * sc; if (r < 0.25 && !p.glow) { g.restore(); continue; }
