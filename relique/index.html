@@ -595,40 +595,74 @@ const BAND_H = 0.22, BAND_BOT = TH / 2 - BAND_H / 2, BAND_TOP = TH / 2 + BAND_H 
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
 // fils : un réseau très dense de pistes (droites, virages à 90° et 45°) en très léger relief, sur toutes les faces du bloc
 // pistes du bloc noir, comme sur un circuit imprimé : nappes de fils parallèles qui partent des bords
-// et contournent le connecteur en épousant sa forme (virages à 90° arrondis), dessinées en coordonnées photo
+// et contournent le connecteur en épousant sa forme (virages à 90° arrondis), puis font le tour du bloc (tranches + dos).
+// La bande est « dépliée » : u = longueur de la relique, v = dessus → tranche → dos → autre tranche, pour que chaque fil continue sans cassure.
+const BAND_Y0 = (488 - 620) * PX, BAND_Y1 = (755 - 620) * PX, BAND_OX = 2.32;
+const BAND_V0 = BAND_Y0 - BAND_H - (BAND_Y1 - BAND_Y0), BAND_V1 = BAND_Y1 + BAND_H;
 const wireTex = (() => {
-  const W = 1024, H = 2048, OX = 2.31, OY = 0.45;   // UV des pièces extrudées = coordonnées locales, recalées sur le bloc
+  const W = 1024, H = 4096, VR = BAND_V1 - BAND_V0;
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  const C = (x, y) => [((925 - y) * PX + OX) * W, (1 - ((x - 620) * PX * 0.5 + OY)) * H];   // px photo → px texture
-  g.strokeStyle = '#fff'; g.lineWidth = 0.95 * PX * W; g.lineCap = 'butt'; g.lineJoin = 'round';
-  const trace = (pts, r = 2.6) => {                  // polyligne à coins arrondis (rayon r px photo)
+  const CV = (py, v) => [((925 - py) * PX + BAND_OX) * W, (1 - (v - BAND_V0) / VR) * H];
+  const C = (x, y) => CV(y, (x - 620) * PX);       // px photo (dessus) → px texture
+  const LW = 0.95 * PX * W;
+  const path = (pts, r) => {                         // polyligne à coins arrondis (rayon r px photo)
     g.beginPath(); g.moveTo(...C(...pts[0]));
     for (let i = 1; i < pts.length - 1; i++) g.arcTo(...C(...pts[i]), ...C(...pts[i + 1]), r * PX * W);
-    g.lineTo(...C(...pts.at(-1))); g.stroke();
+    g.lineTo(...C(...pts.at(-1)));
+  };
+  const trace = (pts, r = 2.6) => { path(pts, r); g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.lineCap = 'butt'; g.lineJoin = 'round'; g.stroke(); };
+  const wrap = (py, side) => {                       // le fil continue tout droit : tranche puis dos (gauche) ou tranche (droite)
+    g.beginPath();
+    if (side < 0) { g.moveTo(...CV(py, BAND_Y0 + 0.004)); g.lineTo(...CV(py, BAND_V0)); }
+    else { g.moveTo(...CV(py, BAND_Y1 - 0.004)); g.lineTo(...CV(py, BAND_V1)); }
+    g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.stroke();
   };
   const G = 1.85;                                    // pas entre deux fils (px photo)
-  // gauche : des L emboîtés autour du coin bas-gauche du connecteur — chaque fil part de la tranche, file vers le connecteur puis remonte vers le verre
-  for (let i = 0; ; i++) {
+  for (let i = 0; ; i++) {                           // gauche : L emboîtés autour du coin du connecteur
     const y = 1265 - i * G, x = 561 - i * G; if (x < 489) break;
     if (i % 6 === 5) continue;                       // une piste vide entre deux nappes
-    trace([[480, y], [x, y], [x, 1196]]);
+    trace([[486, y], [x, y], [x, 1196]]); wrap(y, -1);
   }
-  // droite : la même chose en miroir autour du coin bas-droit du connecteur, jusqu'au col en biais
-  for (let i = 0; ; i++) {
+  for (let i = 0; ; i++) {                           // droite : la même chose en miroir, jusqu'au col en biais
     const y = 1265 - i * G, x = 679 + i * G; if (x > 754) break;
     if (i % 6 === 5) continue;
-    trace([[762, y], [x, y], [x, 1120]]);
+    trace([[757, y], [x, y], [x, 1120]]); wrap(y, 1);
   }
-  // au-dessus du connecteur : peigne de fils qui descendent du verre et entrent dans le connecteur
-  for (let x = 567; x <= 602; x += G) trace([[x, 1196], [x, 1221]]);
-  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.repeat.set(1, 0.5); t.offset.set(OX, OY);
-  return t;
+  for (let x = 567; x <= 602; x += G) trace([[x, 1196], [x, 1221]]);   // peigne au-dessus du connecteur
+  // quelques fils qui passent PAR-DESSUS les nappes (câblage emmêlé) : un liseré sombre les détache, ils sont plus hauts
+  const over = (pts, py) => {
+    path(pts, 4); g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = '#000'; g.lineWidth = LW * 2.6; g.stroke();
+    g.strokeStyle = '#fff'; g.lineWidth = LW * 1.15; g.stroke();
+    if (py) { g.beginPath(); g.moveTo(...CV(py.y, py.side < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(py.y, py.side < 0 ? BAND_V0 : BAND_V1));
+      g.strokeStyle = '#000'; g.lineWidth = LW * 2.6; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = LW * 1.15; g.stroke(); }
+  };
+  over([[536, 1200], [536, 1222], [508, 1250], [486, 1250]], { y: 1250, side: -1 });
+  over([[548, 1200], [548, 1226], [522, 1252], [522, 1262], [486, 1262]], { y: 1262, side: -1 });
+  over([[500, 1200], [500, 1214], [520, 1234], [552, 1234], [552, 1268]]);
+  over([[702, 1150], [702, 1222], [730, 1250], [757, 1250]], { y: 1250, side: 1 });
+  over([[690, 1200], [690, 1230], [718, 1258], [757, 1258]], { y: 1258, side: 1 });
+  over([[744, 1140], [744, 1210], [716, 1238], [688, 1238], [688, 1268]]);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; return t;
 })();
 const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireTex; wireRubber.bumpScale = 1.1;
-wireRubber.map = wireTex; wireRubber.color.set('#26262c');   // les fils, un peu plus clairs que le fond, accrochent mieux la lumière
-pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber);
-pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber);
+wireRubber.map = wireTex; wireRubber.color.set('#2c2c33');   // les fils, un peu plus clairs que le fond, accrochent mieux la lumière
+function unfoldBandUV(mesh) {                        // UV « dépliées » (voir plus haut), calculées face par face d'après la normale
+  const g = mesh.geometry.toNonIndexed(), P = g.attributes.position, N = g.attributes.normal, uv = new Float32Array(P.count * 2);
+  const VR = BAND_V1 - BAND_V0, dz = mesh.position.z;
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i) + dz, nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i);
+    let v = y;
+    if (Math.abs(nz) >= Math.max(Math.abs(nx), Math.abs(ny))) v = nz > 0 ? y : BAND_Y0 - BAND_H - (y - BAND_Y0);
+    else if (Math.abs(ny) > Math.abs(nx) && ny < 0 && y < BAND_Y0 + 0.05) v = BAND_Y0 - (BAND_TOP - z);
+    else if (Math.abs(ny) > Math.abs(nx) && ny > 0 && y > BAND_Y1 - 0.05) v = BAND_Y1 + (BAND_TOP - z);
+    uv[2 * i] = x + BAND_OX; uv[2 * i + 1] = (v - BAND_V0) / VR;
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
+}
+[pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber),
+ pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
