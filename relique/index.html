@@ -460,6 +460,64 @@ function piece(pts, z0, z1, mat, { holes = [], bevel = 0.018, seg = 3 } = {}) {
 const pieceI = (pts, z0, z1, mat, o) => piece(IMG(pts), z0, z1, mat, o);
 const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
+
+// bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
+// sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
+const KNIFE = { c: 0.07, ridge: 0.026 };            // retrait horizontal du chanfrein, hauteur de l'arête
+const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
+const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
+const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; knifeMats.set(mat, k); } return knifeMats.get(mat); };
+function knifePiece(pts0, mat) {
+  let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
+  if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
+  const n = pts.length, outer = [], nrm = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = [dy / L, -dx / L];
+    nrm.push(o);
+    const mx = (a[0] + b[0]) / 2 + o[0] * 0.012, my = (a[1] + b[1]) / 2 + o[1] * 0.012;
+    outer.push(o[0] < 0.9 && !CHIP_PARTS.some(p => insidePoly(p, mx, my)));   // l'avant (côté broches, +X) reste droit
+  }
+  const off = pts.map((v, i) => {                     // sommets du plateau : arêtes extérieures rentrées de c
+    const ip = (i - 1 + n) % n, c1 = outer[ip] ? KNIFE.c : 0, c2 = outer[i] ? KNIFE.c : 0;
+    if (!c1 && !c2) return v.slice();
+    const n1 = nrm[ip], n2 = nrm[i], a = pts[ip], b = pts[(i + 1) % n];
+    const p1 = [v[0] - n1[0] * c1, v[1] - n1[1] * c1], d1 = [v[0] - a[0], v[1] - a[1]];
+    const p2 = [v[0] - n2[0] * c2, v[1] - n2[1] * c2], d2 = [b[0] - v[0], b[1] - v[1]];
+    const den = d1[0] * d2[1] - d1[1] * d2[0];
+    if (Math.abs(den) < 1e-9) return [v[0] - n2[0] * Math.max(c1, c2), v[1] - n2[1] * Math.max(c1, c2)];
+    const t = ((p2[0] - p1[0]) * d2[1] - (p2[1] - p1[1]) * d2[0]) / den;
+    return [p1[0] + d1[0] * t, p1[1] + d1[1] * t];
+  });
+  const z0 = 0, z1 = TH, zm0 = TH / 2 - KNIFE.ridge / 2, zm1 = TH / 2 + KNIFE.ridge / 2;
+  const P = [], tri = (a, b, c) => P.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+  // dessus et dessous
+  const T = THREE.ShapeUtils.triangulateShape(off.map(p => new THREE.Vector2(...p)), []);
+  for (const [a, b, c] of T) { tri([...off[a], z1], [...off[b], z1], [...off[c], z1]); tri([...off[a], z0], [...off[c], z0], [...off[b], z0]); }
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
+    if (outer[i]) {                                   // chanfrein haut, arête, chanfrein bas
+      quad([...oA, z1], [...A, zm1], [...B, zm1], [...oB, z1]);
+      quad([...A, zm1], [...A, zm0], [...B, zm0], [...B, zm1]);
+      quad([...A, zm0], [...oA, z0], [...oB, z0], [...B, zm0]);
+    } else {                                          // bord intérieur vertical (épouse le profil des voisins)
+      const ip = (i - 1 + n) % n, jn = j;
+      const prof = (v, o, chamf) => chamf ? [[...o, z1], [...v, zm1], [...v, zm0], [...o, z0]] : [[...v, z1], [...v, z0]];
+      const sa = prof(A, oA, outer[ip]), sb = prof(B, oB, outer[jn]).reverse();
+      const ring = [...sa, ...sb], dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
+      const flat = ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2]));
+      for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(flat, [])) {
+        const cr = (flat[b].x - flat[a].x) * (flat[c].y - flat[a].y) - (flat[b].y - flat[a].y) * (flat[c].x - flat[a].x);
+        cr < 0 ? tri(ring[a], ring[b], ring[c]) : tri(ring[a], ring[c], ring[b]);
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.computeVertexNormals();
+  const uv = new Float32Array(P.length / 3 * 2); for (let i = 0; i < P.length / 3; i++) { uv[i * 2] = P[i * 3]; uv[i * 2 + 1] = P[i * 3 + 1]; }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  const m = new THREE.Mesh(g, knifeMat(mat)); chip.add(m); return m;
+}
+
 // fond du corps et bande du connecteur
 piece(WINDOW, 0, 0.03, darkMetal, { bevel: 0.008, seg: 2 });
 pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, TH * 0.92, darkMetal);
@@ -467,8 +525,9 @@ pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1
 // verre
 const glass = piece(WINDOW, 0.03, TH + 0.004, glassMat, { bevel: 0.022, seg: 4 }); glass.renderOrder = 10;
 // tête, rails, poignée
-[HEAD, RAIL_R, RAIL_L].forEach(p => piece(p, 0, TH, metal));
-piece(GRIP_FRAME, 0, TH, metal);
+CHIP_PARTS.push(WINDOW, HEAD, RAIL_R, RAIL_L, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]),
+  ...[548, 598, 648, 698].map(xc => IMG([[xc - 21, 268], [xc + 21, 268], [xc + 21, 340], [xc - 21, 340]])));
+[HEAD, RAIL_R, RAIL_L, GRIP_FRAME].forEach(p => knifePiece(p, metal));
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // carrés rouges incrustés sur les rails, liseré rouge sous les broches
 pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
