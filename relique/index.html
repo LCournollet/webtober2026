@@ -149,7 +149,7 @@ chipScene.environment = (() => {
   panel(22, 9, 0, 7, 11, 1.1);                // grande softbox de face (reflets des dessus)
   panel(10, 4, -6, -4, 10, 0.7);              // réflecteur bas
   panel(24, 10, 0, -9, 9, 1.0);               // softbox basse : reflets des dessus dans la vue d'arrivée                // bande horizontale de face
-  panel(10, 3, 0, -8, -10, 0.6, '#ff6070');   // rebond rouge discret
+  panel(10, 3, 0, -8, -10, 0.5);              // rebond neutre (un rebond rouge teintait les parois des encoches)
   panel(6, 6, -8, 8, -10, 0.9);
   panel(30, 30, 0, 0, -16, 0.25);             // fond légèrement éclairé               // fill arrière
   return new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
@@ -236,7 +236,7 @@ const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y 
 const WINDOW = IMG([[545, 372], [709, 372], ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
   [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1), [526, 462], [545, 447]]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
-const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [751, 520], [751, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
+const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
   [545, 372], [545, 447], [526, 462], ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
   [487, 858], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 460], [507, 445], [507, 315]]);
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
