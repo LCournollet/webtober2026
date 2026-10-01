@@ -3,629 +3,1085 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Ver de pomme · Devtober J01</title>
+<title>Pomme Sweet Pomme · Devtober J01</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --accent: #e0352b; --bg: #1a0f0c; --ink: #fff7ee; --muted: #c9b8a8; }
+  :root { --ink: #6b4a72; --ink2: #4a3352; --paper: #fff6ea; --pink: #f9b4cc; --pinkD: #e584a8; --lav: #cdb9f2; --lavD: #a28ad9; --gold: #f7d774; --px: 4px; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
-    font-family: "Fredoka", ui-rounded, system-ui, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
-  body.playing { cursor: none; }
-  #stage, #stage canvas { position: fixed; inset: 0; display: block; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { font-family: "Pixelify Sans", ui-monospace, monospace; color: var(--ink2); display: flex; flex-direction: column; height: 100dvh;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.7) 0, transparent 35%),
+      radial-gradient(circle at 90% 95%, rgba(214,196,255,.8) 0, transparent 45%),
+      repeating-conic-gradient(#fbd6e6 0 25%, #f7cadd 0 50%) 0 0 / 28px 28px;
+    -webkit-user-select: none; user-select: none; }
+  button { font: inherit; color: inherit; }
 
-  #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .1s;
-    background: radial-gradient(ellipse at center, transparent 45%, rgba(190, 20, 20, .55) 100%); }
-  #guide { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .4s; }
-  body.playing #guide { opacity: 1; }
-  #cursor { position: fixed; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid rgba(255,255,255,.85);
-    border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .3s; box-shadow: 0 0 0 4px rgba(0,0,0,.12); }
-  body.playing #cursor { opacity: 1; }
+  header { height: 54px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; }
+  header .side { display: flex; gap: 8px; align-items: center; }
+  h1.title { margin: 0; font-size: 22px; font-weight: 700; color: var(--ink2); text-shadow: 2px 2px 0 #fff; letter-spacing: .02em; white-space: nowrap; }
+  h1.title span { color: var(--pinkD); }
+  .pill { font-size: 15px; color: var(--ink2); background: var(--paper); border: 3px solid var(--ink); border-radius: 8px; padding: 4px 10px;
+    box-shadow: 3px 3px 0 var(--ink); text-decoration: none; cursor: pointer; white-space: nowrap; }
+  .pill:hover { background: #fff; }
+  .pill:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
 
-  .top { position: fixed; top: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
-  .brand { pointer-events: auto; display: flex; gap: 10px; align-items: center; font-size: 14px; }
-  .brand a { color: var(--ink); text-decoration: none; padding: 7px 12px; border-radius: 999px; background: rgba(0,0,0,.35); backdrop-filter: blur(8px); }
-  .brand a:hover { background: rgba(0,0,0,.55); }
-  .brand span { color: var(--muted); }
-  .brand b { color: var(--ink); font-weight: 600; }
+  .app { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 6px 16px 16px; }
+  .panel { width: 272px; flex: none; max-height: 100%; overflow: auto; background: var(--paper); border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 5px 5px 0 var(--ink); padding: 14px; scrollbar-width: thin; }
+  .panel h3 { margin: 14px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--lavD); }
 
-  #hud { display: flex; gap: 8px; opacity: 0; transition: opacity .4s; }
-  #hud.on { opacity: 1; }
-  .stat { background: rgba(0,0,0,.4); backdrop-filter: blur(8px); border-radius: 14px; padding: 6px 14px; text-align: right; min-width: 84px; }
-  .stat span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  .stat b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .console { flex: none; background: linear-gradient(160deg, #eadfff, #cdb9f2 70%); border: 3px solid var(--ink); border-radius: 18px 18px 60px 18px;
+    padding: 16px 16px 12px; box-shadow: 6px 6px 0 var(--ink), inset -6px -6px 0 rgba(162,138,217,.35), inset 6px 6px 0 rgba(255,255,255,.5); }
+  .lcd { position: relative; background: #5d4b7c; border-radius: 10px 10px 30px 10px; padding: 14px 20px 12px; box-shadow: inset 3px 3px 0 rgba(0,0,0,.25); }
+  .lcd .topline { display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: .14em; color: #c9b8e8; margin: -6px 0 6px; white-space: nowrap; }
+  .lcd .topline::before, .lcd .topline::after { content: ""; flex: 1; height: 2px; background: #f9b4cc; opacity: .7; }
+  .led { width: 8px; height: 8px; border-radius: 50%; background: #ff7fa8; box-shadow: 0 0 8px #ff7fa8; position: absolute; left: 7px; top: 50%; }
+  .screenwrap { position: relative; line-height: 0; }
+  #screen { display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: crosshair; border-radius: 2px; }
+  .screenwrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: var(--grid, .9);
+    background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+    background-size: var(--px) var(--px); }
+  .brandline { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; padding: 0 6px; }
+  .brandline b { font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: .04em; font-style: italic; }
+  .brandline b i { color: var(--pinkD); }
+  .brandline span { font-size: 11px; color: var(--ink); opacity: .7; letter-spacing: .1em; }
+  #toast { position: absolute; left: 50%; bottom: 22px; transform: translate(-50%, 8px); background: var(--paper); color: var(--ink2); border: 3px solid var(--ink);
+    border-radius: 8px; padding: 6px 12px; font-size: 15px; box-shadow: 3px 3px 0 var(--ink); opacity: 0; transition: opacity .2s, transform .2s;
+    pointer-events: none; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-  #flair { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(360px, calc(100% - 32px));
-    background: rgba(0,0,0,.4); backdrop-filter: blur(8px); border-radius: 16px; padding: 10px 14px 12px; opacity: 0; transition: opacity .4s; pointer-events: none; }
-  #flair.on { opacity: 1; }
-  #flair .label { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 7px; }
-  #flair .label b { color: var(--ink); font-weight: 600; }
-  #flair .bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
-  #flair .bar i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, #6fb6ff, #ffd25a 55%, #ff4b2b); transition: width .15s; }
+  .ph { display: flex; align-items: center; gap: 8px; }
+  #name { flex: 1; min-width: 0; font: inherit; font-size: 22px; font-weight: 700; color: var(--ink2); background: transparent; border: 0; border-bottom: 3px dashed var(--pink); padding: 2px 0; outline: none; }
+  #name:focus { border-bottom-color: var(--pinkD); }
+  .mood { font-size: 13px; padding: 3px 8px; border-radius: 6px; background: var(--lav); border: 2px solid var(--ink); white-space: nowrap; }
+  .stats { display: grid; gap: 9px; margin-top: 14px; }
+  .st > span { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 3px; }
+  .st img, .res img { width: 16px; height: 16px; image-rendering: pixelated; }
+  .bar { height: 16px; border: 3px solid var(--ink); border-radius: 4px; background: #fff; padding: 1px; }
+  .bar i { display: block; height: 100%; width: 50%; background: repeating-linear-gradient(90deg, var(--c) 0 7px, transparent 7px 9px); transition: width .4s; }
+  .acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .btn { background: #fff; border: 3px solid var(--ink); border-radius: 8px; box-shadow: 3px 3px 0 var(--ink); padding: 7px 4px 5px; cursor: pointer; font-size: 15px; font-weight: 600; line-height: 1.1; }
+  .btn small { display: block; font-size: 10px; font-weight: 400; opacity: .7; margin-top: 2px; }
+  .btn:hover { background: #fff0f6; }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.on { background: var(--pink); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .sw { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sw button { width: 26px; height: 26px; border-radius: 6px; border: 3px solid var(--ink); cursor: pointer; padding: 0; box-shadow: 2px 2px 0 var(--ink); }
+  .sw button.on { outline: 3px solid #fff; outline-offset: -7px; transform: translateY(-2px); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 13px; padding: 4px 9px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; cursor: pointer; }
+  .chip.on { background: var(--lav); }
 
-  #panel { position: fixed; left: clamp(16px, 5vw, 72px); top: 50%; transform: translateY(-50%); width: min(400px, calc(100% - 32px));
-    background: rgba(24, 13, 10, .72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,.08); border-radius: 26px; padding: 28px 28px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.45);
-    transition: opacity .35s, transform .35s; }
-  #panel.hidden { opacity: 0; pointer-events: none; transform: translateY(-46%); }
-  #panel .eyebrow { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); font-weight: 600; filter: brightness(1.35); }
-  #panel h1 { margin: 0; font-size: clamp(34px, 5vw, 48px); line-height: 1; font-weight: 700; letter-spacing: -.01em; }
-  #panel p { margin: 12px 0 0; color: var(--muted); line-height: 1.45; font-size: 16px; }
-  #panel p b { color: var(--ink); font-weight: 600; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
-  .chips span { font-size: 13px; padding: 5px 10px; border-radius: 99px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); }
-  .chips .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: -1px; }
-  .rules { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 7px; font-size: 14px; color: var(--muted); }
-  .rules li::before { content: "🐛"; margin-right: 8px; }
-  .rules b { color: var(--ink); font-weight: 500; }
-  .actions { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
-  #panel button { font: inherit; font-size: 18px; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 999px;
-    padding: 13px 24px; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.18); transition: transform .12s, filter .12s; }
-  #panel button:hover { transform: translateY(-2px); filter: brightness(1.08); }
-  #panel button:active { transform: translateY(1px); }
-  .actions small { color: var(--muted); font-size: 13px; }
-  kbd { font: inherit; font-size: 12px; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.1); }
+  .res { display: flex; justify-content: space-between; gap: 6px; }
+  .res span { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 4px 2px; font-size: 13px; }
+  .res b { font-size: 16px; }
+  .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 12px; }
+  .tool { background: #fff; border: 3px solid var(--ink); border-radius: 8px; cursor: pointer; padding: 5px 0 3px; font-size: 10px; line-height: 1.1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tool img { width: 24px; height: 24px; image-rendering: pixelated; object-fit: contain; }
+  .tool.on { background: var(--pink); box-shadow: inset 0 -3px 0 var(--pinkD); }
+  .hint { font-size: 14px; line-height: 1.35; margin: 12px 0 0; color: var(--ink); }
+  .hint b { color: var(--pinkD); }
+  .hint img { width: 12px; height: 12px; image-rendering: pixelated; vertical-align: -1px; }
+  .items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .item { position: relative; background: #fff; border: 2px solid var(--ink); border-radius: 8px; cursor: pointer; padding: 6px 2px 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 84px; }
+  .item .th { height: 48px; display: flex; align-items: center; justify-content: center; }
+  .item .th img { image-rendering: pixelated; }
+  .item span { font-size: 11px; line-height: 1.05; text-align: center; }
+  .item em { font-style: normal; font-size: 12px; display: flex; align-items: center; gap: 2px; font-weight: 600; }
+  .item em img { width: 12px; height: 12px; image-rendering: pixelated; }
+  .item.on { background: #fff0f6; border-color: var(--pinkD); box-shadow: 0 0 0 2px var(--pinkD); }
+  .item.poor { opacity: .45; }
+  .pats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .pat { border: 2px solid var(--ink); border-radius: 6px; background: #fff; cursor: pointer; padding: 3px; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .pat img { width: 32px; height: 32px; image-rendering: pixelated; border-radius: 3px; }
+  .pat.on { background: var(--pink); }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 8px; }
 
-  @media (max-width: 720px) {
-    #panel { top: auto; bottom: 16px; transform: none; padding: 20px 20px 18px; border-radius: 22px; }
-    #panel.hidden { transform: translateY(10px); }
-    #panel p { font-size: 15px; }
-    .rules, .actions small { display: none; }
-    .stat { min-width: 70px; padding: 5px 10px; }
-    .stat b { font-size: 18px; }
+  @media (max-width: 999px) {
+    .app { flex-direction: column; justify-content: flex-start; overflow-y: auto; gap: 14px; }
+    .console { order: -1; }
+    .panel { width: min(560px, 100%); max-height: none; overflow: visible; }
+    h1.title { font-size: 17px; }
+    .hide-sm { display: none; }
   }
 </style>
-<script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
-} }
-</script>
 </head>
 <body>
-<div id="stage"></div>
-<div id="vignette"></div>
-<svg id="guide"><line id="guideLine" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-dasharray="4 7" stroke-linecap="round"/><circle id="guideDot" r="3" fill="rgba(255,255,255,.7)"/></svg>
-<div id="cursor"></div>
+<header>
+  <div class="side"><a class="pill" href="/">← <span class="hide-sm">Devtober</span></a></div>
+  <h1 class="title">Pomme <span>Sweet</span> Pomme</h1>
+  <div class="side"><button class="pill" id="mute" title="Son">♪ on</button><button class="pill" id="reset" title="Nouvelle pomme">↺</button></div>
+</header>
 
-<div class="top">
-  <div class="brand"><a href="/">← Devtober</a><span>J01 · <b>Apple</b></span></div>
-  <div id="hud">
-    <div class="stat"><span>Temps</span><b id="time">0.0</b></div>
-    <div class="stat"><span>Anneaux</span><b id="len">0</b></div>
-  </div>
-</div>
+<main class="app">
+  <aside class="panel" id="petPanel">
+    <div class="ph"><input id="name" maxlength="12" spellcheck="false" aria-label="Nom du ver"><span class="mood" id="mood">Content</span></div>
+    <div class="stats">
+      <div class="st"><span><img id="icFaim" alt="">Ventre</span><div class="bar" style="--c:#f59ab5"><i id="bFaim"></i></div></div>
+      <div class="st"><span><img id="icJoie" alt="">Joie</span><div class="bar" style="--c:#b49ce8"><i id="bJoie"></i></div></div>
+      <div class="st"><span><img id="icEnergie" alt="">Énergie</span><div class="bar" style="--c:#f2c94c"><i id="bEnergie"></i></div></div>
+    </div>
+    <div class="acts">
+      <button class="btn" id="aFeed">Nourrir<small>-1 compote</small></button>
+      <button class="btn" id="aPlay">Jouer<small>-énergie</small></button>
+      <button class="btn" id="aSleep">Dodo<small>au lit !</small></button>
+    </div>
+    <h3>Couleur du ver</h3>
+    <div class="sw" id="wormColors"></div>
+    <h3>Accessoire</h3>
+    <div class="chips" id="accs"></div>
+    <p class="hint">Clique sur ton ver pour un <b>câlin</b>. Un intérieur cosy le rend heureux.</p>
+  </aside>
 
-<div id="flair"><div class="label"><span>Flair</span><b id="flairTxt">froid</b></div><div class="bar"><i id="flairFill"></i></div></div>
+  <section class="console">
+    <div class="lcd">
+      <i class="led"></i>
+      <div class="topline">DOT MATRIX WITH STEREO SOUND</div>
+      <div class="screenwrap"><canvas id="screen" width="240" height="216"></canvas></div>
+      <div id="toast"></div>
+    </div>
+    <div class="brandline"><b>POMME·BOY <i>color</i></b><span>DEVTOBER J01</span></div>
+  </section>
 
-<section id="panel"></section>
+  <aside class="panel" id="homePanel">
+    <div class="res">
+      <span title="Compote"><img id="icCompote" alt=""><b id="rCompote">0</b></span>
+      <span title="Pépins"><img id="icPepin" alt=""><b id="rPepin">0</b></span>
+      <span title="Cosy"><img id="icCosy" alt=""><b id="rCosy">0</b></span>
+    </div>
+    <div class="tools" id="tools"></div>
+    <div id="toolBody"></div>
+  </aside>
+</main>
 
-<script type="module">
-import * as THREE from 'three';
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-
-/* ---------- helpers ---------- */
+<script>
+/* ================= bases ================= */
 const $ = id => document.getElementById(id);
-const rand = (a, b) => a + Math.random() * (b - a);
-const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-const lerp = (a, b, t) => a + (b - a) * t;
-const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
-const Y = new THREE.Vector3(0, 1, 0);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const W = 240, H = 216, T = 8, GW = 30, GH = 27, N = GW * GH;
+const OUT = -1, EMPTY = 0, FLESH = 1, SKIN = 2, SEED = 3, CORE = 4;
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
-/* ---------- réglages ---------- */
-const R = 10;              // rayon de base de la pomme
-const HEAD_R = 0.36;       // rayon de la tête du ver
-const SPACING = 0.26;      // espacement des anneaux
-const START_LEN = 14;
-const MAX_SEG = 240;
-const SPEED = 2.8, MAX_SPEED = 4.2, TURN = 2.1;
-const SEED_R = 0.45;
+const C = {
+  ink: '#6b4a72', ink2: '#4a3352', cream: '#fff6ea', creamD: '#ead6c0', white: '#ffffff',
+  flesh: '#ffefd6', fleshS: '#f6dcb4', fleshL: '#fffaf0', core: '#f4efc4', coreS: '#e3d996',
+  skin: '#f27a9b', skinL: '#ffb0c5', skinD: '#d65a82',
+  seed: '#8a5a44', seedL: '#c08a6a', cave: '#f0c3cf', caveD: '#e6b0c0',
+  gold: '#f7d774', goldD: '#dcae45', goldL: '#fff1b8', leaf: '#a5e3ad', leafD: '#6cbf8a',
+  stem: '#a87862', flame: '#ffb36b', glow: '#fff3b0', worm: '#ffb3c1', cherry: '#ff6b8f',
+};
+const SW = {
+  rose: ['#f9b4cc', '#e584a8', '#ffdce8'], lavande: ['#cdb9f2', '#a28ad9', '#ebe2ff'], menthe: ['#ade8d2', '#72c7a8', '#dcf7ec'],
+  peche: ['#ffd1ad', '#f2a678', '#ffe9d6'], ciel: ['#b0dbf7', '#78b6e3', '#dcf0ff'], or: ['#f7d774', '#dcae45', '#fff1b8'],
+  creme: ['#fff6ea', '#e8d4be', '#ffffff'],
+};
+const SW_KEYS = Object.keys(SW);
 
-const VARIETIES = [
-  { name: 'Gala',          skin: '#c42a1f', streak: '#f0b53e', flesh: '#f6e6b5', amt: 0.9 },
-  { name: 'Granny Smith',  skin: '#79bd3f', streak: '#c2e06a', flesh: '#eef2c6', amt: 0.35 },
-  { name: 'Golden',        skin: '#e6c444', streak: '#b9cf55', flesh: '#f8eab8', amt: 0.4 },
-  { name: 'Pink Lady',     skin: '#e0566a', streak: '#f3cf78', flesh: '#f7ebc6', amt: 0.75 },
-  { name: 'Red Delicious', skin: '#86121d', streak: '#c33a2a', flesh: '#f5e8c2', amt: 0.6 },
-  { name: 'Reinette',      skin: '#b49b45', streak: '#c9692d', flesh: '#f3e1ad', amt: 0.85 },
-  { name: 'Honeycrisp',    skin: '#d8452c', streak: '#f2d066', flesh: '#f8edc4', amt: 1.0 },
+/* ================= pinceau pixel ================= */
+function painter(g) {
+  const P = {
+    g,
+    r(x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); },
+    p(x, y, c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); },
+    box(x, y, w, h, f, o = C.ink) { // boîte à coins arrondis, contour 1px
+      P.r(x + 1, y, w - 2, 1, o); P.r(x + 1, y + h - 1, w - 2, 1, o); P.r(x, y + 1, 1, h - 2, o); P.r(x + w - 1, y + 1, 1, h - 2, o);
+      P.r(x + 1, y + 1, w - 2, h - 2, f);
+    },
+    disc(cx, cy, r, c) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r) P.p(cx + x, cy + y, c); },
+    pat(x, y, rows, map) { rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) P.p(x + i, y + j, c); } }); },
+    tri(x0, x1, top, h, c) { const mid = (x0 + x1 + 1) / 2; for (let i = 0; i < h; i++) { const half = (x1 - x0 + 1) / 2 * (i + 1) / h; P.r(Math.round(mid - half), top + i, Math.max(1, Math.round(half * 2)), 1, c); } },
+  };
+  return P;
+}
+function sprite(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(painter(c.getContext('2d'))); return c; }
+
+const HEART = ['.x.x.', 'xxxxx', 'xxxxx', '.xxx.', '..x..'];
+const ICONS = {
+  faim: [['..g...', '.gg.x.', 'xxxxxx', 'xxwxxx', 'xxxxxx', '.xxxx.'], { x: '#ff7f9f', w: '#fff', g: C.leafD }],
+  joie: [HEART, { x: '#b49ce8' }],
+  energie: [['...xx', '..xx.', '.xxxx', '..xx.', '.xx..', 'xx...'], { x: '#f2c94c' }],
+  compote: [['..g...', '.oxxo.', 'oxxxxo', 'oxwxxo', 'oxxxxo', '.oooo.'], { x: '#ffd9a0', o: '#f27a9b', w: '#fff', g: C.leafD }],
+  pepin: [['..o..', '.oxo.', 'oxwxo', 'oxxxo', 'oxxxo', '.ooo.'], { x: C.seed, w: C.seedL, o: C.ink2 }],
+  cosy: [['.x.x.', 'xxxxx', 'xwxxx', '.xxx.', '..x..'], { x: '#ff8fb1', w: '#fff' }],
+  dig: [['.oooo...', 'o.xx.o..', '..oxo...', '..o.xo..', '.....xo.', '......xo', '.......x', '........'], { o: '#a28ad9', x: C.stem }],
+  place: [['..oo....', '.oxxo...', 'oxxxxo..', 'oxxxxo..', '.oxxo...', '..oo....', '.oooo...', 'oooooo..'], { o: C.ink, x: '#f9b4cc' }],
+  paint: [['....oo..', '...oxxo.', '...oxxo.', '..o.oo..', '.oyo....', 'oyyo....', 'oyo.....', '.o......'], { o: C.ink, x: '#ff8fb1', y: C.stem }],
+  wall: [['oooooooo', 'oxyxyxyo', 'oxyxyxyo', 'oxyxyxyo', 'oxyxyxyo', 'oooooooo'], { o: C.ink, x: '#cdb9f2', y: '#fff' }],
+  erase: [['..oooo..', '.o....o.', 'oooooooo', '.oxxxxo.', '.oxxxxo.', '.oxxxxo.', '..oooo..'], { o: C.ink, x: '#ade8d2' }],
+};
+function iconURL(name) {
+  const [rows, map] = ICONS[name];
+  return sprite(Math.max(...rows.map(r => r.length)), rows.length, P => P.pat(0, 0, rows, map)).toDataURL();
+}
+
+/* ================= décorations ================= */
+const ITEMS = [
+  { id: 'lit', name: 'Lit douillet', w: 3, h: 2, cost: 6, mount: 'floor', cosy: 5, def: 'rose', draw(P, s) {
+    P.box(0, 2, 7, 14, C.gold); P.r(1, 3, 5, 1, C.goldL); P.pat(1, 5, HEART, { x: s[0] });
+    P.box(6, 8, 18, 6, C.cream);
+    P.box(7, 6, 7, 4, C.white); P.r(8, 8, 5, 1, C.creamD);
+    P.box(12, 7, 12, 7, s[0]); P.r(13, 8, 10, 1, s[2]); P.r(13, 12, 10, 1, s[1]); for (let x = 14; x < 22; x += 3) P.p(x, 10, s[2]);
+    P.box(21, 6, 3, 10, C.gold); P.r(8, 14, 2, 2, C.ink); P.r(16, 14, 2, 2, C.ink);
+  } },
+  { id: 'lampe', name: 'Lampe champi', w: 1, h: 2, cost: 3, mount: 'floor', cosy: 3, def: 'rose', glow: { pts: [[4, 6]], r: 26 }, draw(P, s) {
+    P.box(2, 6, 4, 8, C.cream); P.box(1, 12, 6, 4, C.creamD);
+    P.box(0, 0, 8, 7, s[0]); P.r(1, 5, 6, 1, s[1]); P.p(2, 2, C.white); P.p(3, 2, C.white); P.p(5, 3, C.white); P.p(4, 1, s[2]);
+  } },
+  { id: 'bougie', name: 'Bougie', w: 1, h: 1, cost: 1, mount: 'floor', cosy: 1, def: 'creme', glow: { pts: [[4, 1]], r: 16 }, draw(P, s) {
+    P.box(2, 3, 4, 5, s[0]); P.r(3, 4, 1, 3, s[2]); P.p(4, 2, C.ink2); P.p(4, 1, C.flame); P.p(4, 0, C.glow); P.p(3, 1, C.glow);
+  } },
+  { id: 'lanterne', name: 'Lanterne', w: 1, h: 1, cost: 3, mount: 'ceil', cosy: 3, def: 'or', glow: { pts: [[4, 5]], r: 24 }, draw(P, s) {
+    P.r(3, 0, 2, 1, C.ink); P.r(2, 1, 4, 1, s[1]); P.box(1, 2, 6, 6, s[0]); P.r(2, 3, 4, 4, C.glow); P.r(3, 4, 2, 2, C.flame);
+  } },
+  { id: 'guirlande', name: 'Guirlande', w: 3, h: 1, cost: 3, mount: 'ceil', cosy: 4, def: 'rose', glow: { pts: [[3, 4], [8, 6], [13, 6], [18, 6], [22, 4]], r: 9 }, draw(P, s) {
+    const yy = x => Math.round(1 + 3 * Math.sin(Math.PI * x / 23));
+    for (let x = 0; x < 24; x++) P.p(x, yy(x), C.ink);
+    [2, 7, 12, 17, 21].forEach((x, i) => { const y = yy(x) + 1; P.r(x, y, 2, 2, i % 2 ? C.gold : s[0]); P.p(x, y, C.white); });
+  } },
+  { id: 'fanions', name: 'Fanions', w: 3, h: 1, cost: 2, mount: 'ceil', cosy: 3, def: 'lavande', draw(P, s) {
+    const yy = x => Math.round(1 + 2 * Math.sin(Math.PI * x / 23));
+    for (let x = 0; x < 24; x++) P.p(x, yy(x), C.ink);
+    [1, 7, 13, 19].forEach((x, i) => { const y = yy(x + 2) + 1, c = [s[0], C.gold, s[1], SW.menthe[0]][i]; P.r(x, y, 5, 1, c); P.r(x + 1, y + 1, 3, 1, c); P.p(x + 2, y + 2, c); });
+  } },
+  { id: 'plante', name: 'Plante', w: 1, h: 2, cost: 2, mount: 'floor', cosy: 2, def: 'peche', draw(P, s) {
+    const L = [[4, 4, 3, C.leaf], [2, 7, 2, C.leafD], [6, 7, 2, C.leaf]];
+    L.forEach(([x, y, r]) => P.disc(x, y, r + 1, C.ink)); L.forEach(([x, y, r, c]) => P.disc(x, y, r, c));
+    P.p(3, 3, '#d4f5d8'); P.r(4, 8, 1, 2, C.leafD);
+    P.box(1, 10, 6, 6, s[0]); P.box(0, 9, 8, 3, s[1]); P.r(2, 12, 1, 2, s[2]);
+  } },
+  { id: 'tulipe', name: 'Tulipes', w: 1, h: 1, cost: 1, mount: 'floor', cosy: 1, def: 'rose', draw(P, s) {
+    P.pat(0, 0, ['.x.x.y.y', '.xxx.yyy', '.xxx.yyy', '..g...g.', '.gggg.g.'], { x: s[0], y: s[1], g: C.leafD });
+    P.box(1, 5, 6, 3, C.cream); P.p(2, 6, C.white);
+  } },
+  { id: 'table', name: 'Table à thé', w: 2, h: 1, cost: 3, mount: 'floor', cosy: 2, def: 'menthe', draw(P, s) {
+    P.r(3, 4, 2, 4, C.ink); P.r(11, 4, 2, 4, C.ink);
+    P.box(0, 2, 16, 3, s[0]); P.r(1, 5, 14, 1, s[1]); P.r(2, 3, 12, 1, s[2]);
+    P.box(6, 0, 4, 3, C.white); P.p(10, 1, C.ink);
+  } },
+  { id: 'fauteuil', name: 'Fauteuil', w: 1, h: 1, cost: 2, mount: 'floor', cosy: 2, def: 'lavande', draw(P, s) {
+    P.box(1, 0, 6, 5, s[0]); P.r(2, 1, 4, 1, s[2]); P.box(0, 3, 8, 4, s[0]); P.r(1, 4, 6, 1, s[2]); P.p(1, 7, C.ink); P.p(6, 7, C.ink);
+  } },
+  { id: 'biblio', name: 'Bibliothèque', w: 2, h: 2, cost: 5, mount: 'floor', cosy: 3, def: 'peche', draw(P, s) {
+    P.box(0, 0, 16, 16, s[0]); P.r(1, 1, 14, 14, s[1]);
+    const bk = [SW.rose[0], SW.ciel[0], SW.menthe[0], SW.or[0], SW.lavande[0], C.cream], B = [[2, 2, 4], [4, 2, 5], [6, 1, 3], [8, 2, 5], [10, 2, 4], [12, 2, 3]];
+    [6, 13].forEach((base, sh) => { B.forEach(([x, w, h], i) => P.r(x, base - h + 1, w, h, bk[(i + sh * 3) % 6])); P.r(1, base + 1, 14, 1, s[0]); });
+  } },
+  { id: 'tapis', name: 'Tapis', w: 3, h: 1, cost: 2, mount: 'rug', cosy: 2, def: 'rose', draw(P, s) {
+    P.box(1, 5, 22, 3, s[0]); for (let x = 3; x < 21; x += 3) P.p(x, 6, s[2]); P.p(0, 6, s[1]); P.p(23, 6, s[1]);
+  } },
+  { id: 'cadre', name: 'Portrait', w: 1, h: 1, cost: 2, mount: 'wall', cosy: 2, def: 'ciel', draw(P, s) {
+    P.box(0, 0, 8, 8, C.gold); P.r(1, 1, 6, 6, C.goldD); P.r(2, 2, 4, 4, s[2]);
+    P.pat(2, 2, ['..xx', '..xk', '.xxx', 'xx..'], { x: C.worm, k: C.ink2 });
+  } },
+  { id: 'miroir', name: 'Miroir', w: 1, h: 2, cost: 4, mount: 'wall', cosy: 3, def: 'or', draw(P, s) {
+    for (let y = 1; y < 16; y++) for (let x = 0; x < 8; x++) {
+      const e = ((x - 3.5) / 3.6) ** 2 + ((y - 8) / 7.2) ** 2;
+      if (e <= 1) P.p(x, y, e > 0.72 ? C.ink : e > 0.4 ? s[0] : '#e6f4ff');
+    }
+    P.p(3, 5, C.white); P.p(2, 6, C.white); P.p(2, 7, C.white); P.p(3, 0, s[0]); P.p(4, 0, s[0]);
+  } },
+  { id: 'gateau', name: 'Gâteau', w: 1, h: 1, cost: 2, mount: 'floor', cosy: 2, def: 'rose', draw(P, s) {
+    P.box(1, 3, 6, 5, C.cream); P.r(2, 4, 4, 1, s[0]); P.p(2, 5, s[0]); P.p(5, 5, s[0]); P.r(1, 3, 6, 1, s[1]);
+    P.p(4, 0, C.leafD); P.p(4, 1, C.cherry); P.p(3, 2, C.cherry); P.p(4, 2, C.cherry);
+  } },
+  { id: 'trone', name: 'Trône', w: 2, h: 2, cost: 0, seeds: 2, mount: 'floor', cosy: 6, def: 'rose', draw(P, s) {
+    P.p(3, 0, C.gold); P.p(7, 0, C.gold); P.p(8, 0, C.gold); P.p(12, 0, C.gold);
+    P.box(2, 1, 12, 12, C.gold); P.r(4, 3, 8, 7, s[0]); P.r(5, 4, 6, 1, s[2]); P.p(7, 2, C.cherry); P.p(8, 2, C.cherry);
+    P.box(1, 9, 14, 4, s[0]); P.r(2, 10, 12, 1, s[2]);
+    P.box(0, 7, 3, 6, C.gold); P.box(13, 7, 3, 6, C.gold);
+    P.r(2, 13, 2, 3, C.goldD); P.r(12, 13, 2, 3, C.goldD);
+  } },
+  { id: 'chateau', name: 'Château', w: 2, h: 3, cost: 0, seeds: 3, mount: 'floor', cosy: 8, def: 'rose', draw(P, s) {
+    P.box(3, 12, 10, 12, C.cream);
+    P.box(0, 8, 5, 16, C.cream); P.box(11, 8, 5, 16, C.cream);
+    P.tri(-1, 5, 2, 6, s[0]); P.tri(10, 16, 2, 6, s[0]); P.tri(3, 12, 8, 5, s[1]);
+    P.r(2, 0, 1, 2, C.ink); P.p(3, 0, C.gold); P.r(13, 0, 1, 2, C.ink); P.p(14, 0, C.gold);
+    P.r(2, 11, 1, 3, '#a28ad9'); P.r(13, 11, 1, 3, '#a28ad9'); P.r(2, 17, 1, 2, '#a28ad9'); P.r(13, 17, 1, 2, '#a28ad9');
+    P.box(6, 18, 4, 6, C.goldD); P.pat(5, 14, HEART.slice(0, 4), { x: s[0] });
+  } },
+  { id: 'couronne', name: 'Couronne', w: 1, h: 1, cost: 0, seeds: 1, mount: 'floor', cosy: 3, def: 'lavande', draw(P, s) {
+    P.box(0, 5, 8, 3, s[0]); P.r(1, 6, 6, 1, s[2]);
+    P.pat(1, 1, ['x.xx.x', 'xxxxxx', 'xrxxrx', 'xxxxxx'], { x: C.gold, r: C.cherry });
+  } },
 ];
-
-/* ---------- moteur ---------- */
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-$('stage').appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-const BG_OUT = new THREE.Color('#1a0f0c');
-scene.background = BG_OUT.clone();
-scene.fog = new THREE.Fog('#f6e6b5', 200, 500);
-const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.05, 300);
-camera.position.set(0, 10, 32);
-
-scene.add(new THREE.HemisphereLight('#fff6e8', '#6a4430', 1.2));
-const sun = new THREE.DirectionalLight('#fff1dc', 2.4); sun.position.set(18, 30, 22); scene.add(sun);
-const rimL = new THREE.DirectionalLight('#ffb38a', 1.4); rimL.position.set(-25, 5, -20); scene.add(rimL);
-const headLight = new THREE.PointLight('#fff3dd', 0, 16, 1); scene.add(headLight);
-
-function radialTex(stops) {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  stops.forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-const GLOW = radialTex([[0, 'rgba(255,255,255,1)'], [0.2, 'rgba(255,255,255,.6)'], [1, 'rgba(255,255,255,0)']]);
-const DOT = radialTex([[0, 'rgba(255,255,255,1)'], [0.55, 'rgba(255,255,255,.9)'], [1, 'rgba(255,255,255,0)']]);
-
-/* ---------- forme de la pomme ---------- */
-let shape, variety, apple = null, fleshColor = new THREE.Color(), fogColor = new THREE.Color();
-
-function radiusAt(s, d) { // d : direction unitaire (espace avant mise à l'échelle)
-  const y = d.y, phi = Math.atan2(d.z, d.x);
-  let r = 1 + s.taper * y;
-  r -= s.dTop * Math.pow(Math.max(0, y), 9);
-  r -= s.dBot * Math.pow(Math.max(0, -y), 12);
-  r += s.lobeAmp * Math.cos(s.lobes * phi + s.lobePhase) * (1 - y * y);
-  return R * r;
-}
-const _v = new THREE.Vector3();
-function insideRatio(p) { // < 1 : dans la pomme
-  _v.set(p.x / shape.sx, p.y / shape.sy, p.z / shape.sz);
-  const len = _v.length(); if (len < 1e-6) return 0;
-  _v.divideScalar(len);
-  return len / radiusAt(shape, _v);
-}
-function surfacePoint(d, k = 1) {
-  const r = radiusAt(shape, d) * k;
-  return new THREE.Vector3(d.x * r * shape.sx, d.y * r * shape.sy, d.z * r * shape.sz);
+const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+const isBack = it => it.mount === 'wall' || it.mount === 'rug';
+const sprCache = new Map();
+function itemSprite(id, col) {
+  const k = id + '|' + col; let c = sprCache.get(k);
+  if (!c) { const it = ITEM[id]; c = sprite(it.w * T, it.h * T, P => it.draw(P, SW[col])); sprCache.set(k, c); }
+  return c;
 }
 
-function appleGeometry(k, colorFn) {
-  let g = new THREE.SphereGeometry(1, 160, 110);
-  g.deleteAttribute('uv'); g.deleteAttribute('normal');
-  g = mergeVertices(g);
-  const pos = g.attributes.position, v = new THREE.Vector3(), c = new THREE.Color();
-  const col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i).normalize();
-    colorFn(v, c); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
-    const r = radiusAt(shape, v) * k;
-    pos.setXYZ(i, v.x * r * shape.sx, v.y * r * shape.sy, v.z * r * shape.sz);
+const PATTERNS = [
+  ['uni', 'Uni'], ['rayures', 'Rayures'], ['pois', 'Pois'], ['coeurs', 'Cœurs'],
+  ['damier', 'Damier'], ['etoiles', 'Étoiles'], ['lambris', 'Lambris'], ['gomme', 'Gratter'],
+];
+function drawPattern(P, X, Y, pat, s, x, y) {
+  P.r(X, Y, 8, 8, s[0]);
+  const l = s[2];
+  if (pat === 'rayures') { P.r(X, Y, 2, 8, l); P.r(X + 4, Y, 2, 8, l); }
+  else if (pat === 'pois') { P.r(X + 1, Y + 1, 2, 2, l); P.r(X + 5, Y + 5, 2, 2, l); }
+  else if (pat === 'coeurs') P.pat(X + 2, Y + 2, ['x.x', 'xxx', '.x.'], { x: l });
+  else if (pat === 'damier') { P.r(X, Y, 4, 4, l); P.r(X + 4, Y + 4, 4, 4, l); }
+  else if (pat === 'etoiles') { P.pat(X + 1, Y + 1, ['.x.', 'xxx', '.x.'], { x: l }); P.p(X + 6, Y + 5, l); }
+  else if (pat === 'lambris') { P.r(X, Y + 3, 8, 1, s[1]); P.r(X, Y + 7, 8, 1, s[1]); P.p(X + ((x + y) % 2 ? 2 : 6), Y, s[1]); P.p(X + ((x + y) % 2 ? 6 : 2), Y + 4, s[1]); }
+}
+
+/* ================= génération de la pomme ================= */
+const STAR_SEEDS = [[14, 12], [16, 12], [13, 15], [17, 15], [15, 18]];
+function appleShape(fx, fy) { // forme continue, en coordonnées de tuiles
+  const ny = (fy - 15.2) / 11.6, nx = (fx - 15) / (13.6 * (1 - 0.07 * ny));
+  const dim = (ny < 0 ? 0.2 : 0.1) * Math.exp(-nx * nx * 18) * clamp((Math.abs(ny) - 0.3) / 0.7, 0, 1);
+  return Math.hypot(nx, ny) < 1 - dim;
+}
+function genApple() {
+  const g = new Int8Array(N).fill(OUT);
+  const inside = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && appleShape(x + 0.5, y + 0.5);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (inside(x, y)) {
+    let edge = false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!inside(x + dx, y + dy)) edge = true;
+    g[y * GW + x] = edge ? SKIN : FLESH;
   }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  g.computeVertexNormals();
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const i = y * GW + x;
+    if (g[i] === FLESH && ((x + 0.5 - 15) / 2.6) ** 2 + ((y + 0.5 - 15.5) / 4.6) ** 2 < 1) g[i] = CORE;
+  }
+  for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++) {
+    const i = y * GW + x;
+    if (g[i] === FLESH && Math.random() < 0.025 && DIRS.every(([dx, dy]) => g[i + dy * GW + dx] !== SKIN)) g[i] = SEED;
+  }
+  STAR_SEEDS.forEach(([x, y]) => { g[y * GW + x] = SEED; });
+  for (let y = 16; y <= 18; y++) for (let x = 5; x <= 11; x++) g[y * GW + x] = EMPTY;
   return g;
 }
 
-function buildApple() {
-  const grp = new THREE.Group();
-  const skinC = new THREE.Color(variety.skin).offsetHSL(rand(-0.015, 0.015), rand(-0.06, 0.04), rand(-0.04, 0.04));
-  const streakC = new THREE.Color(variety.streak);
-  const topC = new THREE.Color('#7a6230');
-  const sd = rand(0, 100);
-  fleshColor.set(variety.flesh).offsetHSL(rand(-0.01, 0.01), 0, rand(-0.02, 0.01));
-  fogColor.copy(fleshColor).multiplyScalar(0.86);
-
-  const skinColor = (d, c) => {
-    const phi = Math.atan2(d.z, d.x);
-    const n1 = 0.5 + 0.5 * Math.sin(phi * 17 + Math.sin(phi * 5 + sd) * 2.5 + d.y * 4);
-    const n2 = 0.5 + 0.5 * Math.sin(phi * 43 + sd * 2 + d.y * 9);
-    const t = (0.25 + 0.45 * (1 - d.y) / 2) * (0.6 * n1 + 0.4 * n2) * variety.amt;
-    c.copy(skinC).lerp(streakC, clamp(t, 0, 1));
-    c.lerp(topC, smooth(0.8, 0.98, d.y) * 0.55 + smooth(0.84, 0.99, -d.y) * 0.65);
+/* ================= sauvegarde ================= */
+const SAVE_KEY = 'devtober-apple-home-v1';
+function freshSave() {
+  return {
+    v: 1, grid: Array.from(genApple()), wall: {}, marks: [],
+    decor: [{ id: 'bougie', x: 6, y: 18, c: 'creme', f: false }, { id: 'tulipe', x: 10, y: 18, c: 'rose', f: false }],
+    stats: { faim: 70, joie: 60, energie: 85 }, res: { compote: 8, pepin: 0 },
+    worm: { name: 'Pépito', color: 'rose', acc: 'noeud', x: 8, y: 18, sleeping: false, bed: -1 },
+    t: Date.now(), muted: false, fresh: true,
   };
-  const skin = new THREE.Mesh(appleGeometry(1, skinColor),
-    new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.38, clearcoat: 0.7, clearcoatRoughness: 0.3 }));
-  grp.add(skin);
+}
+let S, grid, marks, tilesDirty = true, cosyScore = 0;
+function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch {}
+  if (!d || d.v !== 1 || !Array.isArray(d.grid) || d.grid.length !== N) d = freshSave();
+  S = d; grid = Int8Array.from(S.grid); marks = new Set(S.marks);
+}
+function save() {
+  S.grid = Array.from(grid); S.marks = [...marks]; S.t = Date.now();
+  S.worm.x = clamp(Math.floor(wm.x / T), 0, GW - 1); S.worm.y = clamp(Math.floor(wm.y / T), 0, GH - 1);
+  S.worm.bed = wm.bedRef ? S.decor.indexOf(wm.bedRef) : -1;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {}
+}
 
-  // paroi intérieure : chair teintée par la peau
-  const fleshWall = (d, c) => { skinColor(d, c); c.lerp(fleshColor, 0.62); };
-  const inner = new THREE.Mesh(appleGeometry(0.985, fleshWall),
-    new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.BackSide, roughness: 0.85 }));
-  grp.add(inner);
+/* ================= grille ================= */
+const inb = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH;
+const tileAt = (x, y) => inb(x, y) ? grid[y * GW + x] : OUT;
+const isEmpty = (x, y) => tileAt(x, y) === EMPTY;
+const isSolid = (x, y) => tileAt(x, y) !== EMPTY;
+const minable = t => t === FLESH || t === CORE || t === SEED;
 
-  // trognon : zone plus dense au centre
-  const core = new THREE.Mesh(new THREE.CapsuleGeometry(1.7, R * shape.sy * 0.9, 8, 20),
-    new THREE.MeshStandardMaterial({ color: fleshColor.clone().lerp(new THREE.Color('#b8b06a'), 0.5), transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
-  grp.add(core);
+function decorAt(x, y, back) {
+  for (let i = S.decor.length - 1; i >= 0; i--) {
+    const d = S.decor[i], it = ITEM[d.id];
+    if (back !== undefined && isBack(it) !== back) continue;
+    if (x >= d.x && x < d.x + it.w && y >= d.y && y < d.y + it.h) return d;
+  }
+  return null;
+}
+const pickDecor = (x, y) => decorAt(x, y, false) || decorAt(x, y, true);
+function supportsDecor(x, y) {
+  return S.decor.some(d => { const it = ITEM[d.id];
+    if (x < d.x || x >= d.x + it.w) return false;
+    if ((it.mount === 'floor' || it.mount === 'rug') && y === d.y + it.h) return true;
+    return it.mount === 'ceil' && y === d.y - 1; });
+}
+function anchor(it, hx, hy) {
+  const x0 = hx - Math.floor((it.w - 1) / 2);
+  const y0 = it.mount === 'ceil' ? hy : it.mount === 'wall' ? hy - Math.floor((it.h - 1) / 2) : hy - (it.h - 1);
+  return [x0, y0];
+}
+function canPlace(it, x0, y0) {
+  const back = isBack(it);
+  for (let j = 0; j < it.h; j++) for (let i = 0; i < it.w; i++) {
+    if (!isEmpty(x0 + i, y0 + j) || decorAt(x0 + i, y0 + j, back)) return false;
+  }
+  for (let i = 0; i < it.w; i++) {
+    if ((it.mount === 'floor' || it.mount === 'rug') && !isSolid(x0 + i, y0 + it.h)) return false;
+    if (it.mount === 'ceil' && !isSolid(x0 + i, y0 - 1)) return false;
+  }
+  return true;
+}
+const afford = it => S.res.compote >= (it.cost || 0) && S.res.pepin >= (it.seeds || 0);
+function canMark(x, y) {
+  if (!minable(tileAt(x, y)) || supportsDecor(x, y)) return false;
+  return DIRS.some(([dx, dy]) => isEmpty(x + dx, y + dy) || marks.has((y + dy) * GW + x + dx));
+}
+function computeCosy() {
+  cosyScore = S.decor.reduce((a, d) => a + ITEM[d.id].cosy, 0) + Math.floor(Object.keys(S.wall).length / 4);
+}
 
-  // cellules / gouttes de jus en suspension
-  const addPoints = (n, size, color, opacity) => {
-    const arr = new Float32Array(n * 3); const p = new THREE.Vector3(); let i = 0;
-    while (i < n) {
-      p.set(rand(-1.1, 1.1) * R, rand(-1.1, 1.1) * R, rand(-1.1, 1.1) * R);
-      if (insideRatio(p) < 0.96) { arr[i * 3] = p.x; arr[i * 3 + 1] = p.y; arr[i * 3 + 2] = p.z; i++; }
+/* ================= chemin (Dijkstra) ================= */
+// le ver préfère ramper au sol ou le long des murs
+const stepCost = (x, y) => isSolid(x, y + 1) ? 1 : (isSolid(x - 1, y) || isSolid(x + 1, y) || isSolid(x, y - 1)) ? 1.6 : 3;
+function dijkstra(sx, sy) {
+  const dist = new Float32Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+  if (!inb(sx, sy)) return { dist, prev };
+  dist[sy * GW + sx] = 0;
+  for (;;) {
+    let u = -1, best = Infinity;
+    for (let i = 0; i < N; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
+    if (u < 0) break;
+    done[u] = 1;
+    const ux = u % GW, uy = (u / GW) | 0;
+    for (const [dx, dy] of DIRS) {
+      const vx = ux + dx, vy = uy + dy;
+      if (!isEmpty(vx, vy)) continue;
+      const v = vy * GW + vx, c = best + stepCost(vx, vy);
+      if (c < dist[v]) { dist[v] = c; prev[v] = u; }
     }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-    grp.add(new THREE.Points(g, new THREE.PointsMaterial({ size, map: DOT, color, transparent: true, opacity, depthWrite: false })));
-  };
-  addPoints(2600, 0.13, fleshColor.clone().multiplyScalar(0.62), 0.9);
-  addPoints(900, 0.32, new THREE.Color('#ffffff'), 0.55);
-
-  // queue + feuille
-  const topY = radiusAt(shape, Y) * shape.sy;
-  const bend = rand(-0.6, 0.6);
-  const stemCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, topY - 0.05, 0), new THREE.Vector3(0.05, topY + 0.9, 0),
-    new THREE.Vector3(bend * 0.6, topY + 1.9, 0.1), new THREE.Vector3(bend, topY + 2.6, 0.2)]);
-  const stem = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 24, 0.2, 10),
-    new THREE.MeshStandardMaterial({ color: '#5a3a1d', roughness: 0.9 }));
-  grp.add(stem);
-  const ls = new THREE.Shape(); ls.moveTo(0, 0); ls.quadraticCurveTo(1.3, 1.1, 3.4, 0); ls.quadraticCurveTo(1.3, -1.1, 0, 0);
-  const leaf = new THREE.Mesh(new THREE.ShapeGeometry(ls, 16),
-    new THREE.MeshStandardMaterial({ color: '#4f9a32', roughness: 0.6, side: THREE.DoubleSide }));
-  leaf.position.set(bend * 0.3, topY + 1.4, 0.05);
-  leaf.rotation.set(rand(-0.9, -0.4), rand(0, Math.PI * 2), rand(0.1, 0.5), 'YXZ');
-  grp.add(leaf);
-
-  return grp;
-}
-
-function disposeTree(o) {
-  o.traverse(n => { n.geometry?.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); });
-}
-
-/* ---------- pépin ---------- */
-function seedGeometry() {
-  const g = new THREE.SphereGeometry(1, 36, 24), p = g.attributes.position, v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) {
-    v.fromBufferAttribute(p, i); const k = 1 - 0.78 * Math.pow((v.y + 1) / 2, 2.2);
-    p.setXYZ(i, v.x * k * 0.55, v.y * 0.8, v.z * k * 0.34);
   }
-  g.computeVertexNormals(); return g;
+  return { dist, prev };
 }
-const seed = new THREE.Mesh(seedGeometry(), new THREE.MeshPhysicalMaterial({
-  color: '#4a2513', roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15, emissive: '#3a1606', emissiveIntensity: 0.5 }));
-seed.scale.setScalar(0.62);
-const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: '#ff7a10', transparent: true, depthWrite: false, fog: false }));
-const seedLight = new THREE.PointLight('#ffc25a', 4, 9, 1.4);
-const seedGrp = new THREE.Group(); seedGrp.add(seed, halo, seedLight); scene.add(seedGrp);
+function pathTo(prev, goal) { const p = []; for (let v = goal; v !== -1; v = prev[v]) p.push(v); p.reverse(); p.shift(); return p; }
 
-/* ---------- ver ---------- */
-const segGeo = new THREE.SphereGeometry(1, 20, 14);
-const segs = new THREE.InstancedMesh(segGeo, new THREE.MeshStandardMaterial({ roughness: 0.45 }), MAX_SEG);
-segs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-segs.frustumCulled = false;
-{
-  const a = new THREE.Color('#f2a6a8'), b = new THREE.Color('#dc8088'), cl = new THREE.Color('#c45d6a');
-  for (let i = 0; i < MAX_SEG; i++) segs.setColorAt(i, (i >= 5 && i <= 8) ? cl : (i % 3 === 0 ? b : a));
-}
-scene.add(segs);
-
-const head = new THREE.Group();
-{
-  const skinM = new THREE.MeshStandardMaterial({ color: '#f5b2b3', roughness: 0.4 });
-  head.add(new THREE.Mesh(new THREE.SphereGeometry(HEAD_R * 1.04, 28, 20), skinM));
-  const white = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.2 });
-  const black = new THREE.MeshStandardMaterial({ color: '#1a0f0c', roughness: 0.1 });
-  const cheek = new THREE.MeshStandardMaterial({ color: '#ff7f8a', roughness: 0.6, transparent: true, opacity: 0.8 });
-  for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.115, 18, 14), white); eye.position.set(s * 0.16, 0.15, -0.26); head.add(eye);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), black); pupil.position.set(s * 0.17, 0.16, -0.36); head.add(pupil);
-    const blush = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), cheek); blush.scale.set(1, 0.55, 0.4); blush.position.set(s * 0.25, 0.0, -0.25); head.add(blush);
+/* ================= sons 8 bits ================= */
+let actx = null;
+const SEQ = {
+  chomp: [[190, .04], [140, .05]], pop: [[520, .05], [780, .07]], ding: [[660, .07], [880, .07], [1320, .14]],
+  deny: [[220, .08], [160, .1]], love: [[880, .06], [1175, .1]], play: [[523, .07], [659, .07], [784, .07], [1047, .12]],
+  eat: [[330, .05], [262, .05], [330, .06]], sleep: [[392, .12], [330, .12], [262, .2]], paint: [[700, .04], [940, .06]],
+};
+function sfx(name) {
+  if (S.muted) return;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+  let t = actx.currentTime;
+  for (const [f, d] of SEQ[name]) {
+    const o = actx.createOscillator(), gn = actx.createGain();
+    o.type = 'square'; o.frequency.value = f;
+    gn.gain.setValueAtTime(0.03, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(gn).connect(actx.destination); o.start(t); o.stop(t + d); t += d;
   }
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.018, 8, 16, Math.PI), black);
-  mouth.position.set(0, -0.06, -0.345); mouth.rotation.set(0, 0, Math.PI); head.add(mouth);
-}
-scene.add(head);
-
-// tunnel creusé (chair oxydée)
-const MAX_TRAIL = 5000;
-const trail = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: '#a77a45', roughness: 0.9 }), MAX_TRAIL);
-trail.count = 0; trail.frustumCulled = false; scene.add(trail);
-let trailIdx = 0;
-
-const worm = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(), yaw: 0, pitch: 0, len: START_LEN, path: [], growAcc: 0, trailAcc: 0 };
-const segPos = Array.from({ length: MAX_SEG }, () => new THREE.Vector3());
-const segRad = new Float32Array(MAX_SEG);
-const entry = { dir: new THREE.Vector3(), out: new THREE.Vector3(), lat: 0, lon: 0 };
-
-function updateFwd() {
-  const cp = Math.cos(worm.pitch);
-  worm.fwd.set(-Math.sin(worm.yaw) * cp, Math.sin(worm.pitch), -Math.cos(worm.yaw) * cp);
 }
 
-/* ---------- nouvelle partie ---------- */
-function newGame() {
-  if (apple) { scene.remove(apple); disposeTree(apple); }
-  variety = pick(VARIETIES);
-  shape = {
-    sx: rand(0.94, 1.08), sy: rand(0.82, 0.98), sz: rand(0.94, 1.08),
-    taper: rand(0.03, 0.13), dTop: rand(0.24, 0.4), dBot: rand(0.12, 0.26),
-    lobes: Math.floor(rand(4, 6)), lobeAmp: rand(0.006, 0.022), lobePhase: rand(0, Math.PI * 2),
-  };
-  apple = buildApple(); scene.add(apple);
-  trail.material.color.copy(fleshColor).lerp(new THREE.Color('#8a5426'), 0.6);
-  document.documentElement.style.setProperty('--accent', '#' + new THREE.Color(variety.skin).getHexString());
-
-  // point & angle d'attaque
-  const d = new THREE.Vector3();
-  do { d.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)); } while (d.lengthSq() > 1 || d.lengthSq() < 0.05 || Math.abs(d.clone().normalize().y) > 0.68);
-  d.normalize();
-  const S = surfacePoint(d);
-  entry.out.copy(S).normalize();
-  entry.lat = Math.round(THREE.MathUtils.radToDeg(Math.asin(d.y)));
-  entry.lon = Math.round((THREE.MathUtils.radToDeg(Math.atan2(d.z, d.x)) + 360) % 360);
-  const inward = entry.out.clone().negate(), dir = new THREE.Vector3();
-  do { dir.copy(inward).add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(0.55)).normalize(); }
-  while (dir.angleTo(inward) > THREE.MathUtils.degToRad(34));
-  entry.dir.copy(dir);
-  entry.angle = Math.round(THREE.MathUtils.radToDeg(dir.angleTo(inward)));
-
-  // pépin
-  const p = new THREE.Vector3();
-  do { p.set(rand(-1, 1) * R, rand(-1, 1) * R, rand(-1, 1) * R); }
-  while (insideRatio(p) > 0.7 || p.distanceTo(S) < R * 0.9);
-  seedGrp.position.copy(p);
-  seed.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6));
-
-  // ver : tête posée sur la peau, corps dehors
-  worm.pos.copy(S).multiplyScalar(1.02);
-  worm.pitch = Math.asin(dir.y); worm.yaw = Math.atan2(-dir.x, -dir.z);
-  updateFwd();
-  worm.len = START_LEN; worm.growAcc = 0; worm.trailAcc = 0;
-  worm.path = [];
-  for (let k = 160; k >= 1; k--) worm.path.push(worm.pos.clone().addScaledVector(dir, -k * 0.05));
-  trail.count = 0; trailIdx = 0;
-
-  state = 'intro'; stateT = 0; elapsed = 0;
-  document.body.classList.remove('playing');
-  $('hud').classList.remove('on'); $('flair').classList.remove('on');
-  showIntro();
+/* ================= le ver ================= */
+const wm = { x: 0, y: 0, face: 1, trail: [], path: [], state: 'idle', timer: 1, job: null, bubble: null, anim: null, munchDir: [0, 0], loveCd: 0, needT: 5, digCd: 0, bedRef: null };
+function placeWormAt(tx, ty) {
+  wm.x = tx * T + 4; wm.y = ty * T + 4; wm.path = []; wm.trail = [];
+  for (let i = 1; i <= 24; i++) wm.trail.push({ x: wm.x - wm.face * i, y: wm.y });
 }
-
-/* ---------- UI ---------- */
-const panel = $('panel');
-let best = null;
-try { best = parseFloat(localStorage.getItem('devtober-apple-best')) || null; } catch {}
-
-function showIntro() {
-  panel.innerHTML = `
-    <p class="eyebrow">Devtober · Jour 01</p>
-    <h1>Ver de pomme</h1>
-    <p>Quelque part dans cette pomme se cache <b>un pépin</b>. Creuse jusqu'à lui.</p>
-    <div class="chips">
-      <span><i class="sw"></i>${variety.name}</span>
-      <span>📍 ${Math.abs(entry.lat)}°${entry.lat >= 0 ? 'N' : 'S'} · ${entry.lon}°E</span>
-      <span>↘ attaque ${entry.angle}°</span>
-    </div>
-    <ul class="rules">
-      <li><b>Le ver suit ta souris</b> et avance tout seul</li>
-      <li><b>Ne te mords pas</b> la queue — il grandit en creusant</li>
-      <li><b>Ne perce pas</b> la peau de la pomme</li>
-    </ul>
-    <div class="actions"><button id="go">Croquer dedans</button><small><kbd>Espace</kbd></small></div>`;
-  panel.classList.remove('hidden');
-  $('go').onclick = start;
+function pushTrail() {
+  const h = wm.trail[0];
+  if (!h || Math.hypot(h.x - wm.x, h.y - wm.y) > 0.8) { wm.trail.unshift({ x: wm.x, y: wm.y }); if (wm.trail.length > 40) wm.trail.pop(); }
 }
-function showEnd(won, reason) {
-  const t = elapsed.toFixed(1);
-  let bestLine = '';
-  if (won) {
-    const isBest = best === null || elapsed < best;
-    if (isBest) { best = elapsed; try { localStorage.setItem('devtober-apple-best', String(best)); } catch {} }
-    bestLine = isBest ? '<p>🏆 <b>Nouveau record !</b></p>' : `<p>Record : <b>${best.toFixed(1)} s</b></p>`;
+const SEG_D = [4.6, 8.6, 12.2, 15.4], SEG_R = [3, 3, 3, 2];
+function segPositions() {
+  const out = []; let acc = 0, prev = { x: wm.x, y: wm.y }, k = 0;
+  for (const p of wm.trail) {
+    const L = Math.hypot(p.x - prev.x, p.y - prev.y);
+    while (k < SEG_D.length && acc + L >= SEG_D[k]) { const u = L ? (SEG_D[k] - acc) / L : 0; out.push({ x: prev.x + (p.x - prev.x) * u, y: prev.y + (p.y - prev.y) * u }); k++; }
+    acc += L; prev = p; if (k >= SEG_D.length) break;
   }
-  panel.innerHTML = won ? `
-    <p class="eyebrow">${variety.name} · dévorée</p>
-    <h1>Pépin trouvé ! 🌱</h1>
-    <p>En <b>${t} s</b>, avec un ver de <b>${worm.len} anneaux</b>.</p>${bestLine}
-    <div class="actions"><button id="go">Nouvelle pomme</button><small><kbd>Espace</kbd></small></div>` : `
-    <p class="eyebrow">${variety.name} · ${t} s</p>
-    <h1>${reason === 'bite' ? 'Aïe, ta queue !' : 'Percé !'}</h1>
-    <p>${reason === 'bite' ? 'Ton ver s\'est mordu lui-même. Prends tes virages plus larges.' : 'Tu es ressorti par la peau. Le pépin est à l\'intérieur !'}</p>
-    <div class="actions"><button id="go">Nouvelle pomme</button><small><kbd>Espace</kbd></small></div>`;
-  panel.classList.remove('hidden');
-  $('go').onclick = newGame;
+  while (out.length < SEG_D.length) out.push({ x: prev.x - wm.face * (SEG_D[out.length] - acc), y: prev.y });
+  return out;
+}
+const wormTile = () => [clamp(Math.floor(wm.x / T), 0, GW - 1), clamp(Math.floor(wm.y / T), 0, GH - 1)];
+
+function say(icon, sec = 2.2) { wm.bubble = { icon, until: now + sec }; }
+function setIdle(t = rnd(1.5, 4)) { wm.state = 'idle'; wm.timer = t; wm.job = null; wm.path = []; }
+
+function planDig() {
+  const [tx, ty] = wormTile(), { dist, prev } = dijkstra(tx, ty);
+  let best = null, bd = Infinity;
+  for (const m of marks) {
+    const mx = m % GW, my = (m / GW) | 0;
+    for (const [dx, dy] of DIRS) {
+      const sx = mx + dx, sy = my + dy;
+      if (!isEmpty(sx, sy)) continue;
+      const d = dist[sy * GW + sx];
+      if (d < bd) { bd = d; best = { mark: m, stand: sy * GW + sx }; }
+    }
+  }
+  if (!best) return false;
+  wm.job = { type: 'dig', ...best }; wm.path = pathTo(prev, best.stand); wm.state = 'walk';
+  return true;
+}
+function wander() {
+  const [tx, ty] = wormTile(), { dist, prev } = dijkstra(tx, ty);
+  if (Math.random() < 0.3) {
+    const opts = S.decor.filter(d => { const it = ITEM[d.id]; return it.mount === 'floor' && dist[(d.y + it.h - 1) * GW + d.x + (it.w >> 1)] < 40; });
+    if (opts.length) {
+      const d = opts[Math.floor(Math.random() * opts.length)], it = ITEM[d.id], goal = (d.y + it.h - 1) * GW + d.x + (it.w >> 1);
+      wm.job = { type: 'visit' }; wm.path = pathTo(prev, goal); wm.state = 'walk'; return;
+    }
+  }
+  const c = [];
+  for (let i = 0; i < N; i++) if (dist[i] > 0 && dist[i] < 30 && isSolid(i % GW, ((i / GW) | 0) + 1)) c.push(i);
+  if (!c.length) return setIdle();
+  wm.job = { type: 'wander' }; wm.path = pathTo(prev, c[Math.floor(Math.random() * c.length)]); wm.state = 'walk';
+}
+function stepWalk(dt) {
+  const sp = 22;
+  while (wm.path.length) {
+    const n = wm.path[0], tx = (n % GW) * T + 4, ty = ((n / GW) | 0) * T + 4, dx = tx - wm.x, dy = ty - wm.y, d = Math.hypot(dx, dy), step = sp * dt;
+    if (Math.abs(dx) > 0.3) wm.face = dx > 0 ? 1 : -1;
+    if (d <= step) { wm.x = tx; wm.y = ty; wm.path.shift(); dt -= d / sp; if (dt <= 0) break; }
+    else { wm.x += dx / d * step; wm.y += dy / d * step; break; }
+  }
+  pushTrail();
+  return wm.path.length === 0;
+}
+function arrive() {
+  const j = wm.job;
+  if (j?.type === 'dig') {
+    const mx = j.mark % GW, my = (j.mark / GW) | 0, [tx, ty] = wormTile();
+    if (!marks.has(j.mark) || Math.abs(mx - tx) + Math.abs(my - ty) !== 1) return setIdle(0.1);
+    wm.munchDir = [mx - tx, my - ty]; if (mx !== tx) wm.face = mx > tx ? 1 : -1;
+    wm.state = 'munch'; wm.timer = 0.75; return;
+  }
+  if (j?.type === 'sleep') return startSleep(S.decor.includes(j.bed) ? j.bed : null);
+  if (j?.type === 'visit') { say(Math.random() < 0.5 ? 'heart' : 'note'); S.stats.joie = clamp(S.stats.joie + 1, 0, 100); }
+  setIdle();
+}
+function finishMunch() {
+  const m = wm.job.mark, t = grid[m];
+  if (marks.has(m) && minable(t)) {
+    grid[m] = EMPTY; marks.delete(m); tilesDirty = true;
+    S.res.compote++; S.stats.faim = clamp(S.stats.faim + 3, 0, 100); S.stats.energie = clamp(S.stats.energie - 1.5, 0, 100);
+    const X = (m % GW) * T + 4, Y = ((m / GW) | 0) * T + 4;
+    for (let i = 0; i < 10; i++) addP('crumb', X, Y, rnd(-30, 30), rnd(-40, 5), t === CORE ? C.coreS : C.fleshS);
+    if (t === SEED) { S.res.pepin++; sfx('ding'); toast('Un pépin ! 🌱 De quoi s\'offrir du royal.'); for (let i = 0; i < 8; i++) addP('spark', X, Y, rnd(-25, 25), rnd(-35, -5)); say('star'); }
+    else sfx('chomp');
+    refreshUI();
+  }
+  setIdle(0.05); // enchaîne directement sur la marque suivante
+}
+function goSleep() {
+  if (S.worm.sleeping || wm.state === 'sleep') return;
+  const bed = S.decor.find(d => d.id === 'lit');
+  if (bed) {
+    const [tx, ty] = wormTile(), { dist, prev } = dijkstra(tx, ty), goal = (bed.y + 1) * GW + bed.x + 1;
+    if (dist[goal] < Infinity) { wm.job = { type: 'sleep', bed }; wm.path = pathTo(prev, goal); wm.state = 'walk'; say('zzz'); return; }
+  }
+  startSleep(null);
+}
+function startSleep(bed) {
+  S.worm.sleeping = true; wm.state = 'sleep'; wm.job = null; wm.path = []; wm.bedRef = bed;
+  if (bed) {
+    const it = ITEM.lit; wm.face = bed.f ? 1 : -1;
+    wm.x = bed.x * T + (bed.f ? it.w * T - 10 : 10); wm.y = bed.y * T + 8;
+    wm.trail = []; for (let i = 1; i <= 24; i++) wm.trail.push({ x: wm.x - wm.face * i, y: wm.y });
+  }
+  sfx('sleep'); refreshUI();
+}
+function wake(msg) {
+  S.worm.sleeping = false;
+  if (wm.bedRef) { const b = wm.bedRef; wm.bedRef = null; placeWormAt(b.x + 1, b.y + 1); }
+  setIdle(1); say(S.stats.energie > 90 ? 'heart' : 'sad'); if (msg) toast(msg); refreshUI();
 }
 
-let state = 'intro', stateT = 0, elapsed = 0;
-function start() {
-  if (state !== 'intro') return;
-  state = 'dive'; stateT = 0;
-  panel.classList.add('hidden');
+/* ================= actions ================= */
+function feed() {
+  if (S.worm.sleeping) return toast('Chut… il fait dodo. 💤');
+  if (S.res.compote < 1) { sfx('deny'); return toast('Plus de compote ! Creuse pour en trouver.'); }
+  S.res.compote--; S.stats.faim = clamp(S.stats.faim + 18, 0, 100);
+  wm.state = 'anim'; wm.anim = 'eat'; wm.timer = 1.4; wm.path = []; wm.job = null; say('apple', 1.4); sfx('eat'); refreshUI();
 }
-function end(won, reason) {
-  state = won ? 'won' : 'lost'; stateT = 0;
-  document.body.classList.remove('playing');
-  $('flair').classList.remove('on');
-  setTimeout(() => showEnd(won, reason), won ? 900 : 700);
+function play() {
+  if (S.worm.sleeping) return toast('Chut… il fait dodo. 💤');
+  if (S.stats.energie < 10) { sfx('deny'); return toast('Trop fatigué pour jouer… au lit !'); }
+  S.stats.joie = clamp(S.stats.joie + 18, 0, 100); S.stats.energie = clamp(S.stats.energie - 8, 0, 100);
+  wm.state = 'anim'; wm.anim = 'play'; wm.timer = 2.2; wm.path = []; wm.job = null; say('note', 2.2); sfx('play'); refreshUI();
+}
+function toggleSleep() { if (S.worm.sleeping) wake(); else goSleep(); refreshUI(); }
+function cuddle() {
+  if (wm.loveCd > 0) return;
+  wm.loveCd = 1.2; S.stats.joie = clamp(S.stats.joie + 4, 0, 100);
+  for (let i = 0; i < 4; i++) addP('heart', wm.x + rnd(-4, 4), wm.y - 6, rnd(-8, 8), rnd(-26, -14));
+  if (!S.worm.sleeping) say('heart', 1.2);
+  sfx('love'); refreshUI();
 }
 
-addEventListener('keydown', e => {
-  if (e.code !== 'Space' && e.code !== 'Enter') return;
+/* ================= statistiques ================= */
+const RATE = { faim: 0.022, joie: 0.018, energie: 0.011 };
+function tickStats(dt) {
+  const st = S.stats, sl = S.worm.sleeping;
+  st.faim = clamp(st.faim - RATE.faim * dt * (sl ? 0.5 : 1), 0, 100);
+  st.joie = clamp(st.joie - RATE.joie * dt + Math.min(cosyScore, 60) * 0.0004 * dt, 0, 100);
+  st.energie = clamp(st.energie + (sl ? (wm.bedRef ? 0.6 : 0.3) : -RATE.energie) * dt, 0, 100);
+}
+function offline(sec) { // le temps passe aussi page fermée, sans jamais descendre sous 15
+  sec = Math.min(sec, 12 * 3600); if (sec < 2) return;
+  const st = S.stats, sl = S.worm.sleeping, floorAt = (v, d) => Math.max(Math.min(v, 15), v - d);
+  st.faim = floorAt(st.faim, RATE.faim * sec * (sl ? 0.5 : 1));
+  st.joie = clamp(floorAt(st.joie, RATE.joie * sec) + Math.min(cosyScore, 60) * 0.0004 * sec, 0, 100);
+  st.energie = sl ? clamp(st.energie + (S.worm.bed >= 0 ? 0.6 : 0.3) * sec, 0, 100) : floorAt(st.energie, RATE.energie * sec);
+}
+function mood() {
+  const s = S.stats;
+  if (S.worm.sleeping) return 'Fait dodo';
+  if (s.faim < 25) return 'Affamé';
+  if (s.energie < 20) return 'Épuisé';
+  if (s.joie < 25) return 'Boudeur';
+  const a = (s.faim + s.joie + s.energie) / 3;
+  return a > 78 ? 'Aux anges' : a > 55 ? 'Content' : 'Bof';
+}
+
+/* ================= particules & bulles ================= */
+const parts = [];
+function addP(type, x, y, vx, vy, col) { parts.push({ type, x, y, vx, vy, col, life: type === 'crumb' ? 0.6 : 1.3, t: 0 }); }
+const BUBBLE = {
+  heart: [HEART, { x: '#ff7fa8' }], apple: [['..g..', '.xxx.', 'xxwxx', 'xxxxx', '.xxx.'], { x: '#ff7f9f', w: '#fff', g: C.leafD }],
+  zzz: [['xxxx.', '..x..', '.x...', 'xxxx.', '.....'], { x: '#a28ad9' }], note: [['..xx.', '..x.x', '..x..', 'xxx..', 'xx...'], { x: '#a28ad9' }],
+  sad: [['..x..', '.xx..', 'xxxx.', 'xxxx.', '.xx..'], { x: '#78b6e3' }], star: [['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'], { x: C.goldD }],
+};
+
+/* ================= rendu ================= */
+const cv = $('screen'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+const M = painter(g);
+const tileCv = document.createElement('canvas'); tileCv.width = W; tileCv.height = H;
+const TP = painter(tileCv.getContext('2d'));
+const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; };
+
+// peau dessinée au pixel près : contour rond, reflet en haut à gauche, ombre en bas à droite
+function skinPixels(X, Y, h, inner = false) {
+  const at = (px, py) => appleShape((px + 0.5) / T, (py + 0.5) / T);
+  for (let py = Y; py < Y + T; py++) for (let px = X; px < X + T; px++) {
+    if (!at(px, py)) continue;
+    let c = C.skin;
+    if (inner && at(px - 5, py) && at(px + 5, py) && at(px, py - 5) && at(px, py + 5)) c = (px * 7 + py * 13) % 23 ? '#fee2e1' : '#f9d0d2';
+    else if (at(px - 4, py) && at(px + 4, py) && at(px, py - 4) && at(px, py + 4) && inner) c = C.skinD;
+    else if (!at(px - 1, py) || !at(px + 1, py) || !at(px, py - 1) || !at(px, py + 1)) c = C.ink;
+    else if (!at(px - 3, py - 3)) c = C.skinL;
+    else if (!at(px + 3, py + 3)) c = C.skinD;
+    TP.p(px, py, c);
+  }
+}
+function drawTiles() {
+  TP.g.clearRect(0, 0, W, H);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const t = grid[y * GW + x], X = x * T, Y = y * T, h = hash(x, y);
+    if (t === OUT) { skinPixels(X, Y, h); continue; }
+    if (t === EMPTY) {
+      const w = S.wall[y * GW + x];
+      if (w) drawPattern(TP, X, Y, w.p, SW[w.c], x, y);
+      else { TP.r(X, Y, T, T, C.cave); TP.p(X + h % 8, Y + (h >> 3) % 8, C.caveD); TP.p(X + (h >> 6) % 8, Y + (h >> 9) % 8, C.caveD); }
+      const sh = 'rgba(107,74,114,.22)';
+      if (isSolid(x, y - 1)) TP.r(X, Y, T, 2, sh);
+      if (isSolid(x - 1, y)) TP.r(X, Y, 1, T, sh);
+      if (isSolid(x + 1, y)) TP.r(X + 7, Y, 1, T, sh);
+      continue;
+    }
+    if (t === SKIN) {
+      skinPixels(X, Y, h, true);
+      for (const [dx, dy] of DIRS) {
+        if (!isEmpty(x + dx, y + dy)) continue;
+        if (dx === 1) TP.r(X + 7, Y, 1, T, C.ink); if (dx === -1) TP.r(X, Y, 1, T, C.ink);
+        if (dy === 1) TP.r(X, Y + 7, T, 1, C.ink); if (dy === -1) TP.r(X, Y, T, 1, C.ink);
+      }
+      continue;
+    }
+    const core = t === CORE;
+    TP.r(X, Y, T, T, core ? C.core : C.flesh);
+    TP.p(X + h % 8, Y + (h >> 3) % 8, core ? C.coreS : C.fleshS);
+    TP.p(X + (h >> 6) % 8, Y + (h >> 9) % 8, core ? C.coreS : C.fleshS);
+    TP.p(X + (h >> 12) % 8, Y + (h >> 15) % 8, C.fleshL);
+    if (core && h % 2) TP.r(X + 3, Y + (h >> 4) % 6, 1, 2, C.coreS);
+    if (t === SEED) TP.pat(X + 2, Y + 1, ['.oo.', 'oxwo', 'oxxo', 'oxxo', '.oo.'], { o: C.ink2, x: C.seed, w: C.seedL });
+    // bord taillé face à la maison
+    if (isEmpty(x + 1, y)) TP.r(X + 7, Y, 1, T, C.ink); if (isEmpty(x - 1, y)) TP.r(X, Y, 1, T, C.ink);
+    if (isEmpty(x, y + 1)) TP.r(X, Y + 7, T, 1, C.ink); if (isEmpty(x, y - 1)) { TP.r(X, Y, T, 1, C.ink); TP.r(X, Y + 1, T, 1, C.fleshL); }
+  }
+}
+
+let night = false, sky = null, appleTop = 40;
+const stars = Array.from({ length: 40 }, () => [Math.floor(rnd(0, W)), Math.floor(rnd(0, H)), rnd(0, 6)]);
+const clouds = [{ x: 20, y: 18, s: 1 }, { x: 170, y: 30, s: 0.8 }, { x: 110, y: 8, s: 0.6 }];
+function makeSky() {
+  const cols = night ? ['#3e356f', '#5b4a8f', '#8b69b0', '#c58ab8'] : ['#c9b6f2', '#e6c3ee', '#fbcfe0', '#ffe2d4'];
+  const B = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]; // tramage de Bayer
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x2 = c.getContext('2d'), img = x2.createImageData(W, H);
+  const rgb = cols.map(h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16)));
+  for (let y = 0; y < H; y++) {
+    const tt = y / (H - 1) * (cols.length - 1), i = Math.min(cols.length - 2, Math.floor(tt)), f = tt - i;
+    for (let x = 0; x < W; x++) {
+      const col = f * 16 > B[y % 4][x % 4] ? rgb[i + 1] : rgb[i], o = (y * W + x) * 4;
+      img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
+    }
+  }
+  x2.putImageData(img, 0, 0); return c;
+}
+function checkNight() { const h = new Date().getHours(), n = h >= 20 || h < 7; if (n !== night || !sky) { night = n; sky = makeSky(); } }
+
+function drawStemLeaf() {
+  const x = 118, top = appleTop;
+  M.r(x, top - 13, 4, 16, C.ink); M.r(x + 1, top - 12, 2, 15, C.stem); M.p(x + 1, top - 12, '#c99a82');
+  const cx = x + 13, cy = top - 9;
+  for (let dy = -6; dy <= 6; dy++) for (let dx = -9; dx <= 9; dx++) {
+    const ty = dy + dx * 0.35, e = (dx / 8.5) ** 2 + (ty / 3.4) ** 2;
+    if (e <= 1) M.p(cx + dx, cy + dy, e > 0.62 ? C.ink : Math.abs(ty) < 0.5 && dx > -7 ? C.leafD : C.leaf);
+  }
+}
+function drawItem(id, col, x, y, f) {
+  const it = ITEM[id], spr = itemSprite(id, col);
+  if (f) { g.save(); g.translate(x * T + it.w * T, y * T); g.scale(-1, 1); g.drawImage(spr, 0, 0); g.restore(); }
+  else g.drawImage(spr, x * T, y * T);
+}
+function drawDecor(back) { for (const d of S.decor) if (isBack(ITEM[d.id]) === back) drawItem(d.id, d.c, d.x, d.y, d.f); }
+function drawGlows(t) {
+  for (const d of S.decor) {
+    const it = ITEM[d.id]; if (!it.glow) continue;
+    it.glow.pts.forEach(([gx, gy], i) => {
+      const x = d.x * T + (d.f ? it.w * T - 1 - gx : gx) + 0.5, y = d.y * T + gy + 0.5;
+      const r = it.glow.r * (night ? 1.35 : 1) * (1 + 0.05 * Math.sin(t * 6 + i * 2 + d.x));
+      for (let k = 3; k >= 1; k--) { g.fillStyle = `rgba(255,236,170,${night ? 0.1 : 0.06})`; g.beginPath(); g.arc(x, y, r * k / 3, 0, 7); g.fill(); }
+    });
+  }
+}
+function drawWorm(t) {
+  const s = SW[S.worm.color];
+  let oy = 0, hx = 0, hy = 0;
+  if (wm.state === 'anim' && wm.anim === 'play') oy = -Math.abs(Math.sin(t * 9)) * 5;
+  if (wm.state === 'munch') { const k = 1 + Math.sin(t * 28) * 1.2; hx = wm.munchDir[0] * k; hy = wm.munchDir[1] * k; }
+  const moving = wm.state === 'walk', sl = wm.state === 'sleep';
+  const pts = segPositions().map((p, i) => [Math.round(p.x), Math.round(p.y + oy + (moving ? Math.sin(t * 12 - i) * 0.6 : sl ? 0 : Math.sin(t * 2.5 - i) * 0.4))]).reverse();
+  const rad = i => SEG_R[SEG_R.length - 1 - i];
+  const X = Math.round(wm.x + hx), Y = Math.round(wm.y + oy + hy), f = wm.face;
+  pts.forEach(([x, y], i) => M.disc(x, y, rad(i) + 1, C.ink));
+  M.disc(X, Y, 5, C.ink);
+  pts.forEach(([x, y], i) => { const r = rad(i); M.disc(x, y, r, s[0]); M.r(x, y - r, 1, r * 2 + 1, s[1]); M.p(x - 1, y - r + 1, s[2]); });
+  M.disc(X, Y, 4, s[0]); M.r(X - 2, Y - 3, 2, 1, s[2]); M.p(X - 3, Y - 2, s[2]);
+  const e1 = X - f, e2 = X + 2 * f;
+  if (sl) { M.r(Math.min(e1, e1 + f), Y - 1, 2, 1, C.ink2); M.r(Math.min(e2, e2 + f), Y - 1, 2, 1, C.ink2); }
+  else { M.r(e1, Y - 2, 1, 3, C.ink2); M.r(e2, Y - 2, 1, 3, C.ink2); M.p(e1, Y - 2, C.white); M.p(e2, Y - 2, C.white); M.p(e1, Y - 3, C.ink2); M.p(e2, Y - 3, C.ink2); }
+  M.p(X - 2 * f, Y + 1, '#ff8fb1'); M.p(X + 3 * f, Y + 1, '#ff8fb1');
+  if (!sl) { if (S.stats.joie < 30) M.r(Math.min(X, X + f), Y + 3, 2, 1, C.ink2); else { M.p(X, Y + 2, C.ink2); M.p(X + f, Y + 2, C.ink2); M.p(X + f, Y + 1, C.ink2); M.p(X, Y + 1, C.ink2); M.p(X, Y + 2, '#e5578a'); } }
+  const acc = S.worm.acc;
+  if (acc === 'couronne') M.pat(X - 2, Y - 8, ['x.x.x', 'xxxxx', 'xrxrx'], { x: C.gold, r: C.cherry });
+  else if (acc === 'noeud') M.pat(X - 2 - f, Y - 7, ['x...x', 'xx.xx', 'xxoxx', 'xx.xx'], { x: '#ff8fb1', o: '#e5578a' });
+  else if (acc === 'fleur') M.pat(X - 1 - f, Y - 7, ['.x.', 'xyx', '.x.'], { x: C.white, y: C.gold });
+  else if (acc === 'hennin') {
+    for (let i = 0; i < 7; i++) { const w = 1 + Math.floor(i / 2); M.r(X - Math.floor(w / 2) - f, Y - 12 + i, w, 1, SW.lavande[0]); }
+    M.r(X - 3 - f, Y - 5, 5, 1, C.gold);
+    for (let k = 1; k < 6; k++) M.p(X - f - f * k, Y - 12 + k, 'rgba(255,255,255,.85)');
+  }
+}
+function drawBubble(t) {
+  if (!wm.bubble || now > wm.bubble.until) return;
+  const [rows, map] = BUBBLE[wm.bubble.icon];
+  const bx = Math.round(wm.x) + (wm.face > 0 ? 3 : -12), by = Math.round(wm.y) - 21 + Math.round(Math.sin(t * 4));
+  M.box(bx, by, 11, 9, C.white); M.p(bx + (wm.face > 0 ? 2 : 8), by + 9, C.ink); M.p(bx + (wm.face > 0 ? 2 : 8), by + 8, C.white);
+  M.pat(bx + 3, by + 2, rows, map);
+}
+function drawParts(dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.t += dt;
+    if (p.t > p.life) { parts.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const x = Math.round(p.x), y = Math.round(p.y);
+    if (p.type === 'crumb') { p.vy += 140 * dt; M.p(x, y, p.col); }
+    else if (p.type === 'heart') M.pat(x - 2, y, HEART.slice(0, 4), { x: '#ff7fa8' });
+    else if (p.type === 'note') M.pat(x, y, ['.xx', '.x.', 'xx.'], { x: '#a28ad9' });
+    else if (p.type === 'z') M.pat(x, y, ['xxx', '.x.', 'xxx'], { x: night ? '#fff' : '#8f74c9' });
+    else if (p.type === 'spark') { const c = p.t % 0.2 < 0.1 ? C.white : C.gold; M.p(x, y, c); M.p(x + 1, y, c); }
+  }
+}
+function outline(x, y, w, h, c) { M.r(x, y, w, 1, c); M.r(x, y + h - 1, w, 1, c); M.r(x, y, 1, h, c); M.r(x + w - 1, y, 1, h, c); }
+
+function render(t, dt) {
+  g.drawImage(sky, 0, 0);
+  if (night) stars.forEach(([x, y, p]) => { if (Math.sin(t * 2 + p) > -0.3) M.p(x, y, '#fff'); });
+  else clouds.forEach(c => {
+    c.x += dt * 3 * c.s; if (c.x > W + 30) c.x = -30;
+    [[0, 4, 5], [7, 1, 6], [14, 4, 5]].forEach(([dx, dy, r]) => M.disc(Math.round(c.x) + dx, c.y + dy, r, '#fff'));
+  });
+  if (tilesDirty) { drawTiles(); tilesDirty = false; }
+  g.drawImage(tileCv, 0, 0);
+  drawStemLeaf();
+  drawDecor(true);
+  const blink = (t * 3 | 0) % 2; // marques de creusage
+  for (const m of marks) { const X = (m % GW) * T, Y = ((m / GW) | 0) * T; outline(X, Y, T, T, blink ? '#fff' : '#ff7fa8'); M.p(X + 3, Y + 3, C.ink); M.p(X + 4, Y + 4, C.ink); M.p(X + 5, Y + 3, C.ink); }
+  drawDecor(false);
+  drawWorm(t);
+  if (night) { g.fillStyle = 'rgba(58,40,100,.26)'; g.fillRect(0, 0, W, H); }
+  drawGlows(t);
+  drawParts(dt);
+  drawBubble(t);
+  drawHover();
+}
+
+/* ================= outils ================= */
+let tool = 'dig', selItem = 'lampe', selColor = 'rose', selPat = 'rayures', flip = false;
+const hover = { x: -1, y: -1, on: false };
+function drawHover() {
+  if (!hover.on) return;
+  const { x, y } = hover;
+  if (tool === 'place') {
+    const it = ITEM[selItem], [x0, y0] = anchor(it, x, y), ok = canPlace(it, x0, y0) && afford(it);
+    g.globalAlpha = 0.7; drawItem(selItem, selColor, x0, y0, flip); g.globalAlpha = 1;
+    outline(x0 * T - 1, y0 * T - 1, it.w * T + 2, it.h * T + 2, ok ? '#fff' : '#ff4f7b');
+  } else if (tool === 'dig') {
+    if (inb(x, y) && (canMark(x, y) || marks.has(y * GW + x))) outline(x * T, y * T, T, T, '#fff');
+  } else if (tool === 'paint' || tool === 'erase') {
+    const d = pickDecor(x, y);
+    if (d) { const it = ITEM[d.id]; outline(d.x * T - 1, d.y * T - 1, it.w * T + 2, it.h * T + 2, tool === 'erase' ? '#ff4f7b' : '#fff'); }
+  } else if (tool === 'wall' && isEmpty(x, y)) outline(x * T, y * T, T, T, '#fff');
+}
+
+let toastT = 0;
+function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2400); }
+
+function tileFromEvent(e) {
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W, py = (e.clientY - r.top) / r.height * H;
+  return { px, py, x: Math.floor(px / T), y: Math.floor(py / T) };
+}
+const onWorm = (px, py) => Math.hypot(px - wm.x, py - wm.y) < 8 || segPositions().some(p => Math.hypot(px - p.x, py - p.y) < 5);
+let down = false, dragMode = null, skinWarned = false;
+function applyTool(x, y, first) {
+  if (!inb(x, y)) return;
+  const i = y * GW + x;
+  if (tool === 'dig') {
+    if (first) dragMode = marks.has(i) ? 'unmark' : 'mark';
+    if (dragMode === 'unmark') { if (marks.delete(i)) sfx('paint'); return; }
+    if (marks.has(i)) return;
+    const t = tileAt(x, y);
+    if (t === SKIN) { if (!skinWarned) { toast('La peau est trop dure à croquer !'); skinWarned = true; } return; }
+    if (minable(t) && supportsDecor(x, y)) { if (first) toast('Ce bloc soutient un objet. Range-le d\'abord.'); return; }
+    if (canMark(x, y)) {
+      if (marks.size >= 60) return toast('Ton ver a déjà assez de travail !');
+      marks.add(i); sfx('paint');
+      if (S.worm.sleeping && first) toast('Il creusera à son réveil. 💤');
+    }
+  } else if (tool === 'place' && first) {
+    const it = ITEM[selItem], [x0, y0] = anchor(it, x, y);
+    if (!afford(it)) { sfx('deny'); return toast(it.seeds ? `Il faut ${it.seeds} pépin${it.seeds > 1 ? 's' : ''}. Cherche au cœur !` : 'Pas assez de compote ! Creuse un peu.'); }
+    if (!canPlace(it, x0, y0)) { sfx('deny'); return toast(it.mount === 'ceil' ? 'Ça s\'accroche au plafond.' : it.mount === 'wall' ? 'Il faut un mur libre.' : 'Il faut un sol libre en dessous.'); }
+    S.decor.push({ id: selItem, x: x0, y: y0, c: selColor, f: flip });
+    S.res.compote -= it.cost || 0; S.res.pepin -= it.seeds || 0;
+    for (let k = 0; k < 8; k++) addP('spark', x0 * T + rnd(0, it.w * T), y0 * T + rnd(0, it.h * T), rnd(-15, 15), rnd(-25, 0));
+    sfx('pop'); computeCosy(); refreshUI(); save();
+  } else if (tool === 'paint' && first) {
+    const d = pickDecor(x, y); if (!d) return;
+    d.c = selColor; const it = ITEM[d.id];
+    for (let k = 0; k < 6; k++) addP('spark', d.x * T + rnd(0, it.w * T), d.y * T + rnd(0, it.h * T), rnd(-12, 12), rnd(-20, 0));
+    sfx('paint'); save();
+  } else if (tool === 'wall') {
+    if (!isEmpty(x, y)) return;
+    const cur = S.wall[i];
+    if (selPat === 'gomme') { if (cur) { delete S.wall[i]; tilesDirty = true; } }
+    else if (!cur || cur.p !== selPat || cur.c !== selColor) { S.wall[i] = { p: selPat, c: selColor }; tilesDirty = true; if (first) sfx('paint'); }
+    computeCosy();
+  } else if (tool === 'erase' && first) {
+    const d = pickDecor(x, y); if (!d) return;
+    const it = ITEM[d.id];
+    if (wm.bedRef === d) wake('Debout ! Son lit a disparu.');
+    S.decor.splice(S.decor.indexOf(d), 1);
+    S.res.compote += it.cost || 0; S.res.pepin += it.seeds || 0;
+    sfx('chomp'); computeCosy(); refreshUI(); save();
+  }
+}
+cv.addEventListener('pointerdown', e => {
   e.preventDefault();
-  if (state === 'intro') start();
-  else if ((state === 'won' || state === 'lost') && stateT > 0.8) newGame();
+  const { px, py, x, y } = tileFromEvent(e);
+  hover.x = x; hover.y = y; hover.on = true;
+  if (tool !== 'place' && tool !== 'wall' && onWorm(px, py)) return cuddle();
+  down = true; skinWarned = false; cv.setPointerCapture(e.pointerId);
+  applyTool(x, y, true);
+});
+cv.addEventListener('pointermove', e => {
+  const { x, y } = tileFromEvent(e), moved = x !== hover.x || y !== hover.y;
+  hover.x = x; hover.y = y; hover.on = true;
+  if (down && moved && (tool === 'dig' || tool === 'wall')) applyTool(x, y, false);
+});
+const endDrag = () => { if (down) { down = false; dragMode = null; save(); } };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('pointerleave', () => { if (!down) hover.on = false; });
+cv.addEventListener('contextmenu', e => { e.preventDefault(); if (tool === 'place') { flip = !flip; renderToolBody(); } });
+addEventListener('keydown', e => {
+  if (e.target === $('name')) return;
+  if (e.key === 'f' || e.key === 'F') { flip = !flip; if (tool === 'place') renderToolBody(); }
+  if (e.key === 'Escape') setTool('dig');
+  const n = '12345'.indexOf(e.key); if (n >= 0) setTool(TOOLS[n][0]);
 });
 
-const mouse = { x: 0, y: 0, sx: 0, sy: 0, px: innerWidth / 2, py: innerHeight / 2 };
-addEventListener('pointermove', e => {
-  mouse.px = e.clientX; mouse.py = e.clientY;
-  mouse.x = clamp((e.clientX / innerWidth) * 2 - 1, -1, 1);
-  mouse.y = clamp(-((e.clientY / innerHeight) * 2 - 1), -1, 1);
-  $('cursor').style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-});
-addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') { mouse.px = e.clientX; mouse.py = e.clientY;
-  mouse.x = (e.clientX / innerWidth) * 2 - 1; mouse.y = -((e.clientY / innerHeight) * 2 - 1); } });
-$('cursor').style.left = '0px'; $('cursor').style.top = '0px';
-
-addEventListener('resize', () => {
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-});
-
-/* ---------- simulation ---------- */
-const tmpQ = new THREE.Quaternion(), tmpE = new THREE.Euler(), tmpM = new THREE.Matrix4();
-const upL = new THREE.Vector3(), desired = new THREE.Vector3(), lookT = new THREE.Vector3(), camLook = new THREE.Vector3();
-const ONE = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3(), IDQ = new THREE.Quaternion();
-
-function steer(dt) {
-  const dz = v => Math.abs(v) < 0.05 ? 0 : Math.sign(v) * Math.pow((Math.abs(v) - 0.05) / 0.95, 1.15);
-  worm.yaw -= dz(mouse.sx) * TURN * dt;
-  worm.pitch = clamp(worm.pitch + dz(mouse.sy) * TURN * 0.85 * dt, -1.35, 1.35);
-}
-function moveWorm(dt, speed, grow) {
-  updateFwd();
-  worm.pos.addScaledVector(worm.fwd, speed * dt);
-  const last = worm.path[worm.path.length - 1];
-  if (!last || last.distanceToSquared(worm.pos) > 0.0016) worm.path.push(worm.pos.clone());
-  if (grow && (worm.growAcc += speed * dt) > 3.2) { worm.growAcc = 0; worm.len = Math.min(MAX_SEG, worm.len + 1); }
-  if ((worm.trailAcc += speed * dt) > 0.2 && insideRatio(worm.pos) < 0.97) {
-    worm.trailAcc = 0;
-    tmpM.compose(worm.pos, IDQ, sc.setScalar(0.21));
-    trail.setMatrixAt(trailIdx, tmpM); trailIdx = (trailIdx + 1) % MAX_TRAIL;
-    trail.count = Math.max(trail.count, trailIdx); trail.instanceMatrix.needsUpdate = true;
-  }
-}
-function followCam(dt, k) {
-  tmpQ.setFromEuler(tmpE.set(worm.pitch, worm.yaw, 0, 'YXZ'));
-  upL.set(0, 1, 0).applyQuaternion(tmpQ);
-  desired.copy(worm.pos).addScaledVector(worm.fwd, -4.3).addScaledVector(upL, 2.2);
-  const a = 1 - Math.exp(-k * dt);
-  camera.position.lerp(desired, a);
-  lookT.copy(worm.pos).addScaledVector(worm.fwd, 3.2);
-  camLook.lerp(lookT, Math.min(1, a * 1.6));
-  camera.up.lerp(upL, a).normalize();
-  camera.lookAt(camLook);
-}
-
-function layoutWorm(t, moving) {
-  tmpQ.setFromEuler(tmpE.set(worm.pitch, worm.yaw, 0, 'YXZ'));
-  head.position.copy(worm.pos); head.quaternion.copy(tmpQ);
-  const n = worm.len, path = worm.path;
-  segPos[0].copy(worm.pos);
-  let i = 1, target = SPACING, acc = 0, a = worm.pos, k = path.length - 1;
-  for (; k >= 0 && i < n; k--) {
-    const b = path[k], L = a.distanceTo(b);
-    while (L > 0 && acc + L >= target && i < n) { segPos[i].lerpVectors(a, b, (target - acc) / L); i++; target += SPACING; }
-    acc += L; a = b;
-  }
-  for (; i < n; i++) segPos[i].copy(segPos[i - 1]);
-  if (k > 20) path.splice(0, k - 20);  // on oublie le chemin derrière la queue
-
-  for (let j = 1; j < n; j++) {
-    const u = j / (n - 1);
-    let r = HEAD_R * (0.95 - 0.52 * Math.pow(u, 1.8));
-    if (j >= 5 && j <= 8) r *= 1.12;
-    segRad[j] = r;
-    const w = moving ? 1 + 0.07 * Math.sin(t * 10 - j * 0.7) : 1 + 0.03 * Math.sin(t * 3 - j * 0.5);
-    tmpM.compose(segPos[j], IDQ, sc.setScalar(r * w));
-    segs.setMatrixAt(j - 1, tmpM);
-  }
-  segs.count = n - 1; segs.instanceMatrix.needsUpdate = true;
-}
-
-function checkCollisions() {
-  if (worm.pos.distanceTo(seedGrp.position) < HEAD_R + SEED_R) return end(true);
-  if (insideRatio(worm.pos) > 0.962) return end(false, 'skin');
-  for (let i = 10; i < worm.len; i++) {
-    const rr = HEAD_R * 0.85 + segRad[i] * 0.8;
-    if (worm.pos.distanceToSquared(segPos[i]) < rr * rr) return end(false, 'bite');
-  }
-}
-
-/* ---------- boucle ---------- */
-const clock = new THREE.Clock();
-let atmo = 0, shiftX = 0, shiftY = 0, shake = 0;
-const camDir = new THREE.Vector3();
-
-let simT = 0;
-function tick(dt) {
-  simT += dt; const t = simT;
-  stateT += dt;
-  const ms = 1 - Math.exp(-10 * dt);
-  mouse.sx += (mouse.x - mouse.sx) * ms; mouse.sy += (mouse.y - mouse.sy) * ms;
-  let moving = false;
-
-  if (state === 'intro') {
-    camDir.copy(entry.out).applyAxisAngle(Y, 0.75 + Math.sin(t * 0.25) * 0.3); camDir.y += 0.22; camDir.normalize();
-    const a = 1 - Math.exp(-2.2 * dt);
-    camera.position.lerp(desired.copy(camDir).multiplyScalar(innerWidth > 720 ? 40 : 52), a);
-    camLook.lerp(lookT.copy(entry.out).multiplyScalar(R * 0.45), a);
-    camera.up.lerp(Y, a).normalize();
-    camera.lookAt(camLook);
-  } else if (state === 'dive') {
-    if (stateT > 0.9) { moveWorm(dt, SPEED * 1.1, false); moving = true; }
-    followCam(dt, stateT < 0.9 ? 2.6 : 4);
-    if (stateT > 2.5) {
-      state = 'play'; elapsed = 0;
-      document.body.classList.add('playing');
-      $('hud').classList.add('on'); $('flair').classList.add('on');
+/* ================= interface ================= */
+const TOOLS = [['dig', 'Creuser'], ['place', 'Décorer'], ['paint', 'Peindre'], ['wall', 'Papier'], ['erase', 'Ranger']];
+const ICON = {};
+const swatchesHTML = sel => `<div class="sw">${SW_KEYS.map(k => `<button data-col="${k}" class="${k === sel ? 'on' : ''}" style="background:${SW[k][0]}" title="${k}"></button>`).join('')}</div>`;
+const thumbs = {};
+const itemThumb = id => (thumbs[id + selColor] ||= itemSprite(id, selColor).toDataURL());
+const patThumbs = {};
+function patThumb(p) {
+  const k = p === 'gomme' ? p : p + selColor;
+  return (patThumbs[k] ||= sprite(16, 16, P => {
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+      if (p === 'gomme') { P.r(x * 8, y * 8, 8, 8, C.cave); P.p(x * 8 + 3, y * 8 + 4, C.caveD); }
+      else drawPattern(P, x * 8, y * 8, p, SW[selColor], x, y);
     }
-  } else if (state === 'play') {
-    elapsed += dt;
-    steer(dt);
-    moveWorm(dt, Math.min(SPEED + elapsed * 0.03, MAX_SPEED), true);
-    moving = true;
-    followCam(dt, 5);
-    checkCollisions();
-  } else if (state === 'won') {
-    const a = 1 - Math.exp(-1.6 * dt), sp = seedGrp.position;
-    desired.set(Math.cos(t * 0.5) * 2.4, 1.0, Math.sin(t * 0.5) * 2.4).add(sp);
-    camera.position.lerp(desired, a); camLook.lerp(sp, a); camera.lookAt(camLook);
-  } else if (state === 'lost') {
-    shake = Math.max(0, 0.35 - stateT) * 0.6;
-    camera.lookAt(camLook);
-    if (shake) camera.position.add(desired.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(shake * 0.1));
-  }
-
-  layoutWorm(t, moving);
-
-  // pépin
-  seed.rotation.y += dt * 0.7;
-  seed.position.y = Math.sin(t * 1.6) * 0.08;
-  const d = worm.pos.distanceTo(seedGrp.position);
-  const pulse = 0.85 + 0.15 * Math.sin(t * 3.2);
-  const near = state === 'won' ? 1 : smooth(17, 3, d);
-  halo.material.opacity = (0.1 + 0.75 * near) * pulse;
-  halo.scale.setScalar((state === 'won' ? 4.5 : 2.4 + near * 1.2) * pulse);
-  seedLight.intensity = (2 + near * 6) * pulse;
-
-  // HUD
-  if (state === 'play') {
-    $('time').textContent = elapsed.toFixed(1);
-    $('len').textContent = worm.len;
-    const heat = 1 - clamp((d - 1) / (R * 1.5), 0, 1);
-    $('flairFill').style.width = (heat * 100).toFixed(1) + '%';
-    $('flairTxt').textContent = d < 3.5 ? 'brûlant 🔥' : d < 7 ? 'chaud' : d < 11 ? 'tiède' : 'froid';
-    $('vignette').style.opacity = smooth(0.8, 0.955, insideRatio(worm.pos)).toFixed(2);
-    const cx = innerWidth / 2, cy = innerHeight / 2;
-    $('guideLine').setAttribute('x1', cx); $('guideLine').setAttribute('y1', cy);
-    $('guideLine').setAttribute('x2', mouse.px); $('guideLine').setAttribute('y2', mouse.py);
-    $('guideDot').setAttribute('cx', cx); $('guideDot').setAttribute('cy', cy);
-  } else {
-    $('vignette').style.opacity = state === 'lost' ? Math.max(0, 0.9 - stateT * 0.6).toFixed(2) : '0';
-  }
-
-  // ambiance : brouillard de chair quand la caméra est dans la pomme
-  const inside = smooth(1.04, 0.93, insideRatio(camera.position));
-  atmo += (inside - atmo) * (1 - Math.exp(-6 * dt));
-  scene.fog.color.copy(fogColor);
-  scene.fog.near = lerp(200, 2.2, atmo); scene.fog.far = lerp(500, 12.5, atmo);
-  scene.background.copy(BG_OUT).lerp(fogColor, atmo);
-  headLight.intensity = atmo * 3;
-  headLight.position.copy(camera.position);
-
-  // décalage du cadrage pour laisser la place au panneau
-  const wide = innerWidth > 720;
-  const showPanel = state === 'intro';
-  shiftX += ((showPanel && wide ? -0.17 : 0) - shiftX) * (1 - Math.exp(-3 * dt));
-  shiftY += ((showPanel && !wide ? 0.17 : 0) - shiftY) * (1 - Math.exp(-3 * dt));
-  if (Math.abs(shiftX) + Math.abs(shiftY) > 0.0005)
-    camera.setViewOffset(innerWidth, innerHeight, shiftX * innerWidth, shiftY * innerHeight, innerWidth, innerHeight);
-  else camera.clearViewOffset();
-
-  renderer.render(scene, camera);
+  }).toDataURL());
 }
-function frame() { tick(Math.min(clock.getDelta(), 0.05)); requestAnimationFrame(frame); }
+function renderToolBody() {
+  const b = $('toolBody'), ic = n => `<img src="${ICON[n]}" alt="">`;
+  if (tool === 'dig') b.innerHTML = `<p class="hint">Clique ou glisse sur les blocs de chair au bord de ta maison : <b>ton ver va les grignoter</b>. Chaque bloc donne 1 compote ${ic('compote')}.</p>
+    <p class="hint">Les <b>pépins</b> ${ic('pepin')} se cachent surtout près du cœur de la pomme. Ils servent aux objets royaux.</p>
+    <div class="row"><span class="hint" style="margin:0">${marks.size} bloc${marks.size > 1 ? 's' : ''} marqué${marks.size > 1 ? 's' : ''}</span><button class="btn" id="clearMarks" style="padding:5px 10px">Annuler</button></div>`;
+  else if (tool === 'place') b.innerHTML = `<h3>Couleur</h3>${swatchesHTML(selColor)}
+    <div class="row"><span class="hint" style="margin:0">Sens <small>(touche F)</small></span><button class="btn ${flip ? 'on' : ''}" id="flipBtn" style="padding:5px 10px">⇋ ${flip ? 'retourné' : 'normal'}</button></div>
+    <div class="items">${ITEMS.map(it => `<button class="item ${it.id === selItem ? 'on' : ''} ${afford(it) ? '' : 'poor'}" data-item="${it.id}" title="${it.name}">
+      <div class="th"><img src="${itemThumb(it.id)}" style="width:${Math.min(48, it.w * 16)}px;height:${Math.min(48, it.h * 16)}px;object-fit:contain" alt=""></div>
+      <span>${it.name}</span><em>${it.seeds ? ic('pepin') + it.seeds : ic('compote') + it.cost}</em></button>`).join('')}</div>`;
+  else if (tool === 'paint') b.innerHTML = `<h3>Couleur</h3>${swatchesHTML(selColor)}<p class="hint">Clique sur un objet pour le <b>repeindre</b>. C'est gratuit !</p>`;
+  else if (tool === 'wall') b.innerHTML = `<h3>Motif</h3><div class="pats">${PATTERNS.map(([p, n]) => `<button class="pat ${p === selPat ? 'on' : ''}" data-pat="${p}"><img src="${patThumb(p)}" alt="">${n}</button>`).join('')}</div>
+    <h3>Couleur</h3>${swatchesHTML(selColor)}<p class="hint">Clique ou glisse sur le <b>fond</b> de ta maison pour poser le papier peint.</p>`;
+  else b.innerHTML = `<p class="hint">Clique sur un objet pour le <b>ranger</b>. Tu récupères tout ce qu'il a coûté.</p>`;
+  b.querySelectorAll('[data-col]').forEach(el => el.onclick = () => { selColor = el.dataset.col; renderToolBody(); });
+  b.querySelectorAll('[data-item]').forEach(el => el.onclick = () => { selItem = el.dataset.item; selColor = ITEM[selItem].def; renderToolBody(); });
+  b.querySelectorAll('[data-pat]').forEach(el => el.onclick = () => { selPat = el.dataset.pat; renderToolBody(); });
+  if ($('flipBtn')) $('flipBtn').onclick = () => { flip = !flip; renderToolBody(); };
+  if ($('clearMarks')) $('clearMarks').onclick = () => { marks.clear(); renderToolBody(); save(); };
+}
+function setTool(t) {
+  tool = t;
+  $('tools').querySelectorAll('.tool').forEach(el => el.classList.toggle('on', el.dataset.tool === t));
+  renderToolBody();
+}
+function buildUI() {
+  for (const k of Object.keys(ICONS)) ICON[k] = iconURL(k);
+  [['icFaim', 'faim'], ['icJoie', 'joie'], ['icEnergie', 'energie'], ['icCompote', 'compote'], ['icPepin', 'pepin'], ['icCosy', 'cosy']].forEach(([id, k]) => $(id).src = ICON[k]);
+  $('tools').innerHTML = TOOLS.map(([id, n], i) => `<button class="tool" data-tool="${id}" title="${n} (${i + 1})"><img src="${ICON[id]}" alt="">${n}</button>`).join('');
+  $('tools').querySelectorAll('.tool').forEach(el => el.onclick = () => setTool(el.dataset.tool));
+  $('wormColors').innerHTML = SW_KEYS.map(k => `<button data-wc="${k}" style="background:${SW[k][0]}" title="${k}"></button>`).join('');
+  $('wormColors').querySelectorAll('button').forEach(el => el.onclick = () => { S.worm.color = el.dataset.wc; refreshUI(); save(); sfx('paint'); });
+  const ACC = [['aucun', 'Aucun'], ['noeud', 'Nœud'], ['couronne', 'Couronne'], ['fleur', 'Fleur'], ['hennin', 'Hennin']];
+  $('accs').innerHTML = ACC.map(([k, n]) => `<button class="chip" data-acc="${k}">${n}</button>`).join('');
+  $('accs').querySelectorAll('.chip').forEach(el => el.onclick = () => { S.worm.acc = el.dataset.acc; refreshUI(); save(); sfx('pop'); say('heart', 1); });
+  $('aFeed').onclick = feed; $('aPlay').onclick = play; $('aSleep').onclick = toggleSleep;
+  $('name').oninput = () => { S.worm.name = $('name').value.trim() || 'Pépito'; save(); };
+  $('mute').onclick = () => { S.muted = !S.muted; refreshUI(); save(); };
+  $('reset').onclick = () => {
+    if (!confirm('Recommencer avec une nouvelle pomme ? Ta maison actuelle sera effacée.')) return;
+    S = freshSave(); grid = Int8Array.from(S.grid); marks = new Set(); start();
+  };
+  setTool('dig');
+}
+let lastUI = '';
+function refreshUI() {
+  const st = S.stats;
+  $('bFaim').style.width = st.faim + '%'; $('bJoie').style.width = st.joie + '%'; $('bEnergie').style.width = st.energie + '%';
+  $('mood').textContent = mood();
+  $('rCompote').textContent = S.res.compote; $('rPepin').textContent = S.res.pepin; $('rCosy').textContent = cosyScore;
+  $('aSleep').firstChild.textContent = S.worm.sleeping ? 'Réveil' : 'Dodo';
+  $('aSleep').querySelector('small').textContent = S.worm.sleeping ? 'debout !' : S.decor.some(d => d.id === 'lit') ? 'au lit !' : 'par terre';
+  $('aFeed').disabled = S.res.compote < 1;
+  $('mute').textContent = S.muted ? '♪ off' : '♪ on';
+  $('wormColors').querySelectorAll('button').forEach(el => el.classList.toggle('on', el.dataset.wc === S.worm.color));
+  $('accs').querySelectorAll('.chip').forEach(el => el.classList.toggle('on', el.dataset.acc === S.worm.acc));
+  const key = tool + '|' + S.res.compote + '|' + S.res.pepin + '|' + marks.size;
+  if (key !== lastUI && (tool === 'place' || tool === 'dig')) renderToolBody();
+  lastUI = key;
+}
 
-newGame();
+/* ================= mise en page ================= */
+function layout() {
+  const wide = innerWidth >= 1000;
+  const aw = (wide ? innerWidth - 272 * 2 - 22 * 2 - 32 : innerWidth - 32) - 84;
+  const ah = (wide ? innerHeight - 54 - 22 : (innerHeight - 54) * 0.62) - 112;
+  const s = Math.max(1, Math.floor(Math.min(aw / W, ah / H) * 4) / 4);
+  cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
+  document.documentElement.style.setProperty('--px', s + 'px');
+  document.documentElement.style.setProperty('--grid', s >= 3 ? '.9' : '0');
+}
+addEventListener('resize', layout);
+
+/* ================= boucle ================= */
+let now = 0, last = 0, saveT = 4, uiT = 0, nightT = 30;
+function updateWorm(dt) {
+  wm.loveCd -= dt; wm.digCd -= dt;
+  switch (wm.state) {
+    case 'walk': if (stepWalk(dt)) arrive(); break;
+    case 'munch':
+      wm.timer -= dt;
+      if (Math.random() < dt * 18) { const m = wm.job.mark; addP('crumb', (m % GW) * T + rnd(1, 7), ((m / GW) | 0) * T + rnd(1, 7), rnd(-20, 20), rnd(-30, 0), C.fleshS); }
+      if (wm.timer <= 0) finishMunch();
+      break;
+    case 'sleep':
+      if (Math.random() < dt * 0.9) addP('z', wm.x + wm.face * 2, wm.y - 7, rnd(2, 6) * wm.face, -10);
+      if (S.stats.energie >= 100) wake('Bien dormi ! ☀️');
+      break;
+    case 'anim':
+      wm.timer -= dt;
+      if (wm.anim === 'play' && Math.random() < dt * 4) addP('note', wm.x + rnd(-6, 6), wm.y - 8, rnd(-6, 6), -18);
+      if (wm.anim === 'eat' && Math.random() < dt * 14) addP('crumb', wm.x + wm.face * 4, wm.y, rnd(-15, 15), rnd(-25, -5), '#ffd9a0');
+      if (wm.timer <= 0) setIdle(1);
+      break;
+    default:
+      wm.timer -= dt;
+      if (S.stats.energie < 4) { goSleep(); break; }
+      if (marks.size && S.stats.energie > 6 && wm.digCd <= 0) { if (planDig()) break; wm.digCd = 1.5; }
+      if (wm.timer <= 0) wander();
+  }
+  if ((wm.needT -= dt) <= 0 && wm.state !== 'sleep') { // il exprime ses besoins
+    wm.needT = rnd(7, 11); const s = S.stats;
+    if (s.faim < 30) say('apple'); else if (s.energie < 25) say('zzz'); else if (s.joie < 30) say('sad');
+    else if (s.joie > 75 && Math.random() < 0.5) say(Math.random() < 0.5 ? 'heart' : 'note');
+  }
+}
+function tick(dt) {
+  now += dt;
+  tickStats(dt);
+  updateWorm(dt);
+  if ((nightT -= dt) <= 0) { nightT = 30; checkNight(); }
+  render(now, dt);
+  if ((uiT -= dt) <= 0) { uiT = 0.25; refreshUI(); }
+  if ((saveT -= dt) <= 0) { saveT = 4; save(); }
+}
+function frame(ts) {
+  let dt = last ? (ts - last) / 1000 : 0.016; last = ts;
+  if (dt > 2) { offline(dt); dt = 0.05; } // retour après un onglet en pause
+  tick(Math.min(dt, 0.05));
+  requestAnimationFrame(frame);
+}
+addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+addEventListener('pagehide', save);
+
+function start() {
+  tilesDirty = true; computeCosy(); parts.length = 0;
+  appleTop = 0; for (let y = 0; y < GH; y++) if (grid[y * GW + 15] !== OUT) { appleTop = y * T; break; }
+  wm.face = 1; wm.bedRef = null;
+  let tx = S.worm.x, ty = S.worm.y;
+  if (!isEmpty(tx, ty)) { const i = grid.indexOf(EMPTY); tx = i % GW; ty = (i / GW) | 0; }
+  placeWormAt(tx, ty); setIdle(1);
+  if (S.worm.sleeping) {
+    const bed = S.decor[S.worm.bed];
+    if (bed && bed.id === 'lit') startSleep(bed); else wm.state = 'sleep';
+  }
+  $('name').value = S.worm.name;
+  refreshUI(); renderToolBody();
+  if (S.fresh) { S.fresh = false; setTimeout(() => toast('Bienvenue ! Clique les blocs autour pour creuser.'), 500); }
+  else say('heart');
+  save();
+}
+
+load();
+computeCosy();
+offline((Date.now() - (S.t || Date.now())) / 1000);
+checkNight();
+buildUI();
+layout();
+start();
 requestAnimationFrame(frame);
 </script>
 </body>

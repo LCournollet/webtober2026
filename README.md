@@ -6,7 +6,7 @@ Un thème, un mini projet web, chaque jour d'octobre 2026.
 
 | Jour | Thème | Lien |
 |------|-------|------|
-| 01 | 🍎 Apple — Ver de pomme : snake 3D dans une pomme, trouve le pépin | [/apple](https://devtober.57-131-40-94.sslip.io/apple/) |
+| 01 | 🍎 Apple — Pomme Sweet Pomme : tamagotchi pixel art, creuse et décore la maison de ton ver ([v0 3D](https://devtober.57-131-40-94.sslip.io/applev0/)) | [/apple](https://devtober.57-131-40-94.sslip.io/apple/) |
 
 ## Structure
 
