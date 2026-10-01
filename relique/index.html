@@ -668,24 +668,27 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   color: '#ff3355', metalness: 0, roughness: 0.14, transmission: 1, thickness: 0.12, ior: 1.49,
   attenuationColor: '#a0102c', attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.06, specularIntensity: 0.7, envMapIntensity: 0.7,
   emissive: '#6a0a1e', emissiveIntensity: 0.9,          // lueur interne : la lumière qui traverse la matière
-  transparent: true, opacity: 0.86, depthWrite: false,
+  transparent: true, opacity: 0.92, depthWrite: false,
 });
 {
-  const Y0 = 1124, Y1 = 1216, XO = 768, pts = [];
+  const Y0 = 1108, Y1 = 1232, XO = 776, pts = [];      // plus grand, centré sur y 1170
   for (let i = 0; i <= 48; i++) {                    // bord extérieur : 7 ondulations très douces
     const t = i / 48, y = Y0 + (Y1 - Y0) * t;
     pts.push([XO + 1.6 * Math.sin(Math.PI * t) * Math.cos(t * Math.PI * 14) - 6 * (1 - Math.sin(Math.PI * t)) ** 3, y]);
   }
-  // bord intérieur : V écrasé, deux côtés droits et une pointe aplatie
-  pts.push([XO - 30, Y0 + (Y1 - Y0) * 0.52], [XO - 30, Y0 + (Y1 - Y0) * 0.32]);
+  // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur et une pointe aplatie centrée
+  pts.push([XO - 42, Y0 + (Y1 - Y0) * 0.6], [XO - 42, Y0 + (Y1 - Y0) * 0.4]);
   const btn = pieceI(pts, 0.025, TH + 0.012, burgundy, { bevel: 0.03, seg: 6 }); btn.renderOrder = 11;
+  // liseré clair sur les arêtes du dessus : la silhouette reste lisible même posée sur le corps sombre
+  const rim = new THREE.LineSegments(new THREE.EdgesGeometry(btn.geometry, 35), new THREE.LineBasicMaterial({ color: '#ff8096', transparent: true, opacity: 0.55, depthWrite: false }));
+  rim.position.copy(btn.position); rim.renderOrder = 12; chip.add(rim);
   // inscription
   const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d');
   g.fillStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText('RLC-07 // SEC', 256, 50);
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.064), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[756, 1170]]); lab.position.set(a[0], a[1], TH + 0.0125); lab.renderOrder = 12;
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.078), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+  const [a] = IMG([[761, 1170]]); lab.position.set(a[0], a[1], TH + 0.0125); lab.renderOrder = 12;
   chip.add(lab);
 }
 
