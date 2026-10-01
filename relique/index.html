@@ -589,7 +589,7 @@ pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { 
   const k = 0.72, kw = 1.28;                         // broches réduites en longueur autour de leur pied (y 275), larges : ~4 px entre les bases
   // tête centrale raccourcie (214→246 au lieu de 198→246) : la pointe est plus longue, longueur totale inchangée
   pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 214], [xc + 14, 220], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 220], [xc - 5, 214]]
-    .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - 0.034, TH / 2 + 0.034, metal, { bevel: 0.01 });
+    .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - KNIFE.ridgeFront / 2, TH / 2 + KNIFE.ridgeFront / 2, metal, { bevel: 0.004, seg: 2 }); // même épaisseur que l arête : la pente arrive pile à leur base
 });
 // perforations de la plaque
 const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
