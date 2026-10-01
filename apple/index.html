@@ -1,5 +1,632 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Apple · Devtober</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui;background:#111;color:#eee}</style>
-</head><body><p>🍎 Jour 1 — Apple · en construction…</p></body></html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Ver de pomme · Devtober J01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --accent: #e0352b; --bg: #1a0f0c; --ink: #fff7ee; --muted: #c9b8a8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
+    font-family: "Fredoka", ui-rounded, system-ui, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
+  body.playing { cursor: none; }
+  #stage, #stage canvas { position: fixed; inset: 0; display: block; }
+
+  #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(190, 20, 20, .55) 100%); }
+  #guide { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .4s; }
+  body.playing #guide { opacity: 1; }
+  #cursor { position: fixed; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid rgba(255,255,255,.85);
+    border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .3s; box-shadow: 0 0 0 4px rgba(0,0,0,.12); }
+  body.playing #cursor { opacity: 1; }
+
+  .top { position: fixed; top: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+  .brand { pointer-events: auto; display: flex; gap: 10px; align-items: center; font-size: 14px; }
+  .brand a { color: var(--ink); text-decoration: none; padding: 7px 12px; border-radius: 999px; background: rgba(0,0,0,.35); backdrop-filter: blur(8px); }
+  .brand a:hover { background: rgba(0,0,0,.55); }
+  .brand span { color: var(--muted); }
+  .brand b { color: var(--ink); font-weight: 600; }
+
+  #hud { display: flex; gap: 8px; opacity: 0; transition: opacity .4s; }
+  #hud.on { opacity: 1; }
+  .stat { background: rgba(0,0,0,.4); backdrop-filter: blur(8px); border-radius: 14px; padding: 6px 14px; text-align: right; min-width: 84px; }
+  .stat span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .stat b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  #flair { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(360px, calc(100% - 32px));
+    background: rgba(0,0,0,.4); backdrop-filter: blur(8px); border-radius: 16px; padding: 10px 14px 12px; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #flair.on { opacity: 1; }
+  #flair .label { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 7px; }
+  #flair .label b { color: var(--ink); font-weight: 600; }
+  #flair .bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+  #flair .bar i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, #6fb6ff, #ffd25a 55%, #ff4b2b); transition: width .15s; }
+
+  #panel { position: fixed; left: clamp(16px, 5vw, 72px); top: 50%; transform: translateY(-50%); width: min(400px, calc(100% - 32px));
+    background: rgba(24, 13, 10, .72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 26px; padding: 28px 28px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.45);
+    transition: opacity .35s, transform .35s; }
+  #panel.hidden { opacity: 0; pointer-events: none; transform: translateY(-46%); }
+  #panel .eyebrow { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); font-weight: 600; filter: brightness(1.35); }
+  #panel h1 { margin: 0; font-size: clamp(34px, 5vw, 48px); line-height: 1; font-weight: 700; letter-spacing: -.01em; }
+  #panel p { margin: 12px 0 0; color: var(--muted); line-height: 1.45; font-size: 16px; }
+  #panel p b { color: var(--ink); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .chips span { font-size: 13px; padding: 5px 10px; border-radius: 99px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); }
+  .chips .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: -1px; }
+  .rules { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 7px; font-size: 14px; color: var(--muted); }
+  .rules li::before { content: "🐛"; margin-right: 8px; }
+  .rules b { color: var(--ink); font-weight: 500; }
+  .actions { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+  #panel button { font: inherit; font-size: 18px; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 999px;
+    padding: 13px 24px; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.18); transition: transform .12s, filter .12s; }
+  #panel button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  #panel button:active { transform: translateY(1px); }
+  .actions small { color: var(--muted); font-size: 13px; }
+  kbd { font: inherit; font-size: 12px; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.1); }
+
+  @media (max-width: 720px) {
+    #panel { top: auto; bottom: 16px; transform: none; padding: 20px 20px 18px; border-radius: 22px; }
+    #panel.hidden { transform: translateY(10px); }
+    #panel p { font-size: 15px; }
+    .rules, .actions small { display: none; }
+    .stat { min-width: 70px; padding: 5px 10px; }
+    .stat b { font-size: 18px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="vignette"></div>
+<svg id="guide"><line id="guideLine" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-dasharray="4 7" stroke-linecap="round"/><circle id="guideDot" r="3" fill="rgba(255,255,255,.7)"/></svg>
+<div id="cursor"></div>
+
+<div class="top">
+  <div class="brand"><a href="/">← Devtober</a><span>J01 · <b>Apple</b></span></div>
+  <div id="hud">
+    <div class="stat"><span>Temps</span><b id="time">0.0</b></div>
+    <div class="stat"><span>Anneaux</span><b id="len">0</b></div>
+  </div>
+</div>
+
+<div id="flair"><div class="label"><span>Flair</span><b id="flairTxt">froid</b></div><div class="bar"><i id="flairFill"></i></div></div>
+
+<section id="panel"></section>
+
+<script type="module">
+import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const Y = new THREE.Vector3(0, 1, 0);
+
+/* ---------- réglages ---------- */
+const R = 10;              // rayon de base de la pomme
+const HEAD_R = 0.36;       // rayon de la tête du ver
+const SPACING = 0.26;      // espacement des anneaux
+const START_LEN = 14;
+const MAX_SEG = 240;
+const SPEED = 2.8, MAX_SPEED = 4.2, TURN = 2.1;
+const SEED_R = 0.45;
+
+const VARIETIES = [
+  { name: 'Gala',          skin: '#c42a1f', streak: '#f0b53e', flesh: '#f6e6b5', amt: 0.9 },
+  { name: 'Granny Smith',  skin: '#79bd3f', streak: '#c2e06a', flesh: '#eef2c6', amt: 0.35 },
+  { name: 'Golden',        skin: '#e6c444', streak: '#b9cf55', flesh: '#f8eab8', amt: 0.4 },
+  { name: 'Pink Lady',     skin: '#e0566a', streak: '#f3cf78', flesh: '#f7ebc6', amt: 0.75 },
+  { name: 'Red Delicious', skin: '#86121d', streak: '#c33a2a', flesh: '#f5e8c2', amt: 0.6 },
+  { name: 'Reinette',      skin: '#b49b45', streak: '#c9692d', flesh: '#f3e1ad', amt: 0.85 },
+  { name: 'Honeycrisp',    skin: '#d8452c', streak: '#f2d066', flesh: '#f8edc4', amt: 1.0 },
+];
+
+/* ---------- moteur ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+$('stage').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const BG_OUT = new THREE.Color('#1a0f0c');
+scene.background = BG_OUT.clone();
+scene.fog = new THREE.Fog('#f6e6b5', 200, 500);
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.05, 300);
+camera.position.set(0, 10, 32);
+
+scene.add(new THREE.HemisphereLight('#fff6e8', '#6a4430', 1.2));
+const sun = new THREE.DirectionalLight('#fff1dc', 2.4); sun.position.set(18, 30, 22); scene.add(sun);
+const rimL = new THREE.DirectionalLight('#ffb38a', 1.4); rimL.position.set(-25, 5, -20); scene.add(rimL);
+const headLight = new THREE.PointLight('#fff3dd', 0, 16, 1); scene.add(headLight);
+
+function radialTex(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const GLOW = radialTex([[0, 'rgba(255,255,255,1)'], [0.2, 'rgba(255,255,255,.6)'], [1, 'rgba(255,255,255,0)']]);
+const DOT = radialTex([[0, 'rgba(255,255,255,1)'], [0.55, 'rgba(255,255,255,.9)'], [1, 'rgba(255,255,255,0)']]);
+
+/* ---------- forme de la pomme ---------- */
+let shape, variety, apple = null, fleshColor = new THREE.Color(), fogColor = new THREE.Color();
+
+function radiusAt(s, d) { // d : direction unitaire (espace avant mise à l'échelle)
+  const y = d.y, phi = Math.atan2(d.z, d.x);
+  let r = 1 + s.taper * y;
+  r -= s.dTop * Math.pow(Math.max(0, y), 9);
+  r -= s.dBot * Math.pow(Math.max(0, -y), 12);
+  r += s.lobeAmp * Math.cos(s.lobes * phi + s.lobePhase) * (1 - y * y);
+  return R * r;
+}
+const _v = new THREE.Vector3();
+function insideRatio(p) { // < 1 : dans la pomme
+  _v.set(p.x / shape.sx, p.y / shape.sy, p.z / shape.sz);
+  const len = _v.length(); if (len < 1e-6) return 0;
+  _v.divideScalar(len);
+  return len / radiusAt(shape, _v);
+}
+function surfacePoint(d, k = 1) {
+  const r = radiusAt(shape, d) * k;
+  return new THREE.Vector3(d.x * r * shape.sx, d.y * r * shape.sy, d.z * r * shape.sz);
+}
+
+function appleGeometry(k, colorFn) {
+  let g = new THREE.SphereGeometry(1, 160, 110);
+  g.deleteAttribute('uv'); g.deleteAttribute('normal');
+  g = mergeVertices(g);
+  const pos = g.attributes.position, v = new THREE.Vector3(), c = new THREE.Color();
+  const col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).normalize();
+    colorFn(v, c); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    const r = radiusAt(shape, v) * k;
+    pos.setXYZ(i, v.x * r * shape.sx, v.y * r * shape.sy, v.z * r * shape.sz);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+function buildApple() {
+  const grp = new THREE.Group();
+  const skinC = new THREE.Color(variety.skin).offsetHSL(rand(-0.015, 0.015), rand(-0.06, 0.04), rand(-0.04, 0.04));
+  const streakC = new THREE.Color(variety.streak);
+  const topC = new THREE.Color('#7a6230');
+  const sd = rand(0, 100);
+  fleshColor.set(variety.flesh).offsetHSL(rand(-0.01, 0.01), 0, rand(-0.02, 0.01));
+  fogColor.copy(fleshColor).multiplyScalar(0.86);
+
+  const skinColor = (d, c) => {
+    const phi = Math.atan2(d.z, d.x);
+    const n1 = 0.5 + 0.5 * Math.sin(phi * 17 + Math.sin(phi * 5 + sd) * 2.5 + d.y * 4);
+    const n2 = 0.5 + 0.5 * Math.sin(phi * 43 + sd * 2 + d.y * 9);
+    const t = (0.25 + 0.45 * (1 - d.y) / 2) * (0.6 * n1 + 0.4 * n2) * variety.amt;
+    c.copy(skinC).lerp(streakC, clamp(t, 0, 1));
+    c.lerp(topC, smooth(0.8, 0.98, d.y) * 0.55 + smooth(0.84, 0.99, -d.y) * 0.65);
+  };
+  const skin = new THREE.Mesh(appleGeometry(1, skinColor),
+    new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.38, clearcoat: 0.7, clearcoatRoughness: 0.3 }));
+  grp.add(skin);
+
+  // paroi intérieure : chair teintée par la peau
+  const fleshWall = (d, c) => { skinColor(d, c); c.lerp(fleshColor, 0.62); };
+  const inner = new THREE.Mesh(appleGeometry(0.985, fleshWall),
+    new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.BackSide, roughness: 0.85 }));
+  grp.add(inner);
+
+  // trognon : zone plus dense au centre
+  const core = new THREE.Mesh(new THREE.CapsuleGeometry(1.7, R * shape.sy * 0.9, 8, 20),
+    new THREE.MeshStandardMaterial({ color: fleshColor.clone().lerp(new THREE.Color('#b8b06a'), 0.5), transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
+  grp.add(core);
+
+  // cellules / gouttes de jus en suspension
+  const addPoints = (n, size, color, opacity) => {
+    const arr = new Float32Array(n * 3); const p = new THREE.Vector3(); let i = 0;
+    while (i < n) {
+      p.set(rand(-1.1, 1.1) * R, rand(-1.1, 1.1) * R, rand(-1.1, 1.1) * R);
+      if (insideRatio(p) < 0.96) { arr[i * 3] = p.x; arr[i * 3 + 1] = p.y; arr[i * 3 + 2] = p.z; i++; }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    grp.add(new THREE.Points(g, new THREE.PointsMaterial({ size, map: DOT, color, transparent: true, opacity, depthWrite: false })));
+  };
+  addPoints(2600, 0.13, fleshColor.clone().multiplyScalar(0.62), 0.9);
+  addPoints(900, 0.32, new THREE.Color('#ffffff'), 0.55);
+
+  // queue + feuille
+  const topY = radiusAt(shape, Y) * shape.sy;
+  const bend = rand(-0.6, 0.6);
+  const stemCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, topY - 0.05, 0), new THREE.Vector3(0.05, topY + 0.9, 0),
+    new THREE.Vector3(bend * 0.6, topY + 1.9, 0.1), new THREE.Vector3(bend, topY + 2.6, 0.2)]);
+  const stem = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 24, 0.2, 10),
+    new THREE.MeshStandardMaterial({ color: '#5a3a1d', roughness: 0.9 }));
+  grp.add(stem);
+  const ls = new THREE.Shape(); ls.moveTo(0, 0); ls.quadraticCurveTo(1.3, 1.1, 3.4, 0); ls.quadraticCurveTo(1.3, -1.1, 0, 0);
+  const leaf = new THREE.Mesh(new THREE.ShapeGeometry(ls, 16),
+    new THREE.MeshStandardMaterial({ color: '#4f9a32', roughness: 0.6, side: THREE.DoubleSide }));
+  leaf.position.set(bend * 0.3, topY + 1.4, 0.05);
+  leaf.rotation.set(rand(-0.9, -0.4), rand(0, Math.PI * 2), rand(0.1, 0.5), 'YXZ');
+  grp.add(leaf);
+
+  return grp;
+}
+
+function disposeTree(o) {
+  o.traverse(n => { n.geometry?.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); });
+}
+
+/* ---------- pépin ---------- */
+function seedGeometry() {
+  const g = new THREE.SphereGeometry(1, 36, 24), p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const k = 1 - 0.78 * Math.pow((v.y + 1) / 2, 2.2);
+    p.setXYZ(i, v.x * k * 0.55, v.y * 0.8, v.z * k * 0.34);
+  }
+  g.computeVertexNormals(); return g;
+}
+const seed = new THREE.Mesh(seedGeometry(), new THREE.MeshPhysicalMaterial({
+  color: '#4a2513', roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15, emissive: '#3a1606', emissiveIntensity: 0.5 }));
+seed.scale.setScalar(0.62);
+const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: '#ff7a10', transparent: true, depthWrite: false, fog: false }));
+const seedLight = new THREE.PointLight('#ffc25a', 4, 9, 1.4);
+const seedGrp = new THREE.Group(); seedGrp.add(seed, halo, seedLight); scene.add(seedGrp);
+
+/* ---------- ver ---------- */
+const segGeo = new THREE.SphereGeometry(1, 20, 14);
+const segs = new THREE.InstancedMesh(segGeo, new THREE.MeshStandardMaterial({ roughness: 0.45 }), MAX_SEG);
+segs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+segs.frustumCulled = false;
+{
+  const a = new THREE.Color('#f2a6a8'), b = new THREE.Color('#dc8088'), cl = new THREE.Color('#c45d6a');
+  for (let i = 0; i < MAX_SEG; i++) segs.setColorAt(i, (i >= 5 && i <= 8) ? cl : (i % 3 === 0 ? b : a));
+}
+scene.add(segs);
+
+const head = new THREE.Group();
+{
+  const skinM = new THREE.MeshStandardMaterial({ color: '#f5b2b3', roughness: 0.4 });
+  head.add(new THREE.Mesh(new THREE.SphereGeometry(HEAD_R * 1.04, 28, 20), skinM));
+  const white = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.2 });
+  const black = new THREE.MeshStandardMaterial({ color: '#1a0f0c', roughness: 0.1 });
+  const cheek = new THREE.MeshStandardMaterial({ color: '#ff7f8a', roughness: 0.6, transparent: true, opacity: 0.8 });
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.115, 18, 14), white); eye.position.set(s * 0.16, 0.15, -0.26); head.add(eye);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), black); pupil.position.set(s * 0.17, 0.16, -0.36); head.add(pupil);
+    const blush = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), cheek); blush.scale.set(1, 0.55, 0.4); blush.position.set(s * 0.25, 0.0, -0.25); head.add(blush);
+  }
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.018, 8, 16, Math.PI), black);
+  mouth.position.set(0, -0.06, -0.345); mouth.rotation.set(0, 0, Math.PI); head.add(mouth);
+}
+scene.add(head);
+
+// tunnel creusé (chair oxydée)
+const MAX_TRAIL = 5000;
+const trail = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: '#a77a45', roughness: 0.9 }), MAX_TRAIL);
+trail.count = 0; trail.frustumCulled = false; scene.add(trail);
+let trailIdx = 0;
+
+const worm = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(), yaw: 0, pitch: 0, len: START_LEN, path: [], growAcc: 0, trailAcc: 0 };
+const segPos = Array.from({ length: MAX_SEG }, () => new THREE.Vector3());
+const segRad = new Float32Array(MAX_SEG);
+const entry = { dir: new THREE.Vector3(), out: new THREE.Vector3(), lat: 0, lon: 0 };
+
+function updateFwd() {
+  const cp = Math.cos(worm.pitch);
+  worm.fwd.set(-Math.sin(worm.yaw) * cp, Math.sin(worm.pitch), -Math.cos(worm.yaw) * cp);
+}
+
+/* ---------- nouvelle partie ---------- */
+function newGame() {
+  if (apple) { scene.remove(apple); disposeTree(apple); }
+  variety = pick(VARIETIES);
+  shape = {
+    sx: rand(0.94, 1.08), sy: rand(0.82, 0.98), sz: rand(0.94, 1.08),
+    taper: rand(0.03, 0.13), dTop: rand(0.24, 0.4), dBot: rand(0.12, 0.26),
+    lobes: Math.floor(rand(4, 6)), lobeAmp: rand(0.006, 0.022), lobePhase: rand(0, Math.PI * 2),
+  };
+  apple = buildApple(); scene.add(apple);
+  trail.material.color.copy(fleshColor).lerp(new THREE.Color('#8a5426'), 0.6);
+  document.documentElement.style.setProperty('--accent', '#' + new THREE.Color(variety.skin).getHexString());
+
+  // point & angle d'attaque
+  const d = new THREE.Vector3();
+  do { d.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)); } while (d.lengthSq() > 1 || d.lengthSq() < 0.05 || Math.abs(d.clone().normalize().y) > 0.68);
+  d.normalize();
+  const S = surfacePoint(d);
+  entry.out.copy(S).normalize();
+  entry.lat = Math.round(THREE.MathUtils.radToDeg(Math.asin(d.y)));
+  entry.lon = Math.round((THREE.MathUtils.radToDeg(Math.atan2(d.z, d.x)) + 360) % 360);
+  const inward = entry.out.clone().negate(), dir = new THREE.Vector3();
+  do { dir.copy(inward).add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(0.55)).normalize(); }
+  while (dir.angleTo(inward) > THREE.MathUtils.degToRad(34));
+  entry.dir.copy(dir);
+  entry.angle = Math.round(THREE.MathUtils.radToDeg(dir.angleTo(inward)));
+
+  // pépin
+  const p = new THREE.Vector3();
+  do { p.set(rand(-1, 1) * R, rand(-1, 1) * R, rand(-1, 1) * R); }
+  while (insideRatio(p) > 0.7 || p.distanceTo(S) < R * 0.9);
+  seedGrp.position.copy(p);
+  seed.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6));
+
+  // ver : tête posée sur la peau, corps dehors
+  worm.pos.copy(S).multiplyScalar(1.02);
+  worm.pitch = Math.asin(dir.y); worm.yaw = Math.atan2(-dir.x, -dir.z);
+  updateFwd();
+  worm.len = START_LEN; worm.growAcc = 0; worm.trailAcc = 0;
+  worm.path = [];
+  for (let k = 160; k >= 1; k--) worm.path.push(worm.pos.clone().addScaledVector(dir, -k * 0.05));
+  trail.count = 0; trailIdx = 0;
+
+  state = 'intro'; stateT = 0; elapsed = 0;
+  document.body.classList.remove('playing');
+  $('hud').classList.remove('on'); $('flair').classList.remove('on');
+  showIntro();
+}
+
+/* ---------- UI ---------- */
+const panel = $('panel');
+let best = null;
+try { best = parseFloat(localStorage.getItem('devtober-apple-best')) || null; } catch {}
+
+function showIntro() {
+  panel.innerHTML = `
+    <p class="eyebrow">Devtober · Jour 01</p>
+    <h1>Ver de pomme</h1>
+    <p>Quelque part dans cette pomme se cache <b>un pépin</b>. Creuse jusqu'à lui.</p>
+    <div class="chips">
+      <span><i class="sw"></i>${variety.name}</span>
+      <span>📍 ${Math.abs(entry.lat)}°${entry.lat >= 0 ? 'N' : 'S'} · ${entry.lon}°E</span>
+      <span>↘ attaque ${entry.angle}°</span>
+    </div>
+    <ul class="rules">
+      <li><b>Le ver suit ta souris</b> et avance tout seul</li>
+      <li><b>Ne te mords pas</b> la queue — il grandit en creusant</li>
+      <li><b>Ne perce pas</b> la peau de la pomme</li>
+    </ul>
+    <div class="actions"><button id="go">Croquer dedans</button><small><kbd>Espace</kbd></small></div>`;
+  panel.classList.remove('hidden');
+  $('go').onclick = start;
+}
+function showEnd(won, reason) {
+  const t = elapsed.toFixed(1);
+  let bestLine = '';
+  if (won) {
+    const isBest = best === null || elapsed < best;
+    if (isBest) { best = elapsed; try { localStorage.setItem('devtober-apple-best', String(best)); } catch {} }
+    bestLine = isBest ? '<p>🏆 <b>Nouveau record !</b></p>' : `<p>Record : <b>${best.toFixed(1)} s</b></p>`;
+  }
+  panel.innerHTML = won ? `
+    <p class="eyebrow">${variety.name} · dévorée</p>
+    <h1>Pépin trouvé ! 🌱</h1>
+    <p>En <b>${t} s</b>, avec un ver de <b>${worm.len} anneaux</b>.</p>${bestLine}
+    <div class="actions"><button id="go">Nouvelle pomme</button><small><kbd>Espace</kbd></small></div>` : `
+    <p class="eyebrow">${variety.name} · ${t} s</p>
+    <h1>${reason === 'bite' ? 'Aïe, ta queue !' : 'Percé !'}</h1>
+    <p>${reason === 'bite' ? 'Ton ver s\'est mordu lui-même. Prends tes virages plus larges.' : 'Tu es ressorti par la peau. Le pépin est à l\'intérieur !'}</p>
+    <div class="actions"><button id="go">Nouvelle pomme</button><small><kbd>Espace</kbd></small></div>`;
+  panel.classList.remove('hidden');
+  $('go').onclick = newGame;
+}
+
+let state = 'intro', stateT = 0, elapsed = 0;
+function start() {
+  if (state !== 'intro') return;
+  state = 'dive'; stateT = 0;
+  panel.classList.add('hidden');
+}
+function end(won, reason) {
+  state = won ? 'won' : 'lost'; stateT = 0;
+  document.body.classList.remove('playing');
+  $('flair').classList.remove('on');
+  setTimeout(() => showEnd(won, reason), won ? 900 : 700);
+}
+
+addEventListener('keydown', e => {
+  if (e.code !== 'Space' && e.code !== 'Enter') return;
+  e.preventDefault();
+  if (state === 'intro') start();
+  else if ((state === 'won' || state === 'lost') && stateT > 0.8) newGame();
+});
+
+const mouse = { x: 0, y: 0, sx: 0, sy: 0, px: innerWidth / 2, py: innerHeight / 2 };
+addEventListener('pointermove', e => {
+  mouse.px = e.clientX; mouse.py = e.clientY;
+  mouse.x = clamp((e.clientX / innerWidth) * 2 - 1, -1, 1);
+  mouse.y = clamp(-((e.clientY / innerHeight) * 2 - 1), -1, 1);
+  $('cursor').style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+});
+addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') { mouse.px = e.clientX; mouse.py = e.clientY;
+  mouse.x = (e.clientX / innerWidth) * 2 - 1; mouse.y = -((e.clientY / innerHeight) * 2 - 1); } });
+$('cursor').style.left = '0px'; $('cursor').style.top = '0px';
+
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+});
+
+/* ---------- simulation ---------- */
+const tmpQ = new THREE.Quaternion(), tmpE = new THREE.Euler(), tmpM = new THREE.Matrix4();
+const upL = new THREE.Vector3(), desired = new THREE.Vector3(), lookT = new THREE.Vector3(), camLook = new THREE.Vector3();
+const ONE = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3(), IDQ = new THREE.Quaternion();
+
+function steer(dt) {
+  const dz = v => Math.abs(v) < 0.05 ? 0 : Math.sign(v) * Math.pow((Math.abs(v) - 0.05) / 0.95, 1.15);
+  worm.yaw -= dz(mouse.sx) * TURN * dt;
+  worm.pitch = clamp(worm.pitch + dz(mouse.sy) * TURN * 0.85 * dt, -1.35, 1.35);
+}
+function moveWorm(dt, speed, grow) {
+  updateFwd();
+  worm.pos.addScaledVector(worm.fwd, speed * dt);
+  const last = worm.path[worm.path.length - 1];
+  if (!last || last.distanceToSquared(worm.pos) > 0.0016) worm.path.push(worm.pos.clone());
+  if (grow && (worm.growAcc += speed * dt) > 3.2) { worm.growAcc = 0; worm.len = Math.min(MAX_SEG, worm.len + 1); }
+  if ((worm.trailAcc += speed * dt) > 0.2 && insideRatio(worm.pos) < 0.97) {
+    worm.trailAcc = 0;
+    tmpM.compose(worm.pos, IDQ, sc.setScalar(0.21));
+    trail.setMatrixAt(trailIdx, tmpM); trailIdx = (trailIdx + 1) % MAX_TRAIL;
+    trail.count = Math.max(trail.count, trailIdx); trail.instanceMatrix.needsUpdate = true;
+  }
+}
+function followCam(dt, k) {
+  tmpQ.setFromEuler(tmpE.set(worm.pitch, worm.yaw, 0, 'YXZ'));
+  upL.set(0, 1, 0).applyQuaternion(tmpQ);
+  desired.copy(worm.pos).addScaledVector(worm.fwd, -4.3).addScaledVector(upL, 2.2);
+  const a = 1 - Math.exp(-k * dt);
+  camera.position.lerp(desired, a);
+  lookT.copy(worm.pos).addScaledVector(worm.fwd, 3.2);
+  camLook.lerp(lookT, Math.min(1, a * 1.6));
+  camera.up.lerp(upL, a).normalize();
+  camera.lookAt(camLook);
+}
+
+function layoutWorm(t, moving) {
+  tmpQ.setFromEuler(tmpE.set(worm.pitch, worm.yaw, 0, 'YXZ'));
+  head.position.copy(worm.pos); head.quaternion.copy(tmpQ);
+  const n = worm.len, path = worm.path;
+  segPos[0].copy(worm.pos);
+  let i = 1, target = SPACING, acc = 0, a = worm.pos, k = path.length - 1;
+  for (; k >= 0 && i < n; k--) {
+    const b = path[k], L = a.distanceTo(b);
+    while (L > 0 && acc + L >= target && i < n) { segPos[i].lerpVectors(a, b, (target - acc) / L); i++; target += SPACING; }
+    acc += L; a = b;
+  }
+  for (; i < n; i++) segPos[i].copy(segPos[i - 1]);
+  if (k > 20) path.splice(0, k - 20);  // on oublie le chemin derrière la queue
+
+  for (let j = 1; j < n; j++) {
+    const u = j / (n - 1);
+    let r = HEAD_R * (0.95 - 0.52 * Math.pow(u, 1.8));
+    if (j >= 5 && j <= 8) r *= 1.12;
+    segRad[j] = r;
+    const w = moving ? 1 + 0.07 * Math.sin(t * 10 - j * 0.7) : 1 + 0.03 * Math.sin(t * 3 - j * 0.5);
+    tmpM.compose(segPos[j], IDQ, sc.setScalar(r * w));
+    segs.setMatrixAt(j - 1, tmpM);
+  }
+  segs.count = n - 1; segs.instanceMatrix.needsUpdate = true;
+}
+
+function checkCollisions() {
+  if (worm.pos.distanceTo(seedGrp.position) < HEAD_R + SEED_R) return end(true);
+  if (insideRatio(worm.pos) > 0.962) return end(false, 'skin');
+  for (let i = 10; i < worm.len; i++) {
+    const rr = HEAD_R * 0.85 + segRad[i] * 0.8;
+    if (worm.pos.distanceToSquared(segPos[i]) < rr * rr) return end(false, 'bite');
+  }
+}
+
+/* ---------- boucle ---------- */
+const clock = new THREE.Clock();
+let atmo = 0, shiftX = 0, shiftY = 0, shake = 0;
+const camDir = new THREE.Vector3();
+
+let simT = 0;
+function tick(dt) {
+  simT += dt; const t = simT;
+  stateT += dt;
+  const ms = 1 - Math.exp(-10 * dt);
+  mouse.sx += (mouse.x - mouse.sx) * ms; mouse.sy += (mouse.y - mouse.sy) * ms;
+  let moving = false;
+
+  if (state === 'intro') {
+    camDir.copy(entry.out).applyAxisAngle(Y, 0.75 + Math.sin(t * 0.25) * 0.3); camDir.y += 0.22; camDir.normalize();
+    const a = 1 - Math.exp(-2.2 * dt);
+    camera.position.lerp(desired.copy(camDir).multiplyScalar(innerWidth > 720 ? 40 : 52), a);
+    camLook.lerp(lookT.copy(entry.out).multiplyScalar(R * 0.45), a);
+    camera.up.lerp(Y, a).normalize();
+    camera.lookAt(camLook);
+  } else if (state === 'dive') {
+    if (stateT > 0.9) { moveWorm(dt, SPEED * 1.1, false); moving = true; }
+    followCam(dt, stateT < 0.9 ? 2.6 : 4);
+    if (stateT > 2.5) {
+      state = 'play'; elapsed = 0;
+      document.body.classList.add('playing');
+      $('hud').classList.add('on'); $('flair').classList.add('on');
+    }
+  } else if (state === 'play') {
+    elapsed += dt;
+    steer(dt);
+    moveWorm(dt, Math.min(SPEED + elapsed * 0.03, MAX_SPEED), true);
+    moving = true;
+    followCam(dt, 5);
+    checkCollisions();
+  } else if (state === 'won') {
+    const a = 1 - Math.exp(-1.6 * dt), sp = seedGrp.position;
+    desired.set(Math.cos(t * 0.5) * 2.4, 1.0, Math.sin(t * 0.5) * 2.4).add(sp);
+    camera.position.lerp(desired, a); camLook.lerp(sp, a); camera.lookAt(camLook);
+  } else if (state === 'lost') {
+    shake = Math.max(0, 0.35 - stateT) * 0.6;
+    camera.lookAt(camLook);
+    if (shake) camera.position.add(desired.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(shake * 0.1));
+  }
+
+  layoutWorm(t, moving);
+
+  // pépin
+  seed.rotation.y += dt * 0.7;
+  seed.position.y = Math.sin(t * 1.6) * 0.08;
+  const d = worm.pos.distanceTo(seedGrp.position);
+  const pulse = 0.85 + 0.15 * Math.sin(t * 3.2);
+  const near = state === 'won' ? 1 : smooth(17, 3, d);
+  halo.material.opacity = (0.1 + 0.75 * near) * pulse;
+  halo.scale.setScalar((state === 'won' ? 4.5 : 2.4 + near * 1.2) * pulse);
+  seedLight.intensity = (2 + near * 6) * pulse;
+
+  // HUD
+  if (state === 'play') {
+    $('time').textContent = elapsed.toFixed(1);
+    $('len').textContent = worm.len;
+    const heat = 1 - clamp((d - 1) / (R * 1.5), 0, 1);
+    $('flairFill').style.width = (heat * 100).toFixed(1) + '%';
+    $('flairTxt').textContent = d < 3.5 ? 'brûlant 🔥' : d < 7 ? 'chaud' : d < 11 ? 'tiède' : 'froid';
+    $('vignette').style.opacity = smooth(0.8, 0.955, insideRatio(worm.pos)).toFixed(2);
+    const cx = innerWidth / 2, cy = innerHeight / 2;
+    $('guideLine').setAttribute('x1', cx); $('guideLine').setAttribute('y1', cy);
+    $('guideLine').setAttribute('x2', mouse.px); $('guideLine').setAttribute('y2', mouse.py);
+    $('guideDot').setAttribute('cx', cx); $('guideDot').setAttribute('cy', cy);
+  } else {
+    $('vignette').style.opacity = state === 'lost' ? Math.max(0, 0.9 - stateT * 0.6).toFixed(2) : '0';
+  }
+
+  // ambiance : brouillard de chair quand la caméra est dans la pomme
+  const inside = smooth(1.04, 0.93, insideRatio(camera.position));
+  atmo += (inside - atmo) * (1 - Math.exp(-6 * dt));
+  scene.fog.color.copy(fogColor);
+  scene.fog.near = lerp(200, 2.2, atmo); scene.fog.far = lerp(500, 12.5, atmo);
+  scene.background.copy(BG_OUT).lerp(fogColor, atmo);
+  headLight.intensity = atmo * 3;
+  headLight.position.copy(camera.position);
+
+  // décalage du cadrage pour laisser la place au panneau
+  const wide = innerWidth > 720;
+  const showPanel = state === 'intro';
+  shiftX += ((showPanel && wide ? -0.17 : 0) - shiftX) * (1 - Math.exp(-3 * dt));
+  shiftY += ((showPanel && !wide ? 0.17 : 0) - shiftY) * (1 - Math.exp(-3 * dt));
+  if (Math.abs(shiftX) + Math.abs(shiftY) > 0.0005)
+    camera.setViewOffset(innerWidth, innerHeight, shiftX * innerWidth, shiftY * innerHeight, innerWidth, innerHeight);
+  else camera.clearViewOffset();
+
+  renderer.render(scene, camera);
+}
+function frame() { tick(Math.min(clock.getDelta(), 0.05)); requestAnimationFrame(frame); }
+
+newGame();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
