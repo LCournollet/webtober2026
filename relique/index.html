@@ -500,7 +500,7 @@ function knifePiece(pts0, mat) {
     // pente sur les flancs extérieurs, le bout arrière et l'avant ; les encoches restent plates
     const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
     outer.push(outside && (side || back || front));
-    cE.push(tip ? KNIFE.cFront : KNIFE.c); rE.push(tip ? KNIFE.ridgeFront : KNIFE.ridge);
+    cE.push(front ? KNIFE.cFront : KNIFE.c); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
   }
   // épaisseur de l'arête à chaque sommet (la plus forte des arêtes voisines en pente) : pas de fente aux jonctions
   const rV = pts.map((_, i) => { const ip = (i - 1 + n) % n; return Math.max(outer[ip] ? rE[ip] : 0, outer[i] ? rE[i] : 0) || KNIFE.ridge; });
