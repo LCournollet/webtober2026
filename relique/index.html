@@ -667,7 +667,7 @@ function insidePlate(x, y, margin) {
   const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
   for (let row = 0, y = 1302; y <= 1632; row++, y += DY) for (let x = 540 + (row % 2) * DX / 2; x <= 712; x += DX) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
-    if (x > 568 && x < 676 && y > 1495 && y < 1622) continue;   // logo + inscription RELIC
+    if (x > 568 && x < 676 && y > 1495 && y < 1606) continue;   // logo + inscription RELIC (la rangée d'empreintes suivante passe sous les lettres)
     if (!insidePlate(x, y, 10)) continue;
     if (x > 552 && x < 616 && y < 1368) continue;
     pts.push(IMG([[x, y]])[0]);
@@ -695,12 +695,16 @@ const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0
 }
 // « RELIC » en capitales sous le logo, même relief caoutchouc
 new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts/helvetiker_bold.typeface.json', font => {
-  const geo = new TextGeometry('R E L I C', { font, size: 0.05, depth: 0.003, curveSegments: 4, bevelEnabled: true, bevelThickness: 0.0015, bevelSize: 0.0015, bevelSegments: 2 });
-  geo.computeBoundingBox(); const bb = geo.boundingBox;
-  geo.translate(-(bb.min.x + bb.max.x) / 2, -(bb.min.y + bb.max.y) / 2, 0);
-  const m = new THREE.Mesh(geo, blackPlate), [c] = IMG([[622, 1606]]);
-  m.rotation.z = -Math.PI / 2;                       // même sens de lecture que le logo : haut vers les broches
-  m.position.set(c[0], c[1], TH + 0.002); chip.add(m);
+  // lettres posées une à une, très espacées comme sous le logo officiel (largeur ≈ celle du logo)
+  const [c] = IMG([[622, 1598]]), SP = 0.105;
+  [...'RELIC'].forEach((ch, i) => {
+    const geo = new TextGeometry(ch, { font, size: 0.05, depth: 0.003, curveSegments: 4, bevelEnabled: true, bevelThickness: 0.0015, bevelSize: 0.0015, bevelSegments: 2 });
+    geo.computeBoundingBox(); const bb = geo.boundingBox;
+    geo.translate(-(bb.min.x + bb.max.x) / 2 + (i - 2) * SP, -(bb.min.y + bb.max.y) / 2, 0);
+    const m = new THREE.Mesh(geo, blackPlate);
+    m.rotation.z = -Math.PI / 2;                     // même sens de lecture que le logo : haut vers les broches
+    m.position.set(c[0], c[1], TH + 0.002); chip.add(m);
+  });
 });
 // LED dans l'insert de verre : faible lueur rouge qui respire
 {
