@@ -143,9 +143,9 @@ chipScene.environment = (() => {
     m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m);
   };
   panel(14, 6, 0, 12, 4, 1.6);                // grande softbox au-dessus
-  panel(1.2, 16, -12, 3, 0, 2.2);               // bande verticale à gauche
-  panel(1.2, 16, 12, 2, -4, 1.8);               // bande verticale à droite
-  panel(16, 1, 0, 2, 13, 1.6);
+  panel(1.2, 16, -12, 3, 0, 1.2);               // bande verticale à gauche
+  panel(1.2, 16, 12, 2, -4, 1.0);               // bande verticale à droite
+  panel(16, 1, 0, 2, 13, 0.9);
   panel(22, 9, 0, 7, 11, 1.1);                // grande softbox de face (reflets des dessus)
   panel(10, 4, -6, -4, 10, 0.7);              // réflecteur bas
   panel(24, 10, 0, -9, 9, 1.0);               // softbox basse : reflets des dessus dans la vue d'arrivée                // bande horizontale de face
@@ -161,7 +161,7 @@ const camB = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 100
 
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(chipScene, camA);
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.3, 1.6);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.1, 0.25, 2.2);
 composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
 
 /* ============================== la puce (illustration plate) ============================== */
@@ -463,10 +463,11 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.07, ridge: 0.026 };            // retrait horizontal du chanfrein, hauteur de l'arête
+const KNIFE = { c: 0.042, ridge: 0.024 };           // assez fin pour les encoches, où le cadre est étroit            // retrait horizontal du chanfrein, hauteur de l'arête
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
-const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; knifeMats.set(mat, k); } return knifeMats.get(mat); };
+// chrome lisse pour la géométrie maison (pas d'anisotropie : elle exige des coordonnées de texture propres sur chaque face)
+const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
 function knifePiece(pts0, mat) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
   if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
@@ -847,7 +848,7 @@ function backToChip() {
     mode = 'chip'; z = zT = 0.5; autoDive = false; document.body.classList.remove('brain');
     controls.enabled = false; controls.autoRotate = false; $('tip').style.opacity = 0;
     renderPass.scene = chipScene; renderPass.camera = camA;
-    bloom.strength = 0.25; bloom.threshold = 1.6; bloom.radius = 0.3;
+    bloom.strength = 0.1; bloom.threshold = 2.2; bloom.radius = 0.25;
     $('hint').textContent = 'Drag to rotate · scroll to dive';
   }, 350);
 }
