@@ -588,7 +588,7 @@ function knifePiece(pts0, mat) {
 }
 
 // fond du corps et bande du connecteur (plastique noir, moins épais que le verre)
-const BAND_TOP = TH * 0.7;
+const BAND_H = 0.22, BAND_BOT = TH / 2 - BAND_H / 2, BAND_TOP = TH / 2 + BAND_H / 2;   // centrée sur l'épaisseur de la relique, un peu moins haute que le verre
 // caoutchouc noir brillant
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
 // fils : un réseau très dense de pistes (droites, virages à 90° et 45°) en très léger relief, sur toutes les faces du bloc
@@ -620,8 +620,8 @@ const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; 
   t.repeat.set(1 / 1.0, 1 / 2.0); return t;
 })();
 const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireBump; wireRubber.bumpScale = 0.95;
-pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, BAND_TOP, wireRubber);
-pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, BAND_TOP, wireRubber);
+pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], BAND_BOT, BAND_TOP, wireRubber);
+pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber);
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
 // tête, rails, poignée
