@@ -12,6 +12,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #030102; color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
   #gl { position: fixed; inset: 0; display: block; touch-action: none; }
+  body:not(.brain) { user-select: none; -webkit-user-select: none; }
   .scan { position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); }
   .vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.7) 100%); }
   .ui { position: fixed; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
@@ -899,7 +900,14 @@ canvas.style.cursor = 'grab';
 
 addEventListener('wheel', e => { if (mode !== 'chip') return; e.preventDefault(); autoDive = false; zT = clamp(zT + e.deltaY * 0.00045, 0, 1); }, { passive: false });
 let drag = null;
-canvas.addEventListener('pointerdown', e => { drag = { y: e.clientY, moved: 0 }; if (mode === 'chip') canvas.style.cursor = 'grabbing'; });
+// clic gauche (ou doigt) n'importe où hors des boutons/carte pour tourner la relique ; le clic droit ne fait plus rien
+addEventListener('pointerdown', e => {
+  if (e.button !== 0 || e.target.closest('button, a, #card')) return;
+  if (mode === 'chip') { e.preventDefault(); canvas.style.cursor = 'grabbing'; }
+  drag = { y: e.clientY, moved: 0 };
+});
+addEventListener('pointercancel', () => { drag = null; if (mode === 'chip') canvas.style.cursor = 'grab'; });
+canvas.addEventListener('contextmenu', e => { if (mode === 'chip') e.preventDefault(); });
 addEventListener('pointerup', e => { if (drag && mode === 'brain' && drag.moved < 6) pick(e.clientX, e.clientY, true); drag = null; if (mode === 'chip') canvas.style.cursor = 'grab'; });
 addEventListener('pointermove', e => {
   mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.px = e.clientX; mouse.py = e.clientY;
