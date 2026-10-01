@@ -7,7 +7,7 @@ Un thème, un mini projet web, chaque jour d'octobre 2026.
 | Jour | Thème | Lien |
 |------|-------|------|
 | 01 | 🍎 Apple — Pomme Sweet Pomme : tamagotchi pixel art, creuse et décore la maison de ton ver ([v0 3D](https://devtober.57-131-40-94.sslip.io/applev0/)) | [/apple](https://devtober.57-131-40-94.sslip.io/apple/) |
-| 02 | 🧠 Relique — Relic 2.0 : zoom dans la puce jusqu'au cerveau de V en nuage de points | [/relique](https://devtober.57-131-40-94.sslip.io/relique/) |
+| 02 | 🧠 Relique — Relic 2.0 : puce 3D, zoom vectoriel jusqu'à l'engramme, cerveau en carte topographique | [/relique](https://devtober.57-131-40-94.sslip.io/relique/) |
 
 ## Structure
 
