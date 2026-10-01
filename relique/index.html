@@ -491,9 +491,9 @@ const glassMat = new THREE.MeshPhysicalMaterial({
 function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
 function pathFrom(pts) { const s = new THREE.Path(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
 // pièce extrudée aux arêtes arrondies ; le contour reste exactement celui de la photo
-function piece(pts, z0, z1, mat, { holes = [], bevel = 0.018, seg = 3 } = {}) {
+function piece(pts, z0, z1, mat, { holes = [], bevel = 0.018, seg = 3, bevelT = bevel } = {}) {
   const s = shapeFrom(pts); holes.forEach(h => s.holes.push(pathFrom(h)));
-  const bt = Math.min(bevel, (z1 - z0) * 0.3);
+  const bt = Math.min(bevelT, (z1 - z0) * 0.3);
   const geo = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, z1 - z0 - 2 * bt), bevelEnabled: bevel > 0, bevelThickness: bt, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: seg, curveSegments: 10 });
   const m = new THREE.Mesh(geo, mat); m.position.z = z0 + bt; chip.add(m); return m;
 }
@@ -595,33 +595,27 @@ pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1
 pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, BAND_TOP, glossRubber);
 // fils fins en relief sur la bande : tracés droits qui tournent (angles droits et pans à 45°), dessus puis tranches
 {
-  const R = 0.9 * PX, Z = BAND_TOP, ZB = 0.02, wires = [];
+  const R = 0.6 * PX, Z = BAND_TOP, ZB = 0.02, G = 2.4, wires = [];   // G : pas entre deux fils (px photo)
   const P = (x, y, z = Z) => { const [q] = IMG([[x, y]]); return new THREE.Vector3(q[0], q[1], z); };
-  for (let i = 0; i < 5; i++) {                      // bus gauche : descend du verre puis file vers la tranche et plonge
-    const x = 494 + 5 * i, yt = 1236 + 5 * i;
-    wires.push([P(x, 1204), P(x, yt), P(488, yt), P(488, yt, ZB)]);
+  for (const [E, d] of [[488, 1], [755, -1]]) {      // même routage des deux côtés, en miroir
+    for (let i = 0; i < 11; i++) {                   // bus de bord : descend du verre, file vers la tranche et plonge
+      const x = E + d * (3 + G * i), yt = 1222 + G * i;
+      wires.push([P(x, 1204), P(x, yt), P(E, yt), P(E, yt, ZB)]);
+    }
+    for (let j = 0; j < 8; j++) {                    // bus arrière : remonte de la tranche, longe l'arrière, plonge vers la plaque
+      const y = 1252 + G * j, xe = E + d * (30 - G * j);
+      wires.push([P(E, y, ZB), P(E, y), P(xe, y), P(xe, 1272)]);
+    }
+    for (let i = 0; i < 10; i++) {                   // bus central : du verre à la plaque avec un pan à 45°
+      const x = E + d * (33 + G * i), x2 = x + d * 20;
+      wires.push([P(x, 1204), P(x, 1240), P(x2, 1260), P(x2, 1272)]);
+    }
   }
-  for (let i = 0; i < 5; i++) {                      // bus central gauche : de la plaque au verre, avec un pan à 45°
-    const x = 532 + 5 * i;
-    wires.push([P(x, 1272), P(x, 1240), P(x + 8, 1232), P(x + 8, 1204)]);
-  }
-  for (let i = 0; i < 4; i++) {                      // bus droit : descend du verre puis file vers la tranche et plonge
-    const x = 750 - 5 * i, yt = 1236 + 5 * i;
-    wires.push([P(x, 1204), P(x, yt), P(755, yt), P(755, yt, ZB)]);
-  }
-  for (let i = 0; i < 4; i++) {                      // bus central droit
-    const x = 682 + 5 * i;
-    wires.push([P(x, 1272), P(x, 1242), P(x + 6, 1236), P(x + 6, 1212)]);
-  }
-  for (let i = 0; i < 3; i++) {                      // le long de l'arrière : courent sur le dessus puis plongent par les deux tranches
-    const y = 1260 + 4 * i;
-    wires.push([P(488, y, ZB), P(488, y), P(520 - 4 * i, y), P(520 - 4 * i, 1272)]);
-    wires.push([P(755, y, ZB), P(755, y), P(720 + 4 * i, y), P(720 + 4 * i, 1272)]);
-  }
+  for (let x = 567; x <= 602; x += G) wires.push([P(x, 1204), P(x, 1219)]);   // peigne au-dessus du connecteur
   wires.forEach(pts => {
     const path = new THREE.CurvePath();
     for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
-    chip.add(new THREE.Mesh(new THREE.TubeGeometry(path, 24 * (pts.length - 1), R, 6, false), glossRubber));
+    chip.add(new THREE.Mesh(new THREE.TubeGeometry(path, 12 * (pts.length - 1), R, 5, false), glossRubber));
   });
 }
 // verre
@@ -718,7 +712,7 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
   pts.push([XO - DEPTH, Y0 + (Y1 - Y0) * 0.66], [XO - DEPTH, Y0 + (Y1 - Y0) * 0.34]);
   const BTN_TOP = TH - 0.004, BTN_BOT = 0.02;          // juste au-dessus du verre et de la bande
-  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.004, seg: 3 }); btn.renderOrder = 11;
+  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.009, bevelT: 0.03, seg: 8 })   // arêtes arrondies, surtout dans l'épaisseur pour garder les petites bosses; btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
   g.fillStyle = g.strokeStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
