@@ -620,7 +620,7 @@ const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; 
   t.repeat.set(1 / 1.0, 1 / 2.0); return t;
 })();
 const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireBump; wireRubber.bumpScale = 0.95;
-pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [488, 1268]], BAND_BOT, BAND_TOP, wireRubber);
+pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber);
 pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber);
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
