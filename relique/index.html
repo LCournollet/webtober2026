@@ -671,7 +671,7 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   transparent: true, opacity: 0.6,
 });
 {
-  const Y0 = 1092, Y1 = 1248, XO = 802, END = 9, pts = [];   // plus grand, centré sur y 1170 ; la pointe du V affleure le bord de la relique
+  const Y0 = 1092, Y1 = 1248, XO = 762, DEPTH = 52, END = 9, pts = [];   // centré sur y 1170 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
   for (let i = 0; i <= 120; i++) {                   // bord extérieur : 10 bosses arrondies
     const t = i / 120, y = Y0 + (Y1 - Y0) * t;
@@ -679,8 +679,8 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   }
   pts.push([XO - END, Y1]);                          // bout droit écrasé
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
-  pts.push([XO - 52, Y0 + (Y1 - Y0) * 0.56], [XO - 52, Y0 + (Y1 - Y0) * 0.44]);
-  const BTN_TOP = TH / 2 + 0.1, BTN_BOT = TH / 2 - 0.1; // centré sur l'épaisseur de la relique, comme les broches
+  pts.push([XO - DEPTH, Y0 + (Y1 - Y0) * 0.56], [XO - DEPTH, Y0 + (Y1 - Y0) * 0.44]);
+  const BTN_TOP = TH - 0.004, BTN_BOT = 0.02;          // juste au-dessus du verre et de la bande
   const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.02, seg: 4 }); btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
@@ -691,7 +691,7 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   g.beginPath(); g.moveTo(cx - q, cy - q); g.lineTo(cx + q, cy + q); g.moveTo(cx + q, cy - q); g.lineTo(cx - q, cy + q); g.stroke();
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
   const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[782, 1170]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
+  const [a] = IMG([[742, 1170]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
 }
 
