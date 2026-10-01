@@ -524,7 +524,7 @@ function knifePiece(pts0, mat) {
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
     if (outer[i]) {
-      const pa = profile(A, oA, rV[i]), pb = profile(B, oB, rV[j]);
+      const pa = profile(A, oA, rE[i]), pb = profile(B, oB, rE[i]);   // chaque arête garde sa propre épaisseur
       for (let k = 0; k < pa.length - 1; k++) quad(pa[k], pa[k + 1], pb[k + 1], pb[k]);
     } else {                                          // bord plat vertical (épouse le profil des voisins en pente)
       const ip = (i - 1 + n) % n;
@@ -537,6 +537,14 @@ function knifePiece(pts0, mat) {
         cr < 0 ? tri(ring[a], ring[b], ring[c]) : tri(ring[a], ring[c], ring[b]);
       }
     }
+  }
+  // jonction entre deux arêtes d'épaisseurs différentes (coin avant / flanc) : petite facette pour boucher l'écart
+  for (let i = 0; i < n; i++) {
+    const ip = (i - 1 + n) % n;
+    if (!outer[i] || !outer[ip] || rE[i] === rE[ip]) continue;
+    const v = pts[i], o = off[i], r1 = rE[ip], r2 = rE[i];
+    tri([...o, TH], [...v, (TH + r1) / 2], [...v, (TH + r2) / 2]);
+    tri([...o, 0], [...v, (TH - r2) / 2], [...v, (TH - r1) / 2]);
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   g.computeVertexNormals();
