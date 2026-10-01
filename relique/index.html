@@ -21,8 +21,9 @@
   #home { top: 18px; left: 18px; }
   #home b { color: var(--red); font-weight: 500; }
   #mag { right: 18px; bottom: 16px; }
+  body.brain #mag { opacity: .6; }
   #hint { left: 50%; bottom: 16px; transform: translateX(-50%); white-space: nowrap; transition: opacity .4s; }
-  #back { left: 18px; bottom: 16px; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  #back { right: 18px; top: 18px; opacity: 0; pointer-events: none; transition: opacity .4s; }
   body.brain #back { opacity: 1; pointer-events: auto; }
 
   #intro { position: fixed; left: clamp(18px, 6vw, 96px); top: 50%; transform: translateY(-50%); transition: opacity .5s; }
@@ -62,7 +63,7 @@
   #card blockquote.corrupt { color: var(--muted); font-size: 10px; letter-spacing: .14em; }
   #card .x { position: absolute; top: 14px; right: 16px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
   #card .x:hover { color: #fff; }
-  .legal { position: fixed; right: 18px; top: 18px; font-size: 8px; letter-spacing: .14em; color: rgba(140,109,113,.55); pointer-events: none; text-transform: uppercase; }
+  .legal { position: fixed; left: 18px; bottom: 16px; font-size: 8px; letter-spacing: .14em; color: rgba(140,109,113,.55); pointer-events: none; text-transform: uppercase; }
   @media (max-aspect-ratio: 3/2) { #intro { top: auto; bottom: 56px; transform: none; } }
   @media (max-width: 760px) {
     #card { top: auto; bottom: 44px; transform: none; max-height: 58vh; overflow: auto; }
@@ -82,7 +83,7 @@
 <div class="vig"></div>
 
 <a class="ui" id="home" href="/">← Devtober · <b>02 / Relic</b></a>
-<div class="legal">Fan project · Cyberpunk 2077 © CD PROJEKT RED</div>
+<div class="legal">Relic design by Ben Andrews · Fan project · Cyberpunk 2077 © CD PROJEKT RED</div>
 
 <section id="intro">
   <div class="logo">
@@ -149,70 +150,53 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.
 composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
 
 /* ============================== la puce en 3D ============================== */
-// repère de la puce : X = longueur, Y = largeur (+Y = flanc arrière), Z = épaisseur (dessus = +Z)
+// repère : X = longueur (broches à droite), Y = largeur (+Y = bord arrière), Z = épaisseur (dessus = +Z)
 const chip = new THREE.Group(); chipScene.add(chip);
-const CORE = new THREE.Vector3(1.0, 0, 0.126);
-const BODY = { x0: -1.95, x1: 3.58, y: 0.72, h: 0.34 };
-const NOTCHES = [[1.15, 1.5], [2.0, 2.35], [2.85, 3.2]];
+const TH = 0.22;                                    // épaisseur : la puce reste fine
+const CORE = new THREE.Vector3(0.95, 0, 0.1248);
+const PCB_Z = 0.1015;
 
-const chrome = new THREE.MeshPhysicalMaterial({ color: '#d4d7de', metalness: 0.95, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 3.2 });
-const darkMetal = new THREE.MeshStandardMaterial({ color: '#141418', metalness: 0.6, roughness: 0.45 });
-const blackPlate = new THREE.MeshStandardMaterial({ color: '#0b0b0d', metalness: 0.2, roughness: 0.7 });
-const redGloss = new THREE.MeshPhysicalMaterial({ color: '#d0102a', roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05, emissive: '#3a0006', envMapIntensity: 2.5 });
-const redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.3, 0.05, 0.12), toneMapped: false });
-const white = new THREE.MeshStandardMaterial({ color: '#e9e9ec', metalness: 0.3, roughness: 0.35 });
+const metal = new THREE.MeshPhysicalMaterial({ color: '#b9bcc4', metalness: 0.9, roughness: 0.22, clearcoat: 0.6, clearcoatRoughness: 0.15, envMapIntensity: 2.4 });
+const darkMetal = new THREE.MeshStandardMaterial({ color: '#16161a', metalness: 0.55, roughness: 0.45 });
+const recess = new THREE.MeshStandardMaterial({ color: '#0d0d10', metalness: 0.3, roughness: 0.65 });
+const redGloss = new THREE.MeshPhysicalMaterial({ color: '#c8102a', roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06, emissive: '#300005', envMapIntensity: 2 });
+const darkRed = new THREE.MeshStandardMaterial({ color: '#4a0c14', metalness: 0.3, roughness: 0.4 });
+const pale = new THREE.MeshStandardMaterial({ color: '#dcdce0', metalness: 0.4, roughness: 0.3 });
 
 function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
 function pathFrom(pts) { const s = new THREE.Path(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
 function box(w, h, d, mat, x, y, z, parent = chip) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); parent.add(m); return m; }
-function extrude(pts, depth, mat, z, bevel = 0, holes = []) {
+// arêtes en biseau plat, façon lame : un seul segment de chanfrein
+function slab(pts, z0, z1, mat, holes = [], bevel = 0.04) {
   const s = shapeFrom(pts); holes.forEach(h => s.holes.push(pathFrom(h)));
-  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 8 }), mat);
-  m.position.z = z; chip.add(m); return m;
+  const bt = Math.min(bevel * 0.5, (z1 - z0) * 0.3);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: z1 - z0 - 2 * bt, bevelEnabled: bevel > 0, bevelThickness: bt, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 1, curveSegments: 8 });
+  const m = new THREE.Mesh(geo, mat); m.position.z = z0 + bt; chip.add(m); return m;
 }
 
-/* ---------- poignée : cadre chromé + plaque noire en creux ---------- */
-const GRIP = [[-5.0, -0.86], [-4.86, -1.0], [-2.62, -1.0], [-2.46, -0.84], [-1.95, -0.84], [-1.95, 0.84], [-2.32, 0.84], [-2.48, 1.0],
-  [-2.92, 1.0], [-3.08, 0.86], [-3.56, 0.86], [-3.72, 1.0], [-4.86, 1.0], [-5.0, 0.86]];
-const PLATE = [[-4.84, -0.74], [-2.12, -0.74], [-2.12, 0.74], [-4.84, 0.74]];
-extrude(GRIP, 0.3, chrome, 0.0, 0.035, [PLATE]);
-extrude(PLATE, 0.2, blackPlate, 0.02);
-{ // perforations
-  const pts = [];
-  for (let x = -4.66; x < -2.2; x += 0.1) for (let y = -0.62; y <= 0.63; y += 0.1) {
-    if (x < -3.95 && Math.abs(y) < 0.36) continue;              // logo
-    if (Math.abs(x + 2.9) < 0.5 && Math.abs(y) < 0.22) continue;  // capsule
-    pts.push([x, y]);
-  }
-  const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.022, 14), new THREE.MeshBasicMaterial({ color: '#000' }), pts.length);
-  const m = new THREE.Matrix4();
-  pts.forEach(([x, y], i) => { m.makeTranslation(x, y, 0.2205); holes.setMatrixAt(i, m); });
-  chip.add(holes);
-}
-function bar(x1, y1, x2, y2, w, h, mat, z) {
-  const L = Math.hypot(x2 - x1, y2 - y1), m = new THREE.Mesh(new THREE.BoxGeometry(L + w, w, h), mat);
-  m.position.set((x1 + x2) / 2, (y1 + y2) / 2, z); m.rotation.z = Math.atan2(y2 - y1, x2 - x1); chip.add(m);
-}
-{ // logo R gravé (gris foncé sur noir, comme le rendu)
-  const engr = new THREE.MeshStandardMaterial({ color: '#2b2b31', metalness: 0.7, roughness: 0.35 });
-  const ox = -4.42, s = 0.56, z = 0.226;
-  [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([a, b, c, d]) => bar(ox + a * s / 2, b * s / 2, ox + c * s / 2, d * s / 2, 0.04, 0.012, engr, z));
-  const R = [[-.55, -.68, -.55, .62], [-.55, .62, .25, .62], [.25, .62, .58, .3], [.58, .3, .58, .02], [.58, .02, .25, -.25], [.25, -.25, -.55, -.25], [.05, -.25, .6, -.68]];
-  R.forEach(([a, b, c, d]) => bar(ox + a * s / 2.5, b * s / 2.5, ox + c * s / 2.5, d * s / 2.5, 0.036, 0.012, engr, z));
-}
-{ // capsule rouge dans sa fente
-  const slot = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.72, 6, 24), blackPlate); slot.rotation.z = Math.PI / 2; slot.scale.set(1, 1, 0.3); slot.position.set(-2.9, 0, 0.2); chip.add(slot);
-  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.66, 8, 28), redGloss); cap.rotation.z = Math.PI / 2; cap.scale.set(1, 1, 0.75); cap.position.set(-2.9, 0, 0.22); chip.add(cap);
+/* ---------- poignée ---------- */
+const GRIP = [[-4.95, -0.42], [-4.73, -0.64], [-4.1, -0.64], [-4.1, -0.5], [-3.7, -0.5], [-3.7, -0.64], [-2.85, -0.64], [-2.85, -0.5], [-2.5, -0.5], [-2.5, -0.64], [-2.0, -0.64],
+  [-2.0, 0.64], [-2.5, 0.64], [-2.5, 0.5], [-2.85, 0.5], [-2.85, 0.64], [-3.7, 0.64], [-3.7, 0.5], [-4.1, 0.5], [-4.1, 0.64], [-4.73, 0.64], [-4.95, 0.42]];
+const GRIP_IN = [[-4.78, -0.25], [-4.66, -0.37], [-2.12, -0.37], [-2.12, 0.37], [-4.66, 0.37], [-4.78, 0.25]];
+slab(GRIP, 0, TH, metal, [GRIP_IN]);
+slab(GRIP_IN, 0, 0.15, recess, [], 0);
+{
+  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.5, 8, 24), redGloss); cap.rotation.z = Math.PI / 2; cap.scale.set(1, 1, 0.65); cap.position.set(-3.82, 0, 0.16); chip.add(cap);
+  box(0.62, 0.2, 0.05, redGloss, -3.12, 0, 0.17);                                 // bloc de tige rouge
+  box(0.3, 0.6, 0.07, darkMetal, -2.46, 0, 0.18); box(0.18, 0.22, 0.04, darkRed, -2.46, 0, 0.215); // connecteur en E
+  box(0.05, 0.42, 0.05, darkRed, -2.55, 0, 0.21); box(0.12, 0.05, 0.05, darkRed, -2.5, 0.19, 0.21); box(0.12, 0.05, 0.05, darkRed, -2.5, -0.19, 0.21);
+  box(0.06, 0.74, 0.1, darkMetal, -2.2, 0, 0.17);                                 // barre de séparation
+  box(0.58, 0.2, 0.12, darkRed, -1.98, 0.62, 0.26);                              // bouton strié
+  for (let i = 0; i < 5; i++) box(0.035, 0.21, 0.04, darkMetal, -2.18 + i * 0.1, 0.62, 0.33);
 }
 
-/* ---------- corps : bloc de résine rouge translucide ---------- */
-const BODYP = [[BODY.x0, -BODY.y]];
-NOTCHES.forEach(([a, b]) => BODYP.push([a, -BODY.y], [a, -BODY.y + 0.16], [b, -BODY.y + 0.16], [b, -BODY.y]));
-BODYP.push([BODY.x1 - 0.1, -BODY.y], [BODY.x1, -BODY.y + 0.1], [BODY.x1, BODY.y - 0.1], [BODY.x1 - 0.1, BODY.y], [BODY.x0, BODY.y]);
-extrude(BODYP, 0.03, darkMetal, 0.0); // fond
-const resinMat = new THREE.MeshPhysicalMaterial({ color: '#b30f1d', roughness: 0.38, metalness: 0, transparent: true, opacity: 0.6, clearcoat: 1, clearcoatRoughness: 0.2, emissive: '#2a0004', depthWrite: false, envMapIntensity: 2.5 });
-const resin = extrude(BODYP, BODY.h - 0.04, resinMat, 0.03, 0.02); resin.renderOrder = 6;
-// fond rouge procédural (net à tous les zooms)
+/* ---------- corps en résine ---------- */
+const RED = [[-2.06, -0.55], [-1.75, -0.55], [-1.45, -0.84], [3.5, -0.84], [3.5, 0.84], [-1.45, 0.84], [-1.75, 0.55], [-2.06, 0.55]];
+// cadre du corps : rail bas à encoches, rail haut, embout effilé (une seule pièce en C)
+const BODY_FRAME = [[0.55, -0.84], [0.55, -1.0], [1.0, -1.0], [1.0, -0.92], [1.4, -0.92], [1.4, -1.0], [1.8, -1.0], [1.8, -0.92], [2.2, -0.92], [2.2, -1.0],
+  [3.7, -1.0], [4.25, -0.6], [4.25, 0.6], [3.7, 1.0], [2.35, 1.0], [2.35, 0.92], [2.0, 0.92], [2.0, 1.0], [1.65, 1.0], [1.65, 0.84], [3.5, 0.84], [3.5, -0.84]];
+slab(BODY_FRAME, 0, TH, metal);
+slab(RED, 0, 0.012, darkMetal, [], 0);
 const floorMat = new THREE.ShaderMaterial({
   uniforms: { uTime: { value: 0 }, uCore: { value: new THREE.Vector2(CORE.x, CORE.y) } },
   vertexShader: `varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
@@ -223,55 +207,21 @@ const floorMat = new THREE.ShaderMaterial({
       return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
     float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 7; i++) { s += a * n(p); p *= 2.07; a *= .5; } return s; }
     void main(){
-      float f = fbm(vP * vec2(1.6, 5.) + vec2(uTime * .03, 0.));
-      float fur = fbm(vec2(vP.x * 70., vP.y * 3.));
-      float mid = exp(-pow(vP.y / .3, 2.));
-      vec3 c = vec3(.06, .003, .008) + vec3(.55, .02, .05) * pow(f, 3.) * (.5 + mid) + vec3(.22, .0, .02) * pow(fur, 4.);
-      c += vec3(.5, .02, .05) * exp(-length(vP - uCore) * 6.) * .35;
+      float f = fbm(vP * vec2(1.4, 4.) + vec2(uTime * .02, 0.));
+      float fur = fbm(vec2(vP.x * 80., vP.y * 3.));
+      vec3 c = vec3(.05, .002, .008) + vec3(.4, .015, .05) * pow(f, 3.) + vec3(.18, .0, .03) * pow(fur, 4.) + vec3(.12, .0, .18) * pow(n(vP * 9.), 6.);
+      c += vec3(.4, .01, .04) * exp(-length(vP - uCore) * 6.) * .3;
       gl_FragColor = vec4(c, 1.);
     }`,
 });
-{ const fl = new THREE.Mesh(new THREE.ShapeGeometry(shapeFrom(BODYP)), floorMat); fl.position.z = 0.031; chip.add(fl); }
-// tige rouge qui part de la capsule et traverse le corps
-{
-  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 5.9, 16), redGlow); rod.rotation.z = Math.PI / 2; rod.position.set(0.55, 0, 0.09); chip.add(rod);
-  const sheath = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 16), darkMetal); sheath.rotation.z = Math.PI / 2; sheath.position.set(-2.3, 0, 0.16); chip.add(sheath);
-}
-// connecteur en E à la jonction poignée / corps
-box(0.08, 0.62, 0.12, darkMetal, -1.9, 0, 0.3); box(0.34, 0.07, 0.1, darkMetal, -1.76, 0.27, 0.3); box(0.34, 0.07, 0.1, darkMetal, -1.76, -0.27, 0.3); box(0.22, 0.07, 0.1, darkMetal, -1.82, 0, 0.3);
-[0.27, -0.27, 0].forEach(y => box(0.3, 0.012, 0.012, chrome, -1.76, y + 0.035, 0.355));
-// bouton rouge (flanc arrière, jonction)
-box(0.42, 0.14, 0.16, redGloss, -1.7, BODY.y + 0.06, 0.3);
-for (let i = 0; i < 4; i++) box(0.022, 0.15, 0.17, darkMetal, -1.82 + i * 0.08, BODY.y + 0.06, 0.3);
-// rails sombres à arête chromée sur les flancs, ailettes rouges dans les encoches
-{
-  const near = [BODY.x0 + 0.05, ...NOTCHES.flat(), BODY.x1 - 0.12];
-  for (let i = 0; i < near.length; i += 2) {
-    const a = near[i], b = near[i + 1], cx = (a + b) / 2;
-    box(b - a, 0.07, 0.3, darkMetal, cx, -BODY.y + 0.03, 0.18);
-    box(b - a, 0.016, 0.016, chrome, cx, -BODY.y + 0.0, 0.335);
-  }
-  NOTCHES.forEach(([a, b]) => {
-    box(0.07, 0.17, 0.3, darkMetal, a + 0.035, -BODY.y + 0.08, 0.18); box(0.07, 0.17, 0.3, darkMetal, b - 0.035, -BODY.y + 0.08, 0.18);
-    const fin = box(0.13, 0.08, 0.2, redGloss, (a + b) / 2, -BODY.y + 0.1, 0.2); fin.rotation.z = 0.5;
-    box(0.04, 0.03, 0.03, redGlow, (a + b) / 2, -BODY.y + 0.13, 0.31);
-  });
-  box(BODY.x1 - BODY.x0 - 0.3, 0.05, 0.3, darkMetal, (BODY.x0 + BODY.x1) / 2 + 0.1, BODY.y - 0.02, 0.18);
-  box(BODY.x1 - BODY.x0 - 0.3, 0.014, 0.014, chrome, (BODY.x0 + BODY.x1) / 2 + 0.1, BODY.y, 0.335);
-}
-// embout et broches
-{
-  box(0.5, 1.3, 0.34, darkMetal, BODY.x1 + 0.2, 0, 0.17);
-  box(0.5, 0.016, 0.016, chrome, BODY.x1 + 0.2, 0.65, 0.34); box(0.5, 0.016, 0.016, chrome, BODY.x1 + 0.2, -0.65, 0.34);
-  [-0.42, -0.14, 0.14, 0.42].forEach(y => {
-    box(0.5, 0.1, 0.09, chrome, BODY.x1 + 0.7, y, 0.17);
-    box(0.06, 0.15, 0.13, chrome, BODY.x1 + 0.92, y, 0.17);
-    box(0.24, 0.07, 0.07, white, BODY.x1 + 1.07, y, 0.17);
-    box(0.05, 0.04, 0.04, white, BODY.x1 + 1.2, y, 0.17);
-  });
-}
+{ const fl = new THREE.Mesh(new THREE.ShapeGeometry(shapeFrom(RED)), floorMat); fl.position.z = 0.013; chip.add(fl); }
+// la carte imprimée prise dans la résine (contour irrégulier)
+const BOARD = [[-1.3, -0.62], [-0.2, -0.62], [-0.05, -0.7], [1.6, -0.7], [1.75, -0.6], [3.3, -0.6], [3.38, -0.5], [3.38, 0.55], [3.25, 0.68], [1.2, 0.68], [1.05, 0.58], [-0.4, 0.58], [-0.55, 0.7], [-1.3, 0.7], [-1.38, 0.6], [-1.38, -0.54]];
+{ const b = new THREE.Mesh(new THREE.ShapeGeometry(shapeFrom(BOARD)), new THREE.MeshStandardMaterial({ color: '#2a0408', metalness: 0.2, roughness: 0.6, transparent: true, opacity: 0.8 })); b.position.z = PCB_Z - 0.0015; chip.add(b); }
+const resinMat = new THREE.MeshPhysicalMaterial({ color: '#8a0b18', roughness: 0.3, metalness: 0, transparent: true, opacity: 0.34, clearcoat: 1, clearcoatRoughness: 0.15, emissive: '#0c0002', depthWrite: false, envMapIntensity: 1.1 });
+const resin = slab(RED, 0.006, TH + 0.006, resinMat, [], 0.03); resin.renderOrder = 6;
 
-/* ---------- circuits internes : lignes vectorielles (épaisseur en unités monde) ---------- */
+/* ---------- pistes : lignes vectorielles en unités monde ---------- */
 const lineMats = [];
 const buckets = new Map();
 function seg(pts, width, col, z) {
@@ -279,6 +229,7 @@ function seg(pts, width, col, z) {
   let b = buckets.get(k); if (!b) { b = { width: +width.toPrecision(2), col, arr: [] }; buckets.set(k, b); }
   for (let i = 0; i < pts.length - 1; i++) b.arr.push(pts[i][0], pts[i][1], z, pts[i + 1][0], pts[i + 1][1], z);
 }
+function ring(x, y, r, width, col, z, n = 8) { const p = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2 + Math.PI / n; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } seg(p, width, col, z); }
 function flushLines(parent) {
   for (const b of buckets.values()) {
     const geo = new LineSegmentsGeometry().setPositions(b.arr);
@@ -290,7 +241,7 @@ function flushLines(parent) {
   buckets.clear();
 }
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
-function walk(x, y, d, steps, minL, maxL, bx) { // pistes droites, virages de 45°
+function walk(x, y, d, steps, minL, maxL, bx) {
   const pts = [[x, y]];
   for (let i = 0; i < steps; i++) {
     const r = Math.random();
@@ -302,32 +253,74 @@ function walk(x, y, d, steps, minL, maxL, bx) { // pistes droites, virages de 45
   }
   return pts;
 }
-const C_HOT = '1.6,0.07,0.14', C_MID = '0.75,0.02,0.06', C_DIM = '0.35,0.01,0.03', C_WHITE = '1.9,0.6,0.65';
-const WB = [BODY.x0 + 0.08, -BODY.y + 0.2, BODY.x1 - 0.08, BODY.y - 0.08];
-// éclairs : beaucoup de petits segments droits, comme un arc électrique
-for (let k = 0; k < 5; k++) {
-  let x = BODY.x0 + 0.1, y = rnd(-0.25, 0.25); const pts = [[x, y]], z = [0.22, 0.17, 0.27, 0.13, 0.24][k];
-  while (x < BODY.x1 - 0.15) {
-    const dx = rnd(0.03, 0.12), dy = (Math.random() < 0.5 ? 1 : -1) * (Math.random() < 0.5 ? dx : 0);
-    x += dx; y = clamp(y + dy, -0.4, 0.4); pts.push([x, y]);
-    if (Math.random() < 0.06) seg(walk(x, y, Math.random() < .5 ? 1 : 7, 4, 0.02, 0.08, WB), 0.004, C_MID, z);
+function offsetPoly(pts, d) { // décale une polyligne (coins à 45°/90°) pour faire des bus parallèles
+  return pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const n1 = norm(i > 0 ? sub(p, a) : sub(b, p)), n2 = norm(i < pts.length - 1 ? sub(b, p) : sub(p, a));
+    let nx = -(n1[1] + n2[1]), ny = n1[0] + n2[0]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+    const c = Math.max(0.5, nx * -n1[1] + ny * n1[0]);
+    return [p[0] + nx * d / c, p[1] + ny * d / c];
+  });
+}
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]], norm = v => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+
+const C_HOT = '1.5,0.07,0.14', C_MID = '0.75,0.02,0.06', C_DIM = '0.32,0.01,0.03', C_WHITE = '1.8,0.6,0.65', C_PAD = '1.1,0.35,0.4';
+const BX = [-1.32, -0.6, 3.34, 0.62];
+const anchors = [];                                  // points d'ancrage des dendrites
+// bus : faisceaux de pistes parallèles qui suivent la longueur avec des crochets à 45°
+const busPaths = [];
+for (let k = 0; k < 4; k++) {
+  let x = -1.3, y = [-0.38, -0.08, 0.2, 0.45][k]; const p = [[x, y]];
+  while (x < 3.3) {
+    if (Math.random() < 0.55) x += rnd(0.12, 0.45);
+    else { const dy = rnd(0.06, 0.16) * (Math.random() < .5 ? 1 : -1), ny = clamp(y + dy, -0.5, 0.52); x += Math.abs(ny - y); y = ny; }
+    p.push([Math.min(x, 3.3), y]);
   }
-  seg(pts, k < 2 ? 0.014 : 0.008, C_HOT, z); if (k < 2) seg(pts, 0.004, C_WHITE, z + 0.0005);
+  busPaths.push(p);
+  const n = 3 + (Math.random() * 4 | 0);
+  for (let j = 0; j < n; j++) {
+    const q = offsetPoly(p, (j - (n - 1) / 2) * 0.022);
+    seg(q, j === (n >> 1) ? 0.008 : 0.005, j === (n >> 1) ? C_HOT : C_MID, PCB_Z);
+    for (let i = 1; i < q.length; i++) if (Math.random() < 0.5) anchors.push([(q[i - 1][0] + q[i][0]) / 2, (q[i - 1][1] + q[i][1]) / 2]);
+  }
 }
-for (let i = 0; i < 160; i++) seg(walk(rnd(WB[0], WB[2]), rnd(WB[1], WB[3]), Math.random() < .5 ? 0 : 4, 6, 0.03, 0.2, WB), rnd(0.003, 0.007), Math.random() < .3 ? C_MID : C_DIM, rnd(0.05, 0.3));
-// pistes qui sortent du noyau
+// pistes de liaison + pastilles / vias
+for (let i = 0; i < 170; i++) {
+  const p = walk(rnd(BX[0], BX[2]), rnd(BX[1], BX[3]), Math.random() < .5 ? 0 : 4, 5, 0.03, 0.16, BX);
+  seg(p, rnd(0.003, 0.006), Math.random() < .35 ? C_MID : C_DIM, PCB_Z);
+  const [ex, ey] = p[p.length - 1]; ring(ex, ey, 0.012, 0.004, C_PAD, PCB_Z + 0.0002); seg([[ex - 0.003, ey], [ex + 0.003, ey]], 0.006, C_WHITE, PCB_Z + 0.0004);
+  anchors.push(p[1]);
+}
+// noyau : grille de plots BGA, pistes de sortie, composants CMS
 const DIE = 0.17;
-for (let i = 0; i < 80; i++) {
-  const side = i % 4, t = rnd(-DIE + 0.01, DIE - 0.01);
-  const [x, y, d] = side === 0 ? [CORE.x + DIE, t, 0] : side === 1 ? [CORE.x - DIE, t, 4] : side === 2 ? [CORE.x + t, DIE, 2] : [CORE.x + t, -DIE, 6];
-  seg(walk(x, y, d, 7, 0.03, 0.16, WB), rnd(0.004, 0.009), Math.random() < .5 ? C_MID : C_HOT, 0.101);
-}
-// le noyau et ses niveaux imbriqués (chaque niveau 4× plus petit)
 {
-  const die = new THREE.Mesh(new THREE.BoxGeometry(DIE * 2, DIE * 2, 0.05), new THREE.MeshStandardMaterial({ color: '#120204', metalness: .6, roughness: .35, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
-  die.position.set(CORE.x, CORE.y, 0.1); chip.add(die);
+  for (let r = 0; r < 3; r++) {
+    const R = DIE + 0.04 + r * 0.035;
+    for (let t = -R; t <= R + 1e-6; t += 0.035) {
+      for (const [x, y, d] of [[CORE.x + t, CORE.y + R, 2], [CORE.x + t, CORE.y - R, 6], [CORE.x + R, CORE.y + t, 0], [CORE.x - R, CORE.y + t, 4]]) {
+        ring(x, y, 0.009, 0.003, C_PAD, PCB_Z + 0.0002, 6);
+        if (r === 2 && Math.random() < 0.8) { // sortie : 45° puis droit
+          const diag = (d + (Math.random() < .5 ? 1 : 7)) % 8, [ax, ay] = DIR8[diag], [bx, by] = DIR8[d], a = rnd(0.02, 0.06), b = rnd(0.08, 0.35);
+          const p = [[x, y], [x + ax * a, y + ay * a], [x + ax * a + bx * b, y + ay * a + by * b]];
+          seg(p, 0.0035, Math.random() < .3 ? C_HOT : C_MID, PCB_Z); anchors.push(p[2]);
+        }
+      }
+    }
+  }
+  const smd = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), darkMetal, 70), m = new THREE.Matrix4(), caps = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), pale, 140);
+  for (let i = 0; i < 70; i++) {
+    let x, y; do { x = CORE.x + rnd(-0.75, 0.75); y = rnd(-0.55, 0.55); } while (Math.abs(x - CORE.x) < 0.36 && Math.abs(y) < 0.36);
+    const v = Math.random() < .5, w = v ? 0.018 : 0.04, h = v ? 0.04 : 0.018;
+    m.compose(new THREE.Vector3(x, y, PCB_Z + 0.006), new THREE.Quaternion(), new THREE.Vector3(w, h, 0.012)); smd.setMatrixAt(i, m);
+    const ex = v ? 0 : w / 2, ey = v ? h / 2 : 0;
+    m.compose(new THREE.Vector3(x - ex, y - ey, PCB_Z + 0.006), new THREE.Quaternion(), new THREE.Vector3(v ? w : 0.007, v ? 0.007 : h, 0.013)); caps.setMatrixAt(i * 2, m);
+    m.compose(new THREE.Vector3(x + ex, y + ey, PCB_Z + 0.006), new THREE.Quaternion(), new THREE.Vector3(v ? w : 0.007, v ? 0.007 : h, 0.013)); caps.setMatrixAt(i * 2 + 1, m);
+  }
+  chip.add(smd, caps);
+  const die = new THREE.Mesh(new THREE.BoxGeometry(DIE * 2, DIE * 2, 0.024), new THREE.MeshStandardMaterial({ color: '#120204', metalness: .6, roughness: .35, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+  die.position.set(CORE.x, CORE.y, CORE.z - 0.012); chip.add(die);
   const zt = CORE.z + 0.0003;
-  for (let L = 0; L < 4; L++) {
+  for (let L = 0; L < 4; L++) { // niveaux imbriqués, chacun 4× plus petit
     const s = 0.3 / Math.pow(4, L), h = s / 2, inner = s / 8, cx = CORE.x, cy = CORE.y;
     seg([[cx - h, cy - h], [cx + h, cy - h], [cx + h, cy + h], [cx - h, cy + h], [cx - h, cy - h]], s * 0.012, C_HOT, zt);
     for (let k = -h + s * 0.04; k < h; k += s * 0.06) {
@@ -340,12 +333,11 @@ for (let i = 0; i < 80; i++) {
       const [x, y, d] = side === 0 ? [cx + inner, cy + t, 0] : side === 1 ? [cx - inner, cy + t, 4] : side === 2 ? [cx + t, cy + inner, 2] : [cx + t, cy - inner, 6];
       const p = walk(x, y, d, 6, s * 0.04, s * 0.14, bxL);
       seg(p, s * rnd(0.003, 0.008), Math.random() < .4 ? C_HOT : C_MID, zt);
-      const [ex, ey] = p[p.length - 1], q = s * 0.008;
-      seg([[ex - q, ey - q], [ex + q, ey - q], [ex + q, ey + q], [ex - q, ey + q], [ex - q, ey - q]], s * 0.004, C_WHITE, zt);
+      const [ex, ey] = p[p.length - 1]; ring(ex, ey, s * 0.01, s * 0.004, C_PAD, zt, 6);
     }
   }
   const e = 0.3 / Math.pow(4, 4);
-  const tree = (x, y, d, len, depth) => { // dendrites : segments droits, virages de 45° aléatoires
+  const tree = (x, y, d, len, depth) => {
     let px = x, py = y; const n = 1 + (Math.random() * 3 | 0);
     for (let i = 0; i < n; i++) {
       const [dx, dy] = DIR8[d], k = len * rnd(.5, 1) / n / (dx && dy ? Math.SQRT2 : 1), x2 = px + dx * k, y2 = py + dy * k;
@@ -360,16 +352,48 @@ for (let i = 0; i < 80; i++) {
   const q = e * .035; seg([[CORE.x - q, CORE.y - q], [CORE.x + q, CORE.y - q], [CORE.x + q, CORE.y + q], [CORE.x - q, CORE.y + q], [CORE.x - q, CORE.y - q]], e * .03, C_WHITE, zt);
 }
 flushLines(chip);
-// fibres givrées (traits fins perpendiculaires aux éclairs)
+
+/* ---------- dendrites organiques + éclats violets, traversés par une vague de lumière ---------- */
+const pulseUniforms = { uTime: { value: 0 } };
+const pulseVS = `
+  uniform float uTime; attribute vec3 aCol; varying vec3 vC;
+  void main(){
+    float w = exp(-pow((position.x - (mod(uTime * 1.1, 7.) - 2.)) / .45, 2.));
+    vC = aCol * (.35 + 1.4 * w);
+    vec4 mv = modelViewMatrix * vec4(position, 1.);
+    gl_PointSize = 2.2 * (1. + w);
+    gl_Position = projectionMatrix * mv;
+  }`;
 {
-  const n = 9000, p = new Float32Array(n * 6);
-  for (let i = 0; i < n; i++) { const x = rnd(BODY.x0 + 0.05, BODY.x1 - 0.05), y = rnd(-0.5, 0.55), z = rnd(0.12, 0.33), L = rnd(0.01, 0.07); p.set([x, y, z, x, y + L, z], i * 6); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-  const f = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: new THREE.Color(0.8, 0.04, 0.08), transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }));
-  f.renderOrder = 2; chip.add(f);
+  const P = [], Cc = [], tips = [], tc = [];
+  for (const [x0, y0] of anchors) {
+    const k = 1 + (Math.random() * 3 | 0);
+    for (let j = 0; j < k; j++) {
+      let x = x0 + rnd(-0.01, 0.01), y = y0 + rnd(-0.01, 0.01), z = PCB_Z;
+      const L = rnd(0.02, 0.085), steps = 3;
+      for (let s = 0; s < steps; s++) {
+        const nx = x + rnd(-0.006, 0.006), ny = y + rnd(-0.012, 0.012), nz = z - L / steps;
+        P.push(x, y, z, nx, ny, nz); Cc.push(.9, .03, .08, .9, .03, .08); x = nx; y = ny; z = nz;
+      }
+      tips.push(x, y, z); const v = Math.random() < .35; tc.push(v ? .7 : 1.2, v ? .2 : .35, v ? 1 : .45);
+    }
+  }
+  for (let i = 0; i < 1600; i++) { tips.push(rnd(-1.35, 3.35), rnd(-0.62, 0.62), rnd(0.03, 0.19)); tc.push(.5, .1, rnd(.6, 1)); } // éclats violets
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aCol', new THREE.Float32BufferAttribute(Cc, 3));
+  const mat = new THREE.ShaderMaterial({ uniforms: pulseUniforms, vertexShader: pulseVS, fragmentShader: `varying vec3 vC; void main(){ gl_FragColor = vec4(vC, .55); }`, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const den = new THREE.LineSegments(g, mat); den.renderOrder = 2; chip.add(den);
+  const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tips, 3)); tg.setAttribute('aCol', new THREE.Float32BufferAttribute(tc, 3));
+  const tmat = new THREE.ShaderMaterial({ uniforms: pulseUniforms, vertexShader: pulseVS, fragmentShader: `varying vec3 vC; void main(){ float d = length(gl_PointCoord - .5); if (d > .5) discard; gl_FragColor = vec4(vC, smoothstep(.5, .1, d)); }`, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const pts = new THREE.Points(tg, tmat); pts.renderOrder = 2; chip.add(pts);
 }
+// broches fines
+[-0.36, -0.12, 0.12, 0.36].forEach(y => {
+  box(0.42, 0.06, 0.06, metal, 4.45, y, 0.11);
+  box(0.05, 0.1, 0.09, metal, 4.68, y, 0.11);
+  box(0.22, 0.04, 0.04, metal, 4.82, y, 0.11);
+  box(0.04, 0.06, 0.06, metal, 4.95, y, 0.11);
+});
 const key = new THREE.DirectionalLight('#ffffff', 0.9); key.position.set(-4, 6, 8); chipScene.add(key);
-const redLight = new THREE.PointLight('#ff2030', 0.8, 3, 1.5); redLight.position.set(0.8, 0, 0.6); chip.add(redLight);
 
 /* ============================== le cerveau topographique ============================== */
 function hash3(x, y, z) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(z, 1274126177)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -642,12 +666,12 @@ function pick(cx, cy, click) {
 const clock = new THREE.Clock();
 const Y_AX = new THREE.Vector3(0, 1, 0);
 const focus = new THREE.Vector3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
-const CENTER = new THREE.Vector3(0, 0, 0.2);
+const CENTER = new THREE.Vector3(0, 0, 0.11);
 let simT = 0;
 function tick(dt) {
   simT += dt; const t = simT;
   mouse.sx += (mouse.x - mouse.sx) * (1 - Math.exp(-4 * dt)); mouse.sy += (mouse.y - mouse.sy) * (1 - Math.exp(-4 * dt));
-  floorMat.uniforms.uTime.value = t;
+  floorMat.uniforms.uTime.value = t; pulseUniforms.uTime.value = t;
   if (mode === 'chip' || mode === 'linking') {
     if (autoDive) zT = clamp(zT + dt * 0.12, 0, 1);
     z += (zT - z) * (1 - Math.exp(-3 * dt));
