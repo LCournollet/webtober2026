@@ -211,8 +211,8 @@ const K_HOT = '#ff3446', K_MID = '#c4182c', K_DIM = '#6e0c18', K_WHITE = '#ffd6d
 const PX = 10 / 1490, IMG = pts => pts.map(([x, y]) => [(925 - y) * PX, (x - 620) * PX]); // photo en miroir : on la retourne
 // route de verre + insert en forme de capsule (centre 626,1458, rayon 29), prolongement du bloc de verre
 const CAP_ARC = (from, to) => Array.from({ length: 13 }, (_, i) => { const t = from + (to - from) * i / 12; return [626 + Math.cos(t) * 29, 1458 + Math.sin(t) * 29]; });
-const TAIL_PX = [[650, 1205], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1205]];
-const WINDOW = IMG([[557, 372], [712, 372], [712, 458], [697, 478], [697, 640], [751, 642], [751, 1205], ...TAIL_PX, [488, 1205], [488, 858], [527, 840], [527, 458], [557, 445]]); // le verre va jusqu'aux bords du métal
+const TAIL_PX = [[675, 1220], [650, 1220], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1350], [565, 1290], [565, 1266], [604, 1266], [604, 1205]];
+const WINDOW = IMG([[557, 372], [712, 372], [712, 458], [697, 478], [697, 640], [751, 642], [751, 1130], ...TAIL_PX, [488, 1205], [488, 858], [527, 840], [527, 458], [557, 445]]); // le verre va jusqu'aux bords du métal
 const LED = IMG([[626, 1440]])[0];
 const HEAD = IMG([[522, 275], [722, 275], [747, 320], [747, 372], [507, 372], [507, 315]]);
 const RAIL_R = IMG([[712, 370], [747, 370], [747, 452], [718, 470], [718, 490], [751, 505], [751, 642], [697, 642], [697, 478], [712, 458]]);
@@ -220,10 +220,10 @@ const RAIL_L = IMG([[507, 370], [557, 370], [557, 445], [527, 458], [527, 840], 
   [488, 590], [517, 570], [517, 555], [488, 535], [488, 460], [507, 445]]);
 const GRIP_O = IMG([[492, 1268], [755, 1268], [755, 1462], [702, 1488], [702, 1508], [755, 1532], [755, 1640], [735, 1668], [512, 1668], [492, 1640], [492, 1532], [545, 1510], [545, 1490], [492, 1466]]);
 const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], [720, 1466], [684, 1486], [684, 1512], [720, 1532], [720, 1640], [530, 1640], [530, 1532], [564, 1512], [564, 1486], [530, 1466], [530, 1318], [548, 1318], [548, 1290]];
-const PLATE = IMG([[548, 1290], [604, 1290], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
+const PLATE = IMG([[548, 1290], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
 const GRIP_FRAME = IMG([[650, 1268], [755, 1268], [755, 1462], [702, 1488], [702, 1508], [755, 1532], [755, 1640], [735, 1668], [512, 1668], [492, 1640], [492, 1532], [545, 1510], [545, 1490], [492, 1466],
-  [492, 1268], [604, 1268], [604, 1290], ...PLATE_RING.slice().reverse(), [650, 1290]]);
+  [492, 1268], [565, 1268], [565, 1290], ...PLATE_RING.slice().reverse(), [650, 1290]]);
 const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
 const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
 
@@ -234,7 +234,7 @@ poly(WINDOW, '#160308');
 PRIMS.push({ t: 'clip', pts: WINDOW, bb: [-1e9, -1e9, 1e9, 1e9] });
 { // la route : petites pistes rouges serrées, pastilles, fibres
   const RX0 = -3.78, RX1 = -1.8, RY0 = -0.1, RY1 = 0.2, RB = [RX0, RY0, RX1, RY1];
-  for (let i = 0; i < 900; i++) { const x = rnd(RX0, RX1), y = rnd(-0.16, 0.24), L = rnd(0.006, 0.03); line([[x, y], [x, y + L]], 0.002, 'rgba(255,40,70,1)', 0, rnd(0.1, 0.35)); }
+  for (let i = 0; i < 1200; i++) { const x = rnd(RX0, RX1), y = rnd(-0.42, 0.24), L = rnd(0.006, 0.03); line([[x, y], [x, y + L]], 0.002, 'rgba(255,40,70,1)', 0, rnd(0.1, 0.35)); }
   for (let k = 0; k < 9; k++) {
     let x = RX1 + 0.02, y = RY0 + 0.012 + k * 0.034; const p = [[x, y]];
     while (x > RX0) { if (Math.random() < .6) x -= rnd(0.04, 0.16); else { const dy = (Math.random() < .5 ? 1 : -1) * 0.017, ny = clamp(y + dy, RY0, RY1); x -= Math.abs(ny - y); y = ny; } p.push([Math.max(x, RX0), y]); }
@@ -242,6 +242,8 @@ PRIMS.push({ t: 'clip', pts: WINDOW, bb: [-1e9, -1e9, 1e9, 1e9] });
     for (let i = 1; i < p.length; i += 2) { dot(p[i][0], p[i][1], 0.006, '#2a0409', 0.004, K_PAD, 0.002); }
   }
   for (let i = 0; i < 40; i++) { const p = walk(rnd(RX0, RX1), rnd(RY0, RY1), Math.random() < .5 ? 0 : 4, 4, 0.01, 0.05, RB); line(p, 0.0025, K_DIM); }
+  const WB2 = [-2.9, -0.42, -2.2, -0.1]; // biseau sous le connecteur
+  for (let i = 0; i < 18; i++) { const p = walk(rnd(WB2[0], WB2[2]), rnd(WB2[1], WB2[3]), Math.random() < .5 ? 0 : 4, 4, 0.01, 0.06, WB2); line(p, 0.003, i % 3 ? K_MID : K_HOT, 0.004); const e = p[p.length - 1]; dot(e[0], e[1], 0.006, '#2a0409', 0.004, K_PAD, 0.002); }
   PRIMS.push({ t: 'blob', x: LED[0], y: LED[1], r: 0.32, col: 'rgba(255,40,60,.35)', bb: [LED[0] - .32, LED[1] - .32, LED[0] + .32, LED[1] + .32] });
 }
 for (let i = 0; i < 40; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.6, 0.8); PRIMS.push({ t: 'blob', x, y, r: rnd(0.15, 0.45), col: 'rgba(150,0,22,.35)', bb: [x - .45, y - .45, x + .45, y + .45] }); }
@@ -452,7 +454,8 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // fond du corps et bande du connecteur
 piece(WINDOW, 0, 0.03, darkMetal, { bevel: 0.008, seg: 2 });
-pieceI(rectP(488, 1204, 604, 1272), 0, TH * 0.92, darkMetal); pieceI(rectP(650, 1204, 755, 1272), 0, TH * 0.92, darkMetal);
+pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, TH * 0.92, darkMetal);
+pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, TH * 0.92, darkMetal);
 // verre
 const glass = piece(WINDOW, 0.03, TH + 0.004, glassMat, { bevel: 0.022, seg: 4 }); glass.renderOrder = 10;
 // tête, rails, poignée
@@ -491,6 +494,7 @@ function insidePlate(x, y, margin) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
     if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
     if (!insidePlate(x, y, 9)) continue;                 // pas de trou hors de la plaque (encoches)
+    if (x > 552 && x < 616 && y < 1368) continue;         // ni dans le biseau de verre
     pts.push(IMG([[x, y]])[0]);
   }
   const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.016, 16), new THREE.MeshBasicMaterial({ color: '#000' }), pts.length);
