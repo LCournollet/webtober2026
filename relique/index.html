@@ -236,9 +236,9 @@ const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y 
 const WINDOW = IMG([[526, 372], [709, 372], ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
   [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1)]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
-const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
+const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [747, 595], [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
   [526, 372], ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
-  [487, 858], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 322]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
+  [487, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 322]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
 const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], ...notchInner(720, 755, -1, NY.G, 1), [720, 1640], [530, 1640], ...notchInner(530, 492, 1, NY.G, -1), [530, 1318], [548, 1318], [548, 1290]];
 const PLATE = IMG([[548, 1290], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
@@ -484,6 +484,7 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
+const PAD_X = [[595, 642], [816, 858]].map(([a, b]) => [(925 - b) * PX, (925 - a) * PX]); // zones des carrés rouges (axe de la puce)
 const KNIFE = { c: 0.17, ridge: 0.03, cFront: 0.32, ridgeFront: 0.068 }; // l'avant : pente depuis le milieu de la tête jusqu'au pied des broches             // profil en lame : deux pentes droites (haut et bas) qui se rejoignent sur une arête plate au milieu
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
@@ -498,7 +499,8 @@ function knifePiece(pts0, mat) {
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
     const outside = !CHIP_PARTS.some(p => insidePoly(p, mx + o[0] * 0.012, my + o[1] * 0.012));
     // pente sur les flancs extérieurs, le bout arrière et l'avant ; les encoches restent plates
-    const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
+    const pad = PAD_X.some(([x0, x1]) => mx > x0 && mx < x1);   // blocs des carrés rouges : bords droits, pas de pente
+    const side = !pad && Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
     outer.push(outside && (side || back || front));
     cE.push(front ? KNIFE.cFront : KNIFE.c); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
     corner.push(outside && front && !tip);
