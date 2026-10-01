@@ -484,25 +484,28 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.17, ridge: 0.03 };             // profil en lame : deux pentes droites (haut et bas) qui se rejoignent sur une arête plate au milieu
+const KNIFE = { c: 0.17, ridge: 0.03, cFront: 0.32, ridgeFront: 0.068 }; // l'avant : pente depuis le milieu de la tête jusqu'au pied des broches             // profil en lame : deux pentes droites (haut et bas) qui se rejoignent sur une arête plate au milieu
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
 function knifePiece(pts0, mat) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
   if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
-  const n = pts.length, outer = [], nrm = [];
+  const n = pts.length, outer = [], nrm = [], cE = [], rE = [];
   for (let i = 0; i < n; i++) {
     const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = [dy / L, -dx / L];
     nrm.push(o);
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
     const outside = !CHIP_PARTS.some(p => insidePoly(p, mx + o[0] * 0.012, my + o[1] * 0.012));
-    // pente seulement sur les flancs extérieurs et le bout arrière ; encoches et avant restent plats
-    const side = Math.abs(o[1]) > 0.95 && Math.abs(my) > 0.8, back = mx < -4.5;
-    outer.push(outside && (side || back));
+    // pente sur les flancs extérieurs, le bout arrière et l'avant ; les encoches restent plates
+    const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
+    outer.push(outside && (side || back || front));
+    cE.push(tip ? KNIFE.cFront : KNIFE.c); rE.push(tip ? KNIFE.ridgeFront : KNIFE.ridge);
   }
+  // épaisseur de l'arête à chaque sommet (la plus forte des arêtes voisines en pente) : pas de fente aux jonctions
+  const rV = pts.map((_, i) => { const ip = (i - 1 + n) % n; return Math.max(outer[ip] ? rE[ip] : 0, outer[i] ? rE[i] : 0) || KNIFE.ridge; });
   const off = pts.map((v, i) => {                     // bord du plat supérieur
-    const ip = (i - 1 + n) % n, c1 = outer[ip] ? KNIFE.c : 0, c2 = outer[i] ? KNIFE.c : 0;
+    const ip = (i - 1 + n) % n, c1 = outer[ip] ? cE[ip] : 0, c2 = outer[i] ? cE[i] : 0;
     if (!c1 && !c2) return v.slice();
     const n1 = nrm[ip], n2 = nrm[i], a = pts[ip], b = pts[(i + 1) % n];
     const p1 = [v[0] - n1[0] * c1, v[1] - n1[1] * c1], d1 = [v[0] - a[0], v[1] - a[1]];
@@ -513,7 +516,7 @@ function knifePiece(pts0, mat) {
     return [p1[0] + d1[0] * t, p1[1] + d1[1] * t];
   });
   // profil d'un sommet : plat du dessus (o) → arête plate au milieu (v) → plat du dessous (o)
-  const profile = (v, o) => [[...o, TH], [...v, (TH + KNIFE.ridge) / 2], [...v, (TH - KNIFE.ridge) / 2], [...o, 0]];
+  const profile = (v, o, r) => [[...o, TH], [...v, (TH + r) / 2], [...v, (TH - r) / 2], [...o, 0]];
   const P = [], tri = (a, b, c) => P.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
   const T = THREE.ShapeUtils.triangulateShape(off.map(p => new THREE.Vector2(...p)), []);
   for (const [a, b, c] of T) tri([...off[a], TH], [...off[b], TH], [...off[c], TH]);
@@ -521,12 +524,12 @@ function knifePiece(pts0, mat) {
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
     if (outer[i]) {
-      const pa = profile(A, oA), pb = profile(B, oB);
+      const pa = profile(A, oA, rV[i]), pb = profile(B, oB, rV[j]);
       for (let k = 0; k < pa.length - 1; k++) quad(pa[k], pa[k + 1], pb[k + 1], pb[k]);
     } else {                                          // bord plat vertical (épouse le profil des voisins en pente)
       const ip = (i - 1 + n) % n;
-      const prof = (v, o, slope) => slope ? profile(v, o) : [[...v, TH], [...v, 0]];
-      const sa = prof(A, oA, outer[ip]), sb = prof(B, oB, outer[j]).reverse();
+      const prof = (v, o, slope, r) => slope ? profile(v, o, r) : [[...v, TH], [...v, 0]];
+      const sa = prof(A, oA, outer[ip], rV[i]), sb = prof(B, oB, outer[j], rV[j]).reverse();
       const ring = [...sa, ...sb], dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
       const flat = ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2]));
       for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(flat, [])) {
@@ -549,19 +552,16 @@ pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1
 // verre
 const glass = piece(WINDOW, 0.03, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
 // tête, rails, poignée
-CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]),
-  ...[548, 598, 648, 698].map(xc => IMG([[xc - 21, 268], [xc + 21, 268], [xc + 21, 340], [xc - 21, 340]])));
+CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]));
 [FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // carrés rouges incrustés sur les rails, liseré rouge sous les broches
 pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 pieceI(rectP(502, 824, 538, 850), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
-pieceI(rectP(526, 339, 718, 345), 0.02, TH * 0.6, redGloss, { bevel: 0.002, seg: 1 });
-// broches : base chromée + pointe découpée comme sur la photo
+// broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
-  pieceI(rectP(xc - 21, 268, xc + 21, 340), 0.03, TH * 0.82, metal, { bevel: 0.012 });
-  pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]],
-    TH * 0.3, TH * 0.62, metal, { bevel: 0.01 });
+  pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]],
+    TH / 2 - 0.032, TH / 2 + 0.032, metal, { bevel: 0.01 });
 });
 // perforations de la plaque
 const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
