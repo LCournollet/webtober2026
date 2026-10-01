@@ -436,8 +436,8 @@ const rubberGrain = (() => {
   g.putImageData(img, 0, 0); g.globalAlpha = 0.5; g.filter = 'blur(0.6px)'; g.drawImage(c, 0, 0);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 9); t.anisotropy = 8; return t;
 })();
-const blackPlate = new THREE.MeshPhysicalMaterial({ color: '#1a1a1c', metalness: 0, roughness: 0.72, bumpMap: rubberGrain, bumpScale: 0.3, sheen: 0.7, sheenRoughness: 0.6, sheenColor: '#3a3a40', specularIntensity: 0.55, side: THREE.DoubleSide });
-const dimpleMat = blackPlate.clone(); dimpleMat.color.set('#0c0c0d'); dimpleMat.sheen = 0.3;      // le creux reçoit moins de lumière
+const blackPlate = new THREE.MeshPhysicalMaterial({ color: '#161618', metalness: 0, roughness: 0.48, bumpMap: rubberGrain, bumpScale: 0.18, sheen: 0.4, sheenRoughness: 0.6, sheenColor: '#34343a', specularIntensity: 0.7, clearcoat: 0.12, clearcoatRoughness: 0.45, side: THREE.DoubleSide }); // mat légèrement brillant
+const dimpleMat = blackPlate;                                                                    // même matière : le creux se lit par la lumière seule
 const darkMetal = new THREE.MeshPhysicalMaterial({ color: '#141317', metalness: 0.8, roughness: 0.32 });
 const redGloss = new THREE.MeshPhysicalMaterial({ color: '#c40c26', roughness: 0.16, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, emissive: '#2a0004' });
 const redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.06, 0.12), toneMapped: false });
@@ -506,13 +506,13 @@ function insidePlate(x, y, margin) {
     if (x > 552 && x < 616 && y < 1368) continue;
     pts.push(IMG([[x, y]])[0]);
   }
-  const r = 0.024, h = 0.011, Rs = (r * r + h * h) / (2 * h), th = Math.asin(r / Rs);
-  const holes = pts.map(([x, y]) => Array.from({ length: 20 }, (_, i) => { const a = -i / 20 * Math.PI * 2; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; }));
-  piece(PLATE, 0, TH, blackPlate, { holes, bevel: 0.004, seg: 2 });
-  const cup = new THREE.SphereGeometry(Rs, 28, 10, 0, Math.PI * 2, Math.PI - th, th);
+  const r = 0.024, h = 0.005, Rs = (r * r + h * h) / (2 * h), th = Math.asin(r / Rs);   // creux léger : la hauteur du logo, en négatif
+  const holes = pts.map(([x, y]) => Array.from({ length: 32 }, (_, i) => { const a = -i / 32 * Math.PI * 2; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; }));
+  piece(PLATE, 0, TH, blackPlate, { holes, bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
+  const cup = new THREE.SphereGeometry(Rs, 32, 6, 0, Math.PI * 2, Math.PI - th, th).rotateX(Math.PI / 2); // calotte tournée vers le bas (axe Z)
   const bowls = new THREE.InstancedMesh(cup, dimpleMat, pts.length), m = new THREE.Matrix4();
-  pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
-  chip.add(bowls);
+  pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs - 0.0002), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
+  bowls.frustumCulled = false; chip.add(bowls);
 }
 // logo Relic en relief dans le plastique (contour vectorisé depuis le logo officiel, coordonnées normalisées)
 const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0.4929],[-0.4566,0.4776],[-0.462,0.4649],[-0.4631,0.4542],[-0.4643,0.1219],[-0.4625,0.1031],[-0.4539,0.0878],[-0.439,0.0763],[-0.4217,0.0723],[-0.0599,0.0713],[-0.0438,0.067],[-0.0368,0.0575],[-0.0353,0.0495],[-0.036,0.0414],[-0.0412,0.0334],[-0.1603,-0.0872],[-0.1778,-0.1077],[-0.1933,-0.1328],[-0.2052,-0.1703],[-0.2049,-0.2185],[-0.1994,-0.24],[-0.1886,-0.264],[-0.171,-0.2882],[-0.0857,-0.3713],[-0.0838,-0.3767],[-0.0867,-0.378],[-0.2984,-0.3785],[-0.3172,-0.3752],[-0.33,-0.3686],[-0.3399,-0.3552],[-0.3439,-0.3392],[-0.3426,-0.0819],[-0.346,-0.0631],[-0.3628,-0.0435],[-0.3735,-0.0385],[-0.3896,-0.0361],[-0.4164,-0.0358],[-0.4351,-0.0387],[-0.4459,-0.0439],[-0.457,-0.055],[-0.4622,-0.0658],[-0.4649,-0.0819],[-0.4649,-0.4544],[-0.4625,-0.4705],[-0.4573,-0.4812],[-0.4405,-0.495],[-0.4217,-0.5],[0.0205,-0.4995],[0.0393,-0.4978],[0.0527,-0.4918],[0.0661,-0.4774],[0.0717,-0.4651],[0.0735,-0.4062],[0.0714,-0.3877],[-0.0779,-0.2132],[-0.0857,-0.1998],[-0.0866,-0.1917],[-0.0849,-0.1837],[-0.0775,-0.173],[0.0555,-0.0416],[0.0768,-0.0117],[0.0829,0.0039],[0.087,0.0495],[0.0853,0.1004],[0.0774,0.1299],[0.0608,0.1567],[0.0393,0.1761],[0.0178,0.1865],[-0.009,0.1917],[-0.3253,0.1921],[-0.336,0.1945],[-0.3435,0.2076],[-0.3436,0.347],[-0.3371,0.3631],[-0.3279,0.3733],[-0.3092,0.38],[0.31,0.381],[0.3234,0.3789],[0.3341,0.3716],[0.3436,0.355],[0.3455,0.3443],[0.3452,-0.3499],[0.3427,-0.3633],[0.3378,-0.3713],[0.3287,-0.3784],[0.3207,-0.3809],[0.3073,-0.3784],[0.2958,-0.3686],[0.1446,-0.2185],[0.1367,-0.2078],[0.1343,-0.1998],[0.1344,-0.1864],[0.1399,-0.173],[0.2751,-0.039],[0.2966,-0.0128],[0.3073,0.0087],[0.3099,0.0334],[0.3092,0.2639],[0.3078,0.2773],[0.2999,0.2988],[0.2839,0.3202],[0.2617,0.3363],[0.2483,0.3421],[0.2246,0.347],[-0.2904,0.3472],[-0.3038,0.3401],[-0.3085,0.3282],[-0.3084,0.2478],[-0.3065,0.2373],[-0.3019,0.2317],[-0.2947,0.2264],[-0.285,0.225],[0.1465,0.227],[0.1626,0.2241],[0.176,0.2142],[0.1854,0.1996],[0.1892,0.1835],[0.1883,0.0441],[0.0141,-0.1328],[0.0044,-0.1492],[-0.0031,-0.173],[-0.003,-0.2025],[0.0043,-0.2266],[0.0255,-0.2561],[0.2564,-0.4979],[0.3689,-0.4981],[0.3984,-0.4949],[0.4267,-0.4812],[0.4421,-0.4678],[0.452,-0.4534],[0.4628,-0.4274],[0.4644,-0.4088],[0.4649,0.4408],[0.4629,0.4703],[0.4569,0.481],[0.4467,0.4918],[0.436,0.4974],[0.4226,0.5]];
