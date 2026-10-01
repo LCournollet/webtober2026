@@ -491,7 +491,7 @@ const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { cons
 function knifePiece(pts0, mat) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
   if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
-  const n = pts.length, outer = [], nrm = [], cE = [], rE = [];
+  const n = pts.length, outer = [], nrm = [], cE = [], rE = [], corner = [];
   for (let i = 0; i < n; i++) {
     const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = [dy / L, -dx / L];
     nrm.push(o);
@@ -501,6 +501,7 @@ function knifePiece(pts0, mat) {
     const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
     outer.push(outside && (side || back || front));
     cE.push(front ? KNIFE.cFront : KNIFE.c); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
+    corner.push(outside && front && !tip);
   }
   // épaisseur de l'arête à chaque sommet (la plus forte des arêtes voisines en pente) : pas de fente aux jonctions
   const rV = pts.map((_, i) => { const ip = (i - 1 + n) % n; return Math.max(outer[ip] ? rE[ip] : 0, outer[i] ? rE[i] : 0) || KNIFE.ridge; });
@@ -515,12 +516,23 @@ function knifePiece(pts0, mat) {
     const t = ((p2[0] - p1[0]) * d2[1] - (p2[1] - p1[1]) * d2[0]) / den;
     return [p1[0] + d1[0] * t, p1[1] + d1[1] * t];
   });
+  // coin avant en onglet : le plat forme un angle net (intersection des plats du flanc et du bout) → la face du coin est un triangle
+  const lineX = (p, d, q, e) => { const den = d[0] * e[1] - d[1] * e[0]; if (Math.abs(den) < 1e-9) return null; const t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / den; return [p[0] + d[0] * t, p[1] + d[1] * t]; };
+  for (let i = 0; i < n; i++) {
+    if (!corner[i]) continue;
+    const ip = (i - 1 + n) % n, k = (i + 1) % n, kk = (i + 2) % n;
+    const c1 = outer[ip] ? cE[ip] : 0, c2 = outer[k] ? cE[k] : 0;
+    const p = [pts[ip][0] - nrm[ip][0] * c1, pts[ip][1] - nrm[ip][1] * c1], d = [pts[i][0] - pts[ip][0], pts[i][1] - pts[ip][1]];
+    const q = [pts[k][0] - nrm[k][0] * c2, pts[k][1] - nrm[k][1] * c2], e = [pts[kk][0] - pts[k][0], pts[kk][1] - pts[k][1]];
+    const m = lineX(p, d, q, e); if (m) { off[i] = m; off[k] = m.slice(); }
+  }
   // profil d'un sommet : plat du dessus (o) → arête plate au milieu (v) → plat du dessous (o)
   const profile = (v, o, r) => [[...o, TH], [...v, (TH + r) / 2], [...v, (TH - r) / 2], [...o, 0]];
   const P = [], tri = (a, b, c) => P.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
-  const T = THREE.ShapeUtils.triangulateShape(off.map(p => new THREE.Vector2(...p)), []);
-  for (const [a, b, c] of T) tri([...off[a], TH], [...off[b], TH], [...off[c], TH]);
-  for (const [a, b, c] of T) tri([...off[a], 0], [...off[c], 0], [...off[b], 0]);
+  const topPts = off.filter((p, i) => { const q = off[(i + 1) % n]; return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-7; });
+  const T = THREE.ShapeUtils.triangulateShape(topPts.map(p => new THREE.Vector2(...p)), []);
+  for (const [a, b, c] of T) tri([...topPts[a], TH], [...topPts[b], TH], [...topPts[c], TH]);
+  for (const [a, b, c] of T) tri([...topPts[a], 0], [...topPts[c], 0], [...topPts[b], 0]);
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
     if (outer[i]) {
