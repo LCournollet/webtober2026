@@ -484,7 +484,6 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const PAD_X = [[595, 642], [816, 858]].map(([a, b]) => [(925 - b) * PX, (925 - a) * PX]); // zones des carrés rouges (axe de la puce)
 const KNIFE = { c: 0.17, ridge: 0.03, cFront: 0.32, ridgeFront: 0.068 }; // l'avant : pente depuis le milieu de la tête jusqu'au pied des broches             // profil en lame : deux pentes droites (haut et bas) qui se rejoignent sur une arête plate au milieu
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
@@ -499,8 +498,7 @@ function knifePiece(pts0, mat) {
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
     const outside = !CHIP_PARTS.some(p => insidePoly(p, mx + o[0] * 0.012, my + o[1] * 0.012));
     // pente sur les flancs extérieurs, le bout arrière et l'avant ; les encoches restent plates
-    const pad = PAD_X.some(([x0, x1]) => mx > x0 && mx < x1);   // blocs des carrés rouges : bords droits, pas de pente
-    const side = !pad && Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
+    const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
     outer.push(outside && (side || back || front));
     cE.push(front ? KNIFE.cFront : KNIFE.c); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
     corner.push(outside && front && !tip);
@@ -577,10 +575,14 @@ const glass = piece(WINDOW, 0.03, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 })
 // tête, rails, poignée
 CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]));
 [FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
+// blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
+const PAD_TOP = TH + 0.002;
+pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
+pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // carrés rouges incrustés sur les rails, liseré rouge sous les broches
-pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
-pieceI(rectP(502, 824, 538, 850), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
+pieceI(rectP(700, 602, 738, 630), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { bevel: 0.004, seg: 2 });
+pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
   const k = 0.72;                                     // broches réduites autour de leur pied (y 275)
