@@ -484,7 +484,7 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.21, cBack: 0.15, ridge: 0.05, cFront: 0.32, ridgeFront: 0.068 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
+const KNIFE = { c: 0.225, cBack: 0.15, ridge: 0.075, cFront: 0.32, ridgeFront: 0.068 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
