@@ -600,9 +600,6 @@ const PAD_TOP = TH + 0.002;
 pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
 pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
-// carrés rouges incrustés sur les rails, liseré rouge sous les broches
-pieceI(rectP(700, 602, 738, 630), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { bevel: 0.004, seg: 2 });
-pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
   const k = 0.72, kw = 1.28;                         // broches réduites en longueur autour de leur pied (y 275), larges : ~4 px entre les bases
