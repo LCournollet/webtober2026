@@ -589,26 +589,43 @@ function knifePiece(pts0, mat) {
 
 // fond du corps et bande du connecteur (plastique noir, moins épais que le verre)
 const BAND_TOP = TH * 0.7;
-piece(WINDOW, 0, 0.03, darkMetal, { bevel: 0.008, seg: 2 });
 // caoutchouc noir brillant
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
 pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, BAND_TOP, glossRubber);
 pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, BAND_TOP, glossRubber);
-// câbles en relief sur la bande, même caoutchouc, légèrement ondulés, à moitié enfoncés
+// fils fins en relief sur la bande : tracés droits qui tournent (angles droits et pans à 45°), dessus puis tranches
 {
-  const R = 3.4 * PX;
-  [498, 511, 524, 537, 550, 691, 704, 717, 730, 743].forEach((x, k) => {
-    const pts = [];
-    for (let i = 0; i <= 8; i++) {
-      const y = 1205 + i * 66 / 8, w = 1.8 * Math.sin(i * 0.9 + k * 1.3);
-      const [p] = IMG([[x + w, y]]); pts.push(new THREE.Vector3(p[0], p[1], BAND_TOP - R * 0.25));
-    }
-    const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, R, 12, false), glossRubber);
-    chip.add(m);
+  const R = 0.9 * PX, Z = BAND_TOP, ZB = 0.02, wires = [];
+  const P = (x, y, z = Z) => { const [q] = IMG([[x, y]]); return new THREE.Vector3(q[0], q[1], z); };
+  for (let i = 0; i < 5; i++) {                      // bus gauche : descend du verre puis file vers la tranche et plonge
+    const x = 494 + 5 * i, yt = 1236 + 5 * i;
+    wires.push([P(x, 1204), P(x, yt), P(488, yt), P(488, yt, ZB)]);
+  }
+  for (let i = 0; i < 5; i++) {                      // bus central gauche : de la plaque au verre, avec un pan à 45°
+    const x = 532 + 5 * i;
+    wires.push([P(x, 1272), P(x, 1240), P(x + 8, 1232), P(x + 8, 1204)]);
+  }
+  for (let i = 0; i < 4; i++) {                      // bus droit : descend du verre puis file vers la tranche et plonge
+    const x = 750 - 5 * i, yt = 1236 + 5 * i;
+    wires.push([P(x, 1204), P(x, yt), P(755, yt), P(755, yt, ZB)]);
+  }
+  for (let i = 0; i < 4; i++) {                      // bus central droit
+    const x = 682 + 5 * i;
+    wires.push([P(x, 1272), P(x, 1242), P(x + 6, 1236), P(x + 6, 1212)]);
+  }
+  for (let i = 0; i < 3; i++) {                      // le long de l'arrière : courent sur le dessus puis plongent par les deux tranches
+    const y = 1260 + 4 * i;
+    wires.push([P(488, y, ZB), P(488, y), P(520 - 4 * i, y), P(520 - 4 * i, 1272)]);
+    wires.push([P(755, y, ZB), P(755, y), P(720 + 4 * i, y), P(720 + 4 * i, 1272)]);
+  }
+  wires.forEach(pts => {
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    chip.add(new THREE.Mesh(new THREE.TubeGeometry(path, 24 * (pts.length - 1), R, 6, false), glossRubber));
   });
 }
 // verre
-const glass = piece(WINDOW, 0.03, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
+const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
 // tête, rails, poignée
 CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]));
 [FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
@@ -657,6 +674,10 @@ function insidePlate(x, y, margin) {
   const bowls = new THREE.InstancedMesh(cup, dimpleMat, pts.length), m = new THREE.Matrix4();
   pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs - 0.0002), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
   bowls.frustumCulled = false; chip.add(bowls);
+  // dessous de la relique : la même empreinte, en miroir (pas de logo)
+  const under = new THREE.InstancedMesh(cup, dimpleMat, pts.length), mz = new THREE.Vector3(1, 1, -1);
+  pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, h - Rs + 0.0002), new THREE.Quaternion(), mz); under.setMatrixAt(i, m); });
+  under.frustumCulled = false; chip.add(under);
 }
 // logo Relic en relief dans le plastique (contour vectorisé depuis le logo officiel, coordonnées normalisées)
 const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0.4929],[-0.4566,0.4776],[-0.462,0.4649],[-0.4631,0.4542],[-0.4643,0.1219],[-0.4625,0.1031],[-0.4539,0.0878],[-0.439,0.0763],[-0.4217,0.0723],[-0.0599,0.0713],[-0.0438,0.067],[-0.0368,0.0575],[-0.0353,0.0495],[-0.036,0.0414],[-0.0412,0.0334],[-0.1603,-0.0872],[-0.1778,-0.1077],[-0.1933,-0.1328],[-0.2052,-0.1703],[-0.2049,-0.2185],[-0.1994,-0.24],[-0.1886,-0.264],[-0.171,-0.2882],[-0.0857,-0.3713],[-0.0838,-0.3767],[-0.0867,-0.378],[-0.2984,-0.3785],[-0.3172,-0.3752],[-0.33,-0.3686],[-0.3399,-0.3552],[-0.3439,-0.3392],[-0.3426,-0.0819],[-0.346,-0.0631],[-0.3628,-0.0435],[-0.3735,-0.0385],[-0.3896,-0.0361],[-0.4164,-0.0358],[-0.4351,-0.0387],[-0.4459,-0.0439],[-0.457,-0.055],[-0.4622,-0.0658],[-0.4649,-0.0819],[-0.4649,-0.4544],[-0.4625,-0.4705],[-0.4573,-0.4812],[-0.4405,-0.495],[-0.4217,-0.5],[0.0205,-0.4995],[0.0393,-0.4978],[0.0527,-0.4918],[0.0661,-0.4774],[0.0717,-0.4651],[0.0735,-0.4062],[0.0714,-0.3877],[-0.0779,-0.2132],[-0.0857,-0.1998],[-0.0866,-0.1917],[-0.0849,-0.1837],[-0.0775,-0.173],[0.0555,-0.0416],[0.0768,-0.0117],[0.0829,0.0039],[0.087,0.0495],[0.0853,0.1004],[0.0774,0.1299],[0.0608,0.1567],[0.0393,0.1761],[0.0178,0.1865],[-0.009,0.1917],[-0.3253,0.1921],[-0.336,0.1945],[-0.3435,0.2076],[-0.3436,0.347],[-0.3371,0.3631],[-0.3279,0.3733],[-0.3092,0.38],[0.31,0.381],[0.3234,0.3789],[0.3341,0.3716],[0.3436,0.355],[0.3455,0.3443],[0.3452,-0.3499],[0.3427,-0.3633],[0.3378,-0.3713],[0.3287,-0.3784],[0.3207,-0.3809],[0.3073,-0.3784],[0.2958,-0.3686],[0.1446,-0.2185],[0.1367,-0.2078],[0.1343,-0.1998],[0.1344,-0.1864],[0.1399,-0.173],[0.2751,-0.039],[0.2966,-0.0128],[0.3073,0.0087],[0.3099,0.0334],[0.3092,0.2639],[0.3078,0.2773],[0.2999,0.2988],[0.2839,0.3202],[0.2617,0.3363],[0.2483,0.3421],[0.2246,0.347],[-0.2904,0.3472],[-0.3038,0.3401],[-0.3085,0.3282],[-0.3084,0.2478],[-0.3065,0.2373],[-0.3019,0.2317],[-0.2947,0.2264],[-0.285,0.225],[0.1465,0.227],[0.1626,0.2241],[0.176,0.2142],[0.1854,0.1996],[0.1892,0.1835],[0.1883,0.0441],[0.0141,-0.1328],[0.0044,-0.1492],[-0.0031,-0.173],[-0.003,-0.2025],[0.0043,-0.2266],[0.0255,-0.2561],[0.2564,-0.4979],[0.3689,-0.4981],[0.3984,-0.4949],[0.4267,-0.4812],[0.4421,-0.4678],[0.452,-0.4534],[0.4628,-0.4274],[0.4644,-0.4088],[0.4649,0.4408],[0.4629,0.4703],[0.4569,0.481],[0.4467,0.4918],[0.436,0.4974],[0.4226,0.5]];
