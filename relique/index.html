@@ -671,11 +671,11 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   transparent: true, opacity: 0.6,
 });
 {
-  const Y0 = 1151, Y1 = 1229, XO = 762, DEPTH = 26, END = 9, pts = [];   // centré sur y 1190 ; rentré vers le centre : le V vient se poser sur le corps
+  const Y0 = 1130, Y1 = 1250, XO = 768, DEPTH = 44, END = 12, pts = [];   // centré sur y 1190 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
   for (let i = 0; i <= 150; i++) {                   // bord extérieur : 5 bosses en demi-lune bien rondes
     const t = i / 150, y = Y0 + (Y1 - Y0) * t, u = (t * 5 % 1) * 2 - 1;
-    pts.push([XO - 2 + 5 * Math.sqrt(Math.max(0, 1 - u * u)), y]);
+    pts.push([XO - 3 + 7 * Math.sqrt(Math.max(0, 1 - u * u)), y]);
   }
   pts.push([XO - END, Y1]);                          // bout droit écrasé
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
@@ -690,8 +690,8 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   g.strokeRect(cx - q, cy - q, 2 * q, 2 * q);
   g.beginPath(); g.moveTo(cx - q, cy - q); g.lineTo(cx + q, cy + q); g.moveTo(cx + q, cy - q); g.lineTo(cx - q, cy + q); g.stroke();
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.13), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[752, 1190]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+  const [a] = IMG([[753, 1190]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
 }
 
