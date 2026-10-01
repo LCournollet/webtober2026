@@ -213,18 +213,37 @@ const PX = 10 / 1490, IMG = pts => pts.map(([x, y]) => [(925 - y) * PX, (x - 620
 const CAP_ARC = (from, to) => Array.from({ length: 13 }, (_, i) => { const t = from + (to - from) * i / 12; return [626 + Math.cos(t) * 29, 1458 + Math.sin(t) * 29]; });
 const TAIL_PX = [[675, 1220], [650, 1220], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1350], [565, 1290], [565, 1266], [604, 1266], [604, 1205]];
 // avant : les rails deviennent un liseré de métal fin (≈12 px) qui suit le contour et ses encoches ; le verre vient jusqu'à lui
-const WINDOW = IMG([[545, 372], [709, 372], [709, 448], [701, 464], [701, 492], [713, 508], [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
-  [488, 1205], [488, 858], [546, 858], [546, 816], [525, 816], [525, 726], [534, 713], [534, 686], [526, 673], [526, 592], [534, 579], [534, 546], [526, 533], [526, 462], [545, 447]]); // encoches avant : liseré de 12 px qui avance dans le verre
 const LED = IMG([[626, 1440]])[0];
-// tête + deux rails en une seule pièce de métal (pas de jointure) ; rails ≈38 px, liseré très fin (≈6 px) au fond des encoches
-const FRONT = IMG([[522, 275], [722, 275], [747, 320], [747, 452], [707, 469], [707, 487], [751, 505], [751, 642], [693, 642], [693, 595], [713, 595], [713, 508], [701, 492], [701, 464], [709, 448], [709, 372],
-  [545, 372], [545, 447], [526, 462], [526, 533], [534, 546], [534, 579], [526, 592], [526, 673], [534, 686], [534, 713], [525, 726], [525, 816], [546, 816], [546, 858],
-  [487, 858], [487, 724], [528, 708], [528, 691], [488, 675], [488, 590], [528, 574], [528, 551], [488, 535], [488, 460], [507, 445], [507, 315]]);
-const GRIP_O = IMG([[492, 1268], [755, 1268], [755, 1468], [725, 1488], [725, 1508], [755, 1528], [755, 1640], [735, 1668], [512, 1668], [492, 1640], [492, 1528], [522, 1510], [522, 1490], [492, 1472]]);
-const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], [720, 1468], [706, 1486], [706, 1512], [720, 1530], [720, 1640], [530, 1640], [530, 1530], [541, 1512], [541, 1486], [530, 1470], [530, 1318], [548, 1318], [548, 1290]];
+// cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
+// encoches : une seule définition pour toutes (avant et arrière) — ouverture Wo le long de la puce, fond plat Wf, profondeur D,
+// liseré de métal L au fond ; le verre (ou la plaque) épouse l'encoche et la laisse dépasser un peu dans la matière
+const NOTCH = { Wo: 70, Wf: 30, D: 42, L: 3 };
+// bord extérieur (x0 = bord, s = sens vers l'intérieur ±1, yc = centre, dir = sens de parcours en y)
+function notchOuter(x0, s, yc, dir) {
+  const { Wo, Wf, D } = NOTCH, p = [[x0, yc - Wo / 2], [x0 + s * D, yc - Wf / 2], [x0 + s * D, yc + Wf / 2], [x0, yc + Wo / 2]];
+  return dir > 0 ? p : p.reverse();
+}
+// bord intérieur (xi = bord droit du verre / de la plaque) : bosse décalée de L autour de l'encoche
+function notchInner(xi, x0, s, yc, dir) {
+  const { Wo, Wf, D, L } = NOTCH, ux = D, uy = (Wo - Wf) / 2, ul = Math.hypot(ux, uy), u = [ux / ul, uy / ul], nv = [u[1], -u[0]];
+  const Wr = Math.abs(xi - x0), P0 = [nv[0] * L, -Wo / 2 + nv[1] * L];
+  const at = d => P0[1] + u[1] * (d - P0[0]) / u[0];   // y (relatif) de la pente décalée à la profondeur d
+  const yA = at(Wr), yB = at(D + L);
+  const p = [[x0 + s * Wr, yc + yA], [x0 + s * (D + L), yc + yB], [x0 + s * (D + L), yc - yB], [x0 + s * Wr, yc - yA]];
+  return dir > 0 ? p : p.reverse();
+}
+const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y photo)
+const WINDOW = IMG([[545, 372], [709, 372], ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
+  [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1), [526, 462], [545, 447]]);
+// tête + deux rails en une seule pièce de métal (pas de jointure)
+const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [751, 520], [751, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
+  [545, 372], [545, 447], [526, 462], ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
+  [487, 858], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 460], [507, 445], [507, 315]]);
+const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
+const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], ...notchInner(720, 755, -1, NY.G, 1), [720, 1640], [530, 1640], ...notchInner(530, 492, 1, NY.G, -1), [530, 1318], [548, 1318], [548, 1290]];
 const PLATE = IMG([[548, 1290], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
-const GRIP_FRAME = IMG([[650, 1268], [755, 1268], [755, 1468], [725, 1488], [725, 1508], [755, 1528], [755, 1640], [735, 1668], [512, 1668], [492, 1640], [492, 1528], [522, 1510], [522, 1490], [492, 1472],
+const GRIP_FRAME = IMG([[650, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1),
   [492, 1268], [565, 1268], [565, 1290], ...PLATE_RING.slice().reverse(), [650, 1290]]);
 const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
 const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
@@ -545,7 +564,7 @@ pieceI(rectP(526, 339, 718, 345), 0.02, TH * 0.6, redGloss, { bevel: 0.002, seg:
     TH * 0.3, TH * 0.62, metal, { bevel: 0.01 });
 });
 // perforations de la plaque
-const PLATE_PX = [[548, 1290], [702, 1290], [702, 1318], [720, 1318], [720, 1468], [706, 1486], [706, 1512], [720, 1530], [720, 1640], [530, 1640], [530, 1530], [541, 1512], [541, 1486], [530, 1470], [530, 1318], [548, 1318]];
+const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
 function insidePlate(x, y, margin) {
   let inside = false;
   for (let i = 0, j = PLATE_PX.length - 1; i < PLATE_PX.length; j = i++) {
