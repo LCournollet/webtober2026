@@ -1,0 +1,26 @@
+# Webtober 2026
+
+Un thème, un mini projet web, chaque jour d'octobre 2026.
+
+🌐 **https://devtober.57-131-40-94.sslip.io/**
+
+| Jour | Thème | Lien |
+|------|-------|------|
+| 01 | 🍎 Apple | [/apple](https://devtober.57-131-40-94.sslip.io/apple/) |
+
+## Structure
+
+- `index.html` — page d'accueil (calendrier des 31 jours, se remplit tout seul)
+- `<theme>/` — un dossier par jour, avec son `index.html` et un `meta.json` :
+  ```json
+  { "day": 1, "theme": "apple", "title": "Apple", "emoji": "🍎" }
+  ```
+- `nginx/devtober` — config nginx du VPS (avant ajout HTTPS par certbot)
+- `deploy.sh` — mise en ligne
+
+## Déployer
+
+```bash
+./deploy.sh apple   # un thème
+./deploy.sh         # la page d'accueil
+```

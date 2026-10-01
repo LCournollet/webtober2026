@@ -1,0 +1,23 @@
+# Devtober 2026 — un mini projet par jour, servi sur /<theme>
+server {
+    listen 80;
+    listen [::]:80;
+    server_name devtober.57-131-40-94.sslip.io;
+
+    root /var/www/devtober;
+    index index.html;
+
+    # Liste JSON des dossiers (thèmes), utilisée par la page d'accueil
+    location = /_themes/ {
+        alias /var/www/devtober/;
+        index __none__;
+        autoindex on;
+        autoindex_format json;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ /\. { deny all; }
+}
