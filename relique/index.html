@@ -407,7 +407,7 @@ const brushed = (() => {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.6, 6); return t;
 })();
 const metal = new THREE.MeshPhysicalMaterial({ color: '#f2eeef', metalness: 1, roughness: 0.16, roughnessMap: brushed, anisotropy: 0.5, envMapIntensity: 1.0 });
-const blackPlate = new THREE.MeshPhysicalMaterial({ color: '#08080a', metalness: 0.4, roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+const blackPlate = new THREE.MeshPhysicalMaterial({ color: '#0b0b0c', metalness: 0, roughness: 0.42, specularIntensity: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.35 }); // plastique noir
 const darkMetal = new THREE.MeshPhysicalMaterial({ color: '#141317', metalness: 0.8, roughness: 0.32 });
 const redGloss = new THREE.MeshPhysicalMaterial({ color: '#c40c26', roughness: 0.16, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, emissive: '#2a0004' });
 const redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.06, 0.12), toneMapped: false });
@@ -438,7 +438,7 @@ const glass = piece(WINDOW, 0.03, TH + 0.004, glassMat, { bevel: 0.022, seg: 4 }
 // tête, rails, poignée
 [HEAD, RAIL_R, RAIL_L].forEach(p => piece(p, 0, TH, metal));
 piece(GRIP_O, 0, TH, metal, { holes: [PLATE] });
-piece(PLATE, 0, TH * 0.68, blackPlate, { bevel: 0.006, seg: 2 });
+piece(PLATE, 0, TH, blackPlate, { bevel: 0.006, seg: 2 });   // au ras du cadre métallique
 // carrés rouges incrustés sur les rails, liseré rouge sous les broches
 pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 pieceI(rectP(502, 824, 538, 850), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
@@ -474,9 +474,9 @@ function insidePlate(x, y, margin) {
     pts.push(IMG([[x, y]])[0]);
   }
   const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.016, 16), new THREE.MeshBasicMaterial({ color: '#000' }), pts.length);
-  const rings = new THREE.InstancedMesh(new THREE.RingGeometry(0.016, 0.021, 16), new THREE.MeshPhysicalMaterial({ color: '#3a3a40', metalness: 1, roughness: 0.25 }), pts.length);
+  const rings = new THREE.InstancedMesh(new THREE.RingGeometry(0.016, 0.021, 16), new THREE.MeshPhysicalMaterial({ color: '#1d1d20', metalness: 0, roughness: 0.5 }), pts.length);
   const m = new THREE.Matrix4();
-  pts.forEach(([x, y], i) => { m.makeTranslation(x, y, TH * 0.68 + 0.0008); holes.setMatrixAt(i, m); rings.setMatrixAt(i, m); });
+  pts.forEach(([x, y], i) => { m.makeTranslation(x, y, TH + 0.0008); holes.setMatrixAt(i, m); rings.setMatrixAt(i, m); });
   chip.add(holes, rings);
 }
 // logo R en relief
@@ -485,7 +485,7 @@ function bar3(a, b, w, z, mat) {
   m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z); m.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0]); chip.add(m);
 }
 {
-  const engr = new THREE.MeshPhysicalMaterial({ color: '#2a2a31', metalness: 0.9, roughness: 0.3 }), z = TH * 0.68 + 0.005;
+  const engr = new THREE.MeshPhysicalMaterial({ color: '#1e1e22', metalness: 0, roughness: 0.3, clearcoat: 0.5 }), z = TH + 0.002;
   const B = IMG([[584, 1504], [660, 1504], [660, 1588], [584, 1588], [584, 1504]]);
   for (let i = 0; i < 4; i++) bar3(B[i], B[i + 1], 0.02, z, engr);
   const k = (a, b) => IMG([[1244 - a, b]])[0];
@@ -497,12 +497,12 @@ function bar3(a, b, w, z, mat) {
 {
   const [c0] = IMG([[626, 1431]]), r = 29 * PX, len = (1487 - 1375) * PX - 2 * r;
   const cap = new THREE.Mesh(new THREE.CapsuleGeometry(r, len + r, 10, 32), redGloss);
-  cap.rotation.z = Math.PI / 2; cap.scale.set(1, 1, 0.55); cap.position.set(c0[0], c0[1], TH * 0.68); chip.add(cap);
-  pieceI(rectP(604, 1205, 650, 1380), TH * 0.5, TH * 0.66, plum, { bevel: 0.004, seg: 1 });
+  cap.rotation.z = Math.PI / 2; cap.scale.set(1, 1, 0.55); cap.position.set(c0[0], c0[1], TH); chip.add(cap);
+  pieceI(rectP(604, 1205, 650, 1380), TH - 0.006, TH + 0.006, plum, { bevel: 0.004, seg: 1 });
   for (const x of [613, 641]) {
     const [a] = IMG([[x, 1205]]), [b] = IMG([[x, 1378]]);
     const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, Math.abs(b[0] - a[0]), 16), redGlow);
-    rod.rotation.z = Math.PI / 2; rod.position.set((a[0] + b[0]) / 2, a[1], TH * 0.7); chip.add(rod);
+    rod.rotation.z = Math.PI / 2; rod.position.set((a[0] + b[0]) / 2, a[1], TH + 0.008); chip.add(rod);
   }
 }
 // connecteur en E
