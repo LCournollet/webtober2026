@@ -674,10 +674,8 @@ const burgundy = new THREE.MeshPhysicalMaterial({
     const t = i / 48, y = Y0 + (Y1 - Y0) * t;
     pts.push([XO + 1.6 * Math.sin(Math.PI * t) * Math.cos(t * Math.PI * 14) - 6 * (1 - Math.sin(Math.PI * t)) ** 3, y]);
   }
-  for (let i = 47; i >= 1; i--) {                    // bord intérieur : arc en cuvette, le plus creux un peu avant le milieu
-    const t = i / 48, y = Y0 + (Y1 - Y0) * t;
-    pts.push([XO - 4 - 38 * Math.sin(Math.PI * t ** 0.85) ** 0.75, y]);
-  }
+  // bord intérieur : V écrasé, deux côtés droits qui se rejoignent un peu avant le milieu
+  pts.push([XO - 36, Y0 + (Y1 - Y0) * 0.42]);
   const btn = pieceI(pts, 0.025, TH + 0.012, burgundy, { bevel: 0.03, seg: 6 }); btn.renderOrder = 11;
   // inscription
   const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d');
