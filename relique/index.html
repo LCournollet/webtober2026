@@ -505,7 +505,26 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 const KNIFE = { c: 0.225, cBack: 0.158, ridge: 0.1, cFront: 0.2, ridgeFront: 0.09 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
-const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
+// brossage procédural dans la longueur (calculé sur la position, donc indépendant des UV des pièces taillées)
+function brush(k) {
+  k.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+varying vec3 vBP;`).replace('#include <begin_vertex>', `#include <begin_vertex>
+vBP = position;`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vBP;
+float bh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float bn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(bh(i), bh(i + vec2(1, 0)), f.x), mix(bh(i + vec2(0, 1)), bh(i + vec2(1, 1)), f.x), f.y); }`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+float bs = bn(vec2((vBP.y + vBP.z) * 240., vBP.x * 2.)) * .55 + bn(vec2((vBP.y + vBP.z) * 110., vBP.x * .8)) * .45;
+roughnessFactor = clamp(roughnessFactor + (bs - .5) * .3, .05, 1.);
+diffuseColor.rgb *= .86 + .2 * bs;`);
+  };
+  k.customProgramCacheKey = () => 'brush';
+  return k;
+}
+const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.34; k.color.set('#c2bec0'); knifeMats.set(mat, brush(k)); } return knifeMats.get(mat); };
 function knifePiece(pts0, mat) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
   if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
@@ -605,7 +624,7 @@ pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, s
   const k = 0.72, kw = 1.28;                         // broches réduites en longueur autour de leur pied (y 275), larges : ~4 px entre les bases
   // tête centrale 202→246, pointe 170→202 (même longueur qu'avant) : la broche s'allonge d'autant
   pieceI([[xc - 5, 170], [xc + 5, 170], [xc + 5, 202], [xc + 14, 208], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 14, 268], [xc + 14, 282], [xc - 14, 282], [xc - 14, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 208], [xc - 5, 202]]
-    .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - KNIFE.ridgeFront / 2, TH / 2 + KNIFE.ridgeFront / 2, metal, { bevel: 0.004, seg: 2 }); // même épaisseur que l arête : la pente arrive pile à leur base
+    .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - KNIFE.ridgeFront / 2, TH / 2 + KNIFE.ridgeFront / 2, knifeMat(metal), { bevel: 0.004, seg: 2 }); // même épaisseur que l arête : la pente arrive pile à leur base
 });
 // perforations de la plaque
 const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
