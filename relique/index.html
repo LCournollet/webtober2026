@@ -132,18 +132,36 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.85;
+renderer.toneMappingExposure = 1.0;
 
 const chipScene = new THREE.Scene(); chipScene.background = new THREE.Color('#030102');
-chipScene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
-chipScene.environmentIntensity = 0.26;
+// studio photo produit : fond sombre, softboxes et bandes lumineuses → le chrome a de vrais contrastes
+chipScene.environment = (() => {
+  const env = new THREE.Scene(); env.background = new THREE.Color('#202024');
+  const panel = (w, h, x, y, z, k, tint = '#ffffff') => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(tint).multiplyScalar(k), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m);
+  };
+  panel(14, 6, 0, 12, 4, 1.6);                // grande softbox au-dessus
+  panel(1.2, 16, -12, 3, 0, 2.2);               // bande verticale à gauche
+  panel(1.2, 16, 12, 2, -4, 1.8);               // bande verticale à droite
+  panel(16, 1, 0, 2, 13, 1.6);
+  panel(22, 9, 0, 7, 11, 1.1);                // grande softbox de face (reflets des dessus)
+  panel(10, 4, -6, -4, 10, 0.7);              // réflecteur bas
+  panel(24, 10, 0, -9, 9, 1.0);               // softbox basse : reflets des dessus dans la vue d'arrivée                // bande horizontale de face
+  panel(10, 3, 0, -8, -10, 0.6, '#ff6070');   // rebond rouge discret
+  panel(6, 6, -8, 8, -10, 0.9);
+  panel(30, 30, 0, 0, -16, 0.25);             // fond légèrement éclairé               // fill arrière
+  return new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
+})();
+chipScene.environmentIntensity = 1.0;
 const camA = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.01, 100);
 const brainScene = new THREE.Scene(); brainScene.background = new THREE.Color('#030102');
 const camB = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 100);
 
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(chipScene, camA);
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.35, 0.95);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.3, 1.6);
 composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
 
 /* ============================== la puce (illustration plate) ============================== */
@@ -151,7 +169,8 @@ composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new Outp
 // chaque niveau est le même dessin en plus net, donc le passage d'un niveau à l'autre est invisible.
 // repère : X = longueur (broches à droite), Y = largeur (+Y = bord arrière / haut de l'image)
 const chip = new THREE.Group(); chipScene.add(chip);
-const CORE = new THREE.Vector3(0.84, 0, 0);
+const INNER_Z = 0.031;                               // la carte, posée au fond sous le verre
+const CORE = new THREE.Vector3(0.84, 0, INNER_Z);
 const lineMats = [];
 
 const PRIMS = [];
@@ -201,8 +220,6 @@ const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
 const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
 
 // fond sombre du corps et bande du connecteur
-rectI(488, 600, 751, 1212, '#0b0306');
-rectI(488, 1204, 755, 1272, '#0d0d11', '#050506', 0.006);
 
 // fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
 poly(WINDOW, '#160308');
@@ -297,46 +314,6 @@ for (let L = 0; L < 4; L++) {
 }
 PRIMS.push({ t: 'gloss', pts: WINDOW, bb: bboxOf(WINDOW, 0) });
 PRIMS.push({ t: 'unclip', bb: [-1e9, -1e9, 1e9, 1e9] });
-line([...WINDOW, WINDOW[0]], 0.008, 'rgba(255,90,110,.7)');                       // liseré rouge autour de la fenêtre
-
-// tête, rails chromés et carrés rouges
-[HEAD, RAIL_R, RAIL_L].forEach(p => { poly(p, METAL, '#1c1a1b', 0.01); line([...p, p[0]], 0.005, 'rgba(255,255,255,.5)'); });
-rectI(700, 602, 738, 630, '#c8102a', '#3a0008', 0.006); rectI(502, 824, 538, 850, '#c8102a', '#3a0008', 0.006);
-// broches
-[548, 598, 648, 698].forEach(xc => {
-  poly(IMG([[xc - 22, 268], [xc + 22, 268], [xc + 22, 340], [xc - 22, 340]]), METAL, '#1c1a1b', 0.008);
-  poly(IMG([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]]),
-    { grad: ['#f6f1f2', '#c3bbbe', '#ece6e8', '#9a9295'] }, '#1c1a1b', 0.006);
-});
-line(IMG([[526, 342], [718, 342]]), 0.012, '#c8102a');
-
-// poignée : cadre chromé, plaque perforée, logo, capsule, tige
-poly(GRIP_O, METAL, '#1c1a1b', 0.01); line([...GRIP_O, GRIP_O[0]], 0.005, 'rgba(255,255,255,.5)');
-poly(PLATE, '#0a0a0c', '#000', 0.008);
-for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
-  if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
-  if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
-  const [[cx, cy]] = IMG([[x, y]]); dot(cx, cy, 0.017, '#000', 0, 'rgba(255,255,255,.14)', 0.004);
-}
-{ const L = IMG([[584, 1504], [660, 1504], [660, 1588], [584, 1588], [584, 1504]]); line(L, 0.02, '#2c2c33');
-  const k = (a, b) => IMG([[1244 - a, b]])[0]; // la photo est en miroir : le R est redessiné à l'endroit
-  line([k(600, 1580), k(600, 1514), k(632, 1514), k(645, 1527), k(645, 1540), k(632, 1552), k(600, 1552)], 0.018, '#2c2c33'); line([k(620, 1552), k(646, 1580)], 0.018, '#2c2c33');
-}
-{ // tige rouge + capsule
-  const tube = IMG([[606, 1205], [648, 1205], [648, 1380], [606, 1380]]);
-  poly(tube, '#3a0c26'); line(IMG([[613, 1205], [613, 1378]]), 0.035, '#e0102c', 0.01); line(IMG([[641, 1205], [641, 1378]]), 0.035, '#e0102c', 0.01);
-  const cap = []; cap.push([597, 1375], [655, 1375]); for (let a = 0; a <= 16; a++) { const t = a / 16 * Math.PI; cap.push([626 + Math.cos(t) * 29, 1458 + Math.sin(t) * 29]); }
-  poly(IMG(cap), { grad: ['#ff5d70', '#e01030', '#c00c26', '#7a0616'] }, '#3a0008', 0.008);
-  line(IMG([[606, 1385], [606, 1450]]), 0.025, 'rgba(255,200,205,.45)');
-}
-// connecteur en E et bouton rouge
-rectI(565, 1220, 675, 1266, '#3a2c40', '#7a6a80', 0.008); rectI(582, 1230, 658, 1256, '#24182a', '#8a7a90', 0.006);
-rectI(602, 1236, 652, 1250, '#5a1838'); rectI(489, 1206, 548, 1270, '#060608');
-{ const b = IMG([[722, 1135], [758, 1126], [768, 1138], [768, 1204], [756, 1214], [722, 1214]]);
-  poly(b, { grad: ['#ff4a5e', '#d0102a', '#a00a20', '#5a0410'] }, '#2a0006', 0.008);
-  for (let y = 1142; y < 1204; y += 8) poly(IMG([[768, y], [774, y + 4], [768, y + 8]]), '#8a0818');
-}
-
 /* ---------- rendu des niveaux ---------- */
 function drawRegion(cx, cy, w, h, pxW, pxH, fadeEdges) {
   const c = document.createElement('canvas'); c.width = pxW; c.height = pxH;
@@ -386,10 +363,10 @@ function drawRegion(cx, cy, w, h, pxW, pxH, fadeEdges) {
 }
 // vague de lumière qui parcourt les circuits (sur les pixels rouges)
 const waveUniforms = { uTime: { value: 0 } };
-function levelMaterial(cv, ox, oy) {
+function levelMaterial(cv, ox, oy, order) {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   return new THREE.ShaderMaterial({
-    transparent: true, depthTest: false, depthWrite: false,
+    transparent: false, polygonOffset: true, polygonOffsetFactor: -order, polygonOffsetUnits: -4 * order,
     uniforms: { map: { value: t }, uOpacity: { value: 1 }, uOff: { value: new THREE.Vector2(ox, oy) }, uTime: waveUniforms.uTime },
     vertexShader: `varying vec2 vUv; varying vec2 vP; uniform vec2 uOff; void main(){ vUv = uv; vP = position.xy + uOff; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
     fragmentShader: `
@@ -398,26 +375,133 @@ function levelMaterial(cv, ox, oy) {
         vec4 c = texture2D(map, vUv);
         float red = clamp(c.r - max(c.g, c.b) * 1.2, 0., 1.);
         float w = exp(-pow((vP.x - (mod(uTime * 1.1, 8.) - 2.5)) / .5, 2.)) * step(-1.5, vP.x) * step(vP.x, 3.5);
+        if (c.a < 0.5) discard;
         c.rgb += c.rgb * red * w * 1.4;
-        gl_FragColor = vec4(c.rgb, c.a * uOpacity);
+        gl_FragColor = vec4(c.rgb, 1.);
       }`,
   });
 }
 const LEVELS = [];
 function addLevel(size, cv, cx, cy, w, h, order) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), levelMaterial(cv, cx, cy));
-  m.position.set(cx, cy, 0); m.renderOrder = order; chip.add(m);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), levelMaterial(cv, cx, cy, order));
+  m.position.set(cx, cy, INNER_Z); chip.add(m);
   LEVELS.push({ size, mesh: m });
 }
 await document.fonts.load('500 20px "JetBrains Mono"').catch(() => {});
 addLevel(Infinity, drawRegion(0, 0, 10.4, 2.6, 4096, 1024, false), 0, 0, 10.4, 2.6, 0);
 // niveaux de détail autour du noyau, générés au fil de l'eau
 const SIZES = [2.0, 0.5, 0.125, 0.03125, 0.0078];
-SIZES.forEach((s, i) => setTimeout(() => addLevel(s, drawRegion(CORE.x, CORE.y, s, s, 2048, 2048, true), CORE.x, CORE.y, s, s, i + 1), 200 + i * 250));
+SIZES.forEach((s, i) => setTimeout(() => addLevel(s, drawRegion(CORE.x, CORE.y, s, s, 2048, 2048, false), CORE.x, CORE.y, s, s, i + 1), 200 + i * 250));
 function updateLevels(d) {
   const visH = 2 * d * Math.tan(THREE.MathUtils.degToRad(camA.fov / 2));
-  for (const L of LEVELS) if (L.size !== Infinity) L.mesh.material.uniforms.uOpacity.value = smooth(1.7 * L.size, 1.05 * L.size, visH);
+  for (const L of LEVELS) if (L.size !== Infinity) L.mesh.visible = visH < 2.2 * L.size; // même dessin, en plus net
 }
+
+/* ---------- la puce en 3D, d'après les formes relevées sur la photo ---------- */
+const TH = 0.2;                                     // épaisseur
+// métal : chrome légèrement chaud, brossé dans la longueur
+const brushed = (() => {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#808080'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 2600; i++) { const y = Math.random() * 512, v = 110 + Math.random() * 40 | 0; g.fillStyle = `rgba(${v},${v},${v},.35)`; g.fillRect(0, y, 512, Math.random() < .8 ? 1 : 2); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.6, 6); return t;
+})();
+const metal = new THREE.MeshPhysicalMaterial({ color: '#f2eeef', metalness: 1, roughness: 0.16, roughnessMap: brushed, anisotropy: 0.5, envMapIntensity: 1.0 });
+const blackPlate = new THREE.MeshPhysicalMaterial({ color: '#08080a', metalness: 0.4, roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+const darkMetal = new THREE.MeshPhysicalMaterial({ color: '#141317', metalness: 0.8, roughness: 0.32 });
+const redGloss = new THREE.MeshPhysicalMaterial({ color: '#c40c26', roughness: 0.16, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, emissive: '#2a0004' });
+const redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.06, 0.12), toneMapped: false });
+const plum = new THREE.MeshPhysicalMaterial({ color: '#3a2a42', metalness: 0.6, roughness: 0.3 });
+// verre : vraie réfraction, teinté rouge en profondeur comme une résine
+const glassMat = new THREE.MeshPhysicalMaterial({
+  color: '#ffffff', metalness: 0, roughness: 0.06, transmission: 1, thickness: 0.18, ior: 1.5,
+  attenuationColor: '#ff3a48', attenuationDistance: 0.55, clearcoat: 0.6, clearcoatRoughness: 0.03, specularIntensity: 0.7, envMapIntensity: 0.8,
+});
+
+function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
+function pathFrom(pts) { const s = new THREE.Path(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
+// pièce extrudée aux arêtes arrondies ; le contour reste exactement celui de la photo
+function piece(pts, z0, z1, mat, { holes = [], bevel = 0.018, seg = 3 } = {}) {
+  const s = shapeFrom(pts); holes.forEach(h => s.holes.push(pathFrom(h)));
+  const bt = Math.min(bevel, (z1 - z0) * 0.3);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, z1 - z0 - 2 * bt), bevelEnabled: bevel > 0, bevelThickness: bt, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: seg, curveSegments: 10 });
+  const m = new THREE.Mesh(geo, mat); m.position.z = z0 + bt; chip.add(m); return m;
+}
+const pieceI = (pts, z0, z1, mat, o) => piece(IMG(pts), z0, z1, mat, o);
+const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+
+// fond du corps et bande du connecteur
+piece(WINDOW, 0, 0.03, darkMetal, { bevel: 0.008, seg: 2 });
+pieceI(rectP(488, 1204, 755, 1272), 0, TH * 0.92, darkMetal);
+// verre
+const glass = piece(WINDOW, 0.03, TH + 0.004, glassMat, { bevel: 0.022, seg: 4 }); glass.renderOrder = 10;
+// tête, rails, poignée
+[HEAD, RAIL_R, RAIL_L].forEach(p => piece(p, 0, TH, metal));
+piece(GRIP_O, 0, TH, metal, { holes: [PLATE] });
+piece(PLATE, 0, TH * 0.68, blackPlate, { bevel: 0.006, seg: 2 });
+// carrés rouges incrustés sur les rails, liseré rouge sous les broches
+pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
+pieceI(rectP(502, 824, 538, 850), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
+pieceI(rectP(526, 339, 718, 345), 0.02, TH * 0.6, redGloss, { bevel: 0.002, seg: 1 });
+// broches : base chromée + pointe découpée comme sur la photo
+[548, 598, 648, 698].forEach(xc => {
+  pieceI(rectP(xc - 21, 268, xc + 21, 340), 0.03, TH * 0.82, metal, { bevel: 0.012 });
+  pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]],
+    TH * 0.3, TH * 0.62, metal, { bevel: 0.01 });
+});
+// perforations de la plaque
+{
+  const pts = [];
+  for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
+    if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
+    if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
+    pts.push(IMG([[x, y]])[0]);
+  }
+  const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.016, 16), new THREE.MeshBasicMaterial({ color: '#000' }), pts.length);
+  const rings = new THREE.InstancedMesh(new THREE.RingGeometry(0.016, 0.021, 16), new THREE.MeshPhysicalMaterial({ color: '#3a3a40', metalness: 1, roughness: 0.25 }), pts.length);
+  const m = new THREE.Matrix4();
+  pts.forEach(([x, y], i) => { m.makeTranslation(x, y, TH * 0.68 + 0.0008); holes.setMatrixAt(i, m); rings.setMatrixAt(i, m); });
+  chip.add(holes, rings);
+}
+// logo R en relief
+function bar3(a, b, w, z, mat) {
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = new THREE.Mesh(new THREE.BoxGeometry(L + w, w, 0.01), mat);
+  m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z); m.rotation.z = Math.atan2(b[1] - a[1], b[0] - a[0]); chip.add(m);
+}
+{
+  const engr = new THREE.MeshPhysicalMaterial({ color: '#2a2a31', metalness: 0.9, roughness: 0.3 }), z = TH * 0.68 + 0.005;
+  const B = IMG([[584, 1504], [660, 1504], [660, 1588], [584, 1588], [584, 1504]]);
+  for (let i = 0; i < 4; i++) bar3(B[i], B[i + 1], 0.02, z, engr);
+  const k = (a, b) => IMG([[1244 - a, b]])[0];
+  const R = [k(600, 1580), k(600, 1514), k(632, 1514), k(645, 1527), k(645, 1540), k(632, 1552), k(600, 1552)];
+  for (let i = 0; i < R.length - 1; i++) bar3(R[i], R[i + 1], 0.018, z, engr);
+  bar3(k(620, 1552), k(646, 1580), 0.018, z, engr);
+}
+// capsule rouge à moitié enchâssée + tige
+{
+  const [c0] = IMG([[626, 1431]]), r = 29 * PX, len = (1487 - 1375) * PX - 2 * r;
+  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(r, len + r, 10, 32), redGloss);
+  cap.rotation.z = Math.PI / 2; cap.scale.set(1, 1, 0.55); cap.position.set(c0[0], c0[1], TH * 0.68); chip.add(cap);
+  pieceI(rectP(604, 1205, 650, 1380), TH * 0.5, TH * 0.66, plum, { bevel: 0.004, seg: 1 });
+  for (const x of [613, 641]) {
+    const [a] = IMG([[x, 1205]]), [b] = IMG([[x, 1378]]);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, Math.abs(b[0] - a[0]), 16), redGlow);
+    rod.rotation.z = Math.PI / 2; rod.position.set((a[0] + b[0]) / 2, a[1], TH * 0.7); chip.add(rod);
+  }
+}
+// connecteur en E
+pieceI(rectP(565, 1220, 675, 1266), TH * 0.9, TH + 0.012, plum, { bevel: 0.006 });
+pieceI(rectP(582, 1230, 658, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 });
+pieceI(rectP(602, 1236, 652, 1250), TH + 0.016, TH + 0.024, redGloss, { bevel: 0.002, seg: 1 });
+// bouton rouge strié
+pieceI([[722, 1135], [758, 1126], [768, 1138], [768, 1204], [756, 1214], [722, 1214]], 0.02, TH + 0.02, redGloss, { bevel: 0.01 });
+for (let y = 1142; y < 1204; y += 8) pieceI([[766, y], [774, y + 4], [766, y + 8]], 0.04, TH, redGloss, { bevel: 0.002, seg: 1 });
+
+// lumière de studio : environnement + une lumière principale et un contre-jour
+const key = new THREE.DirectionalLight('#ffffff', 0.6); key.position.set(-3, 5, 6); chipScene.add(key);
+const rim = new THREE.DirectionalLight('#ffd6d6', 0.4); rim.position.set(4, -3, 2); chipScene.add(rim);
+const glowUnder = new THREE.PointLight('#ff2034', 0.5, 2.5, 1.6); glowUnder.position.set(0.8, 0, 0.1); chip.add(glowUnder);
+
 
 /* ============================== le cerveau topographique ============================== */
 function hash3(x, y, z) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(z, 1274126177)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -661,7 +745,7 @@ function backToChip() {
     mode = 'chip'; z = zT = 0.5; autoDive = false; document.body.classList.remove('brain');
     controls.enabled = false; controls.autoRotate = false; $('tip').style.opacity = 0;
     renderPass.scene = chipScene; renderPass.camera = camA;
-    bloom.strength = 0.4; bloom.threshold = 0.95; bloom.radius = 0.35;
+    bloom.strength = 0.25; bloom.threshold = 1.6; bloom.radius = 0.3;
     $('hint').textContent = 'Drag to rotate · scroll to dive';
   }, 350);
 }
@@ -690,7 +774,7 @@ function pick(cx, cy, click) {
 const clock = new THREE.Clock();
 const Y_AX = new THREE.Vector3(0, 1, 0);
 const focus = new THREE.Vector3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
-const CENTER = new THREE.Vector3(0, 0, 0);
+const CENTER = new THREE.Vector3(0, 0, 0.1);
 let simT = 0;
 function tick(dt) {
   simT += dt; const t = simT;
