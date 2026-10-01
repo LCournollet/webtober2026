@@ -465,7 +465,7 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.17, low: 0.022, steps: 6 };   // profil des bords : plat étroit côté verre puis longue pente concave jusqu'au bord, fin en bas
+const KNIFE = { c: 0.17, ridge: 0.03 };             // profil en lame : deux pentes droites (haut et bas) qui se rejoignent sur une arête plate au milieu
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
@@ -493,17 +493,12 @@ function knifePiece(pts0, mat) {
     const t = ((p2[0] - p1[0]) * d2[1] - (p2[1] - p1[1]) * d2[0]) / den;
     return [p1[0] + d1[0] * t, p1[1] + d1[1] * t];
   });
-  // profil d'un sommet : du plat (o, haut) vers le bord (v, bas) en courbe concave, puis petit pan vertical
-  const profile = (v, o) => {
-    const P = [];
-    for (let k = 0; k <= KNIFE.steps; k++) { const t = k / KNIFE.steps, f = 1 - (1 - t) * (1 - t); P.push([o[0] + (v[0] - o[0]) * t, o[1] + (v[1] - o[1]) * t, TH - (TH - KNIFE.low) * f]); }
-    P.push([v[0], v[1], 0]); return P;
-  };
+  // profil d'un sommet : plat du dessus (o) → arête plate au milieu (v) → plat du dessous (o)
+  const profile = (v, o) => [[...o, TH], [...v, (TH + KNIFE.ridge) / 2], [...v, (TH - KNIFE.ridge) / 2], [...o, 0]];
   const P = [], tri = (a, b, c) => P.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
   const T = THREE.ShapeUtils.triangulateShape(off.map(p => new THREE.Vector2(...p)), []);
   for (const [a, b, c] of T) tri([...off[a], TH], [...off[b], TH], [...off[c], TH]);
-  const Tb = THREE.ShapeUtils.triangulateShape(pts.map(p => new THREE.Vector2(...p)), []);
-  for (const [a, b, c] of Tb) tri([...pts[a], 0], [...pts[c], 0], [...pts[b], 0]);
+  for (const [a, b, c] of T) tri([...off[a], 0], [...off[c], 0], [...off[b], 0]);
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
     if (outer[i]) {
