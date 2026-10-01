@@ -591,33 +591,36 @@ function knifePiece(pts0, mat) {
 const BAND_TOP = TH * 0.7;
 // caoutchouc noir brillant
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
-pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, BAND_TOP, glossRubber);
-pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, BAND_TOP, glossRubber);
-// fils fins en relief sur la bande : tracés droits qui tournent (angles droits et pans à 45°), dessus puis tranches
-{
-  const R = 0.6 * PX, Z = BAND_TOP, ZB = 0.02, G = 2.4, wires = [];   // G : pas entre deux fils (px photo)
-  const P = (x, y, z = Z) => { const [q] = IMG([[x, y]]); return new THREE.Vector3(q[0], q[1], z); };
-  for (const [E, d] of [[488, 1], [755, -1]]) {      // même routage des deux côtés, en miroir
-    for (let i = 0; i < 11; i++) {                   // bus de bord : descend du verre, file vers la tranche et plonge
-      const x = E + d * (3 + G * i), yt = 1222 + G * i;
-      wires.push([P(x, 1204), P(x, yt), P(E, yt), P(E, yt, ZB)]);
+// fils : un réseau très dense de pistes (droites, virages à 90° et 45°) en très léger relief, sur toutes les faces du bloc
+const wireBump = (() => {
+  const W = 1024, H = 2048, S = 8, C = W / S | 0, Rw = H / S | 0;      // grille de routage : une piste par case
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = g.fillStyle = '#fff'; g.lineWidth = 3.2; g.lineCap = 'round'; g.lineJoin = 'round';
+  const used = new Uint8Array(C * Rw), free = (x, y) => x >= 0 && y >= 0 && x < C && y < Rw && !used[y * C + x];
+  const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const order = [...Array(C * Rw).keys()].sort(() => rnd() - 0.5);
+  for (const k of order) {
+    let x = k % C, y = k / C | 0; if (used[k]) continue;
+    let d = (rnd() * 4 | 0) * 2, len = 0; const path = [[x, y]]; used[k] = 1;
+    while (len < 120) {
+      if (rnd() < 0.12) d = (d + (rnd() < 0.5 ? 1 : 7) * (rnd() < 0.5 ? 1 : 2)) % 8;   // virage à 45° ou 90°
+      const [dx, dy] = DIRS[d], nx = x + dx, ny = y + dy;
+      if (!free(nx, ny) || (dx && dy && (!free(x + dx, y) && !free(x, y + dy)))) break;
+      x = nx; y = ny; used[y * C + x] = 1; path.push([x, y]); len++;
     }
-    for (let j = 0; j < 8; j++) {                    // bus arrière : remonte de la tranche, longe l'arrière, plonge vers la plaque
-      const y = 1252 + G * j, xe = E + d * (30 - G * j);
-      wires.push([P(E, y, ZB), P(E, y), P(xe, y), P(xe, 1272)]);
-    }
-    for (let i = 0; i < 10; i++) {                   // bus central : du verre à la plaque avec un pan à 45°
-      const x = E + d * (33 + G * i), x2 = x + d * 20;
-      wires.push([P(x, 1204), P(x, 1240), P(x2, 1260), P(x2, 1272)]);
-    }
+    const P = ([px, py]) => [px * S + S / 2, py * S + S / 2];
+    g.beginPath(); g.moveTo(...P(path[0])); path.forEach(q => g.lineTo(...P(q))); g.stroke();
+    if (path.length > 2) for (const q of [path[0], path.at(-1)]) { g.beginPath(); g.arc(...P(q), 2.6, 0, 7); g.fill(); }  // petites pastilles aux extrémités
   }
-  for (let x = 567; x <= 602; x += G) wires.push([P(x, 1204), P(x, 1219)]);   // peigne au-dessus du connecteur
-  wires.forEach(pts => {
-    const path = new THREE.CurvePath();
-    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
-    chip.add(new THREE.Mesh(new THREE.TubeGeometry(path, 12 * (pts.length - 1), R, 5, false), glossRubber));
-  });
-}
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  // UV des pièces extrudées = coordonnées locales : on cale la texture sur l'emprise du bloc (≈ 1 case = 1,1 px photo)
+  t.repeat.set(1 / 1.0, 1 / 2.0); return t;
+})();
+const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireBump; wireRubber.bumpScale = 0.6;
+pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1272], [488, 1272]], 0, BAND_TOP, wireRubber);
+pieceI([[751, 1128], [755, 1204], [755, 1272], [650, 1272], [650, 1266], [675, 1266], [675, 1220]], 0, BAND_TOP, wireRubber);
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
 // tête, rails, poignée
