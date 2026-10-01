@@ -671,17 +671,17 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   transparent: true, opacity: 0.6,
 });
 {
-  const Y0 = 1131, Y1 = 1209, XO = 762, DEPTH = 52, END = 18, pts = [];   // centré sur y 1170 ; rentré vers le centre : le V vient se poser sur le corps
+  const Y0 = 1151, Y1 = 1229, XO = 762, DEPTH = 26, END = 9, pts = [];   // centré sur y 1190 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
-  for (let i = 0; i <= 120; i++) {                   // bord extérieur : 10 bosses arrondies
-    const t = i / 120, y = Y0 + (Y1 - Y0) * t;
-    pts.push([XO + 2 * Math.sin(Math.PI * t) ** 0.4 * Math.cos(t * Math.PI * 20), y]);
+  for (let i = 0; i <= 150; i++) {                   // bord extérieur : 5 bosses en demi-lune bien rondes
+    const t = i / 150, y = Y0 + (Y1 - Y0) * t, u = (t * 5 % 1) * 2 - 1;
+    pts.push([XO - 2 + 5 * Math.sqrt(Math.max(0, 1 - u * u)), y]);
   }
   pts.push([XO - END, Y1]);                          // bout droit écrasé
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
   pts.push([XO - DEPTH, Y0 + (Y1 - Y0) * 0.66], [XO - DEPTH, Y0 + (Y1 - Y0) * 0.34]);
   const BTN_TOP = TH - 0.004, BTN_BOT = 0.02;          // juste au-dessus du verre et de la bande
-  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.02, seg: 4 }); btn.renderOrder = 11;
+  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.004, seg: 3 }); btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
   g.fillStyle = g.strokeStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -690,8 +690,8 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   g.strokeRect(cx - q, cy - q, 2 * q, 2 * q);
   g.beginPath(); g.moveTo(cx - q, cy - q); g.lineTo(cx + q, cy + q); g.moveTo(cx + q, cy - q); g.lineTo(cx - q, cy + q); g.stroke();
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.17), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[742, 1170]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.13), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+  const [a] = IMG([[752, 1190]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
 }
 
