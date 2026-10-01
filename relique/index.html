@@ -664,22 +664,24 @@ const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0
 pieceI(rectP(565, 1220, 604, 1266), TH * 0.9, TH + 0.012, plum, { bevel: 0.006 }); pieceI(rectP(650, 1220, 675, 1266), TH * 0.9, TH + 0.012, plum, { bevel: 0.006 });
 pieceI(rectP(578, 1230, 600, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 }); pieceI(rectP(654, 1230, 670, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 });
 // bouton latéral : lentille douce en plastique bordeaux translucide, bord extérieur légèrement ondulé, petite inscription blanche
-const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux translucide : on voit à travers, teinté
-  color: '#ff3355', metalness: 0, roughness: 0.14, transmission: 1, thickness: 0.12, ior: 1.49,
-  attenuationColor: '#a0102c', attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.06, specularIntensity: 0.7, envMapIntensity: 0.7,
-  emissive: '#6a0a1e', emissiveIntensity: 0.9,          // lueur interne : la lumière qui traverse la matière
-  transparent: true, opacity: 0.92,
+const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux très translucide
+  color: '#ff4d6a', metalness: 0, roughness: 0.1, transmission: 1, thickness: 0.08, ior: 1.49,
+  attenuationColor: '#c0203c', attenuationDistance: 0.7, clearcoat: 1, clearcoatRoughness: 0.05, specularIntensity: 0.7, envMapIntensity: 0.7,
+  emissive: '#8a0c24', emissiveIntensity: 0.7,
+  transparent: true, opacity: 0.6,
 });
 {
-  const Y0 = 1108, Y1 = 1232, XO = 776, pts = [];      // centré sur y 1170
-  for (let i = 0; i <= 60; i++) {                    // bord extérieur : 5 bosses arrondies
-    const t = i / 60, y = Y0 + (Y1 - Y0) * t;
-    pts.push([XO + 2.8 * Math.sin(Math.PI * t) ** 0.5 * Math.cos(t * Math.PI * 10) - 7 * (1 - Math.sin(Math.PI * t)) ** 3, y]);
+  const Y0 = 1092, Y1 = 1248, XO = 802, END = 9, pts = [];   // plus grand, centré sur y 1170 ; la pointe du V affleure le bord de la relique
+  pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
+  for (let i = 0; i <= 120; i++) {                   // bord extérieur : 10 bosses arrondies
+    const t = i / 120, y = Y0 + (Y1 - Y0) * t;
+    pts.push([XO + 2 * Math.sin(Math.PI * t) ** 0.4 * Math.cos(t * Math.PI * 20), y]);
   }
-  // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, petite pointe aplatie centrée
-  pts.push([XO - 42, Y0 + (Y1 - Y0) * 0.55], [XO - 42, Y0 + (Y1 - Y0) * 0.45]);
-  const BTN_TOP = TH - 0.004;                        // un peu abaissé, juste au-dessus du verre et de la bande
-  const btn = pieceI(pts, 0.02, BTN_TOP, burgundy, { bevel: 0.02, seg: 4 }); btn.renderOrder = 11;
+  pts.push([XO - END, Y1]);                          // bout droit écrasé
+  // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
+  pts.push([XO - 52, Y0 + (Y1 - Y0) * 0.56], [XO - 52, Y0 + (Y1 - Y0) * 0.44]);
+  const BTN_TOP = TH / 2 + 0.1, BTN_BOT = TH / 2 - 0.1; // centré sur l'épaisseur de la relique, comme les broches
+  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.02, seg: 4 }); btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
   g.fillStyle = g.strokeStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -688,8 +690,8 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   g.strokeRect(cx - q, cy - q, 2 * q, 2 * q);
   g.beginPath(); g.moveTo(cx - q, cy - q); g.lineTo(cx + q, cy + q); g.moveTo(cx + q, cy - q); g.lineTo(cx - q, cy + q); g.stroke();
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.21), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[758, 1170]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+  const [a] = IMG([[782, 1170]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
 }
 
