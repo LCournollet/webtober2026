@@ -465,10 +465,9 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.042, ridge: 0.024 };           // assez fin pour les encoches, où le cadre est étroit            // retrait horizontal du chanfrein, hauteur de l'arête
+const KNIFE = { c: 0.17, low: 0.022, steps: 6 };   // profil des bords : plat étroit côté verre puis longue pente concave jusqu'au bord, fin en bas
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
-// chrome lisse pour la géométrie maison (pas d'anisotropie : elle exige des coordonnées de texture propres sur chaque face)
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
 function knifePiece(pts0, mat) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
@@ -477,11 +476,13 @@ function knifePiece(pts0, mat) {
   for (let i = 0; i < n; i++) {
     const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = [dy / L, -dx / L];
     nrm.push(o);
-    const mx = (a[0] + b[0]) / 2 + o[0] * 0.012, my = (a[1] + b[1]) / 2 + o[1] * 0.012;
-    const front = o[0] > 0.9 && mx > 4.0;              // seul le vrai bout avant (côté broches) reste droit
-    outer.push(!front && !CHIP_PARTS.some(p => insidePoly(p, mx, my)));
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    const outside = !CHIP_PARTS.some(p => insidePoly(p, mx + o[0] * 0.012, my + o[1] * 0.012));
+    // pente seulement sur les flancs extérieurs et le bout arrière ; encoches et avant restent plats
+    const side = Math.abs(o[1]) > 0.95 && Math.abs(my) > 0.8, back = mx < -4.5;
+    outer.push(outside && (side || back));
   }
-  const off = pts.map((v, i) => {                     // sommets du plateau : arêtes extérieures rentrées de c
+  const off = pts.map((v, i) => {                     // bord du plat supérieur
     const ip = (i - 1 + n) % n, c1 = outer[ip] ? KNIFE.c : 0, c2 = outer[i] ? KNIFE.c : 0;
     if (!c1 && !c2) return v.slice();
     const n1 = nrm[ip], n2 = nrm[i], a = pts[ip], b = pts[(i + 1) % n];
@@ -492,21 +493,26 @@ function knifePiece(pts0, mat) {
     const t = ((p2[0] - p1[0]) * d2[1] - (p2[1] - p1[1]) * d2[0]) / den;
     return [p1[0] + d1[0] * t, p1[1] + d1[1] * t];
   });
-  const z0 = 0, z1 = TH, zm0 = TH / 2 - KNIFE.ridge / 2, zm1 = TH / 2 + KNIFE.ridge / 2;
+  // profil d'un sommet : du plat (o, haut) vers le bord (v, bas) en courbe concave, puis petit pan vertical
+  const profile = (v, o) => {
+    const P = [];
+    for (let k = 0; k <= KNIFE.steps; k++) { const t = k / KNIFE.steps, f = 1 - (1 - t) * (1 - t); P.push([o[0] + (v[0] - o[0]) * t, o[1] + (v[1] - o[1]) * t, TH - (TH - KNIFE.low) * f]); }
+    P.push([v[0], v[1], 0]); return P;
+  };
   const P = [], tri = (a, b, c) => P.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
-  // dessus et dessous
   const T = THREE.ShapeUtils.triangulateShape(off.map(p => new THREE.Vector2(...p)), []);
-  for (const [a, b, c] of T) { tri([...off[a], z1], [...off[b], z1], [...off[c], z1]); tri([...off[a], z0], [...off[c], z0], [...off[b], z0]); }
+  for (const [a, b, c] of T) tri([...off[a], TH], [...off[b], TH], [...off[c], TH]);
+  const Tb = THREE.ShapeUtils.triangulateShape(pts.map(p => new THREE.Vector2(...p)), []);
+  for (const [a, b, c] of Tb) tri([...pts[a], 0], [...pts[c], 0], [...pts[b], 0]);
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, A = pts[i], B = pts[j], oA = off[i], oB = off[j];
-    if (outer[i]) {                                   // chanfrein haut, arête, chanfrein bas
-      quad([...oA, z1], [...A, zm1], [...B, zm1], [...oB, z1]);
-      quad([...A, zm1], [...A, zm0], [...B, zm0], [...B, zm1]);
-      quad([...A, zm0], [...oA, z0], [...oB, z0], [...B, zm0]);
-    } else {                                          // bord intérieur vertical (épouse le profil des voisins)
-      const ip = (i - 1 + n) % n, jn = j;
-      const prof = (v, o, chamf) => chamf ? [[...o, z1], [...v, zm1], [...v, zm0], [...o, z0]] : [[...v, z1], [...v, z0]];
-      const sa = prof(A, oA, outer[ip]), sb = prof(B, oB, outer[jn]).reverse();
+    if (outer[i]) {
+      const pa = profile(A, oA), pb = profile(B, oB);
+      for (let k = 0; k < pa.length - 1; k++) quad(pa[k], pa[k + 1], pb[k + 1], pb[k]);
+    } else {                                          // bord plat vertical (épouse le profil des voisins en pente)
+      const ip = (i - 1 + n) % n;
+      const prof = (v, o, slope) => slope ? profile(v, o) : [[...v, TH], [...v, 0]];
+      const sa = prof(A, oA, outer[ip]), sb = prof(B, oB, outer[j]).reverse();
       const ring = [...sa, ...sb], dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
       const flat = ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2]));
       for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(flat, [])) {
