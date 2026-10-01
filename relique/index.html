@@ -190,7 +190,7 @@ const K_HOT = '#ff3446', K_MID = '#c4182c', K_DIM = '#6e0c18', K_WHITE = '#ffd6d
 /* ---------- la forme, relevée sur la photo vue de dessus (coordonnées en pixels de la photo) ---------- */
 // photo verticale : broches en haut (y≈182), poignée en bas (y≈1668), axe central x≈620
 const PX = 10 / 1490, IMG = pts => pts.map(([x, y]) => [(925 - y) * PX, (x - 620) * PX]); // photo en miroir : on la retourne
-const WINDOW = IMG([[557, 372], [712, 372], [712, 458], [697, 478], [697, 640], [742, 642], [742, 1205], [505, 1205], [505, 858], [527, 840], [527, 458], [557, 445]]);
+const WINDOW = IMG([[557, 372], [712, 372], [712, 458], [697, 478], [697, 640], [751, 642], [751, 1205], [488, 1205], [488, 858], [527, 840], [527, 458], [557, 445]]); // le verre va jusqu'aux bords du métal
 const HEAD = IMG([[522, 275], [722, 275], [747, 320], [747, 372], [507, 372], [507, 315]]);
 const RAIL_R = IMG([[712, 370], [747, 370], [747, 452], [718, 470], [718, 490], [751, 505], [751, 642], [697, 642], [697, 478], [712, 458]]);
 const RAIL_L = IMG([[507, 370], [557, 370], [557, 445], [527, 458], [527, 840], [540, 840], [540, 858], [487, 858], [487, 722], [517, 705], [517, 690], [488, 675],
@@ -201,8 +201,8 @@ const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
 const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
 
 // fond sombre du corps et bande du connecteur
-rectI(494, 600, 748, 1212, '#0b0306');
-rectI(494, 1204, 752, 1272, '#0d0d11', '#050506', 0.006);
+rectI(488, 600, 751, 1212, '#0b0306');
+rectI(488, 1204, 755, 1272, '#0d0d11', '#050506', 0.006);
 
 // fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
 poly(WINDOW, '#160308');
@@ -331,7 +331,7 @@ for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
 }
 // connecteur en E et bouton rouge
 rectI(565, 1220, 675, 1266, '#3a2c40', '#7a6a80', 0.008); rectI(582, 1230, 658, 1256, '#24182a', '#8a7a90', 0.006);
-rectI(602, 1236, 652, 1250, '#5a1838'); rectI(494, 1206, 548, 1270, '#060608');
+rectI(602, 1236, 652, 1250, '#5a1838'); rectI(489, 1206, 548, 1270, '#060608');
 { const b = IMG([[722, 1135], [758, 1126], [768, 1138], [768, 1204], [756, 1214], [722, 1214]]);
   poly(b, { grad: ['#ff4a5e', '#d0102a', '#a00a20', '#5a0410'] }, '#2a0006', 0.008);
   for (let y = 1142; y < 1204; y += 8) poly(IMG([[768, y], [774, y + 4], [768, y + 8]]), '#8a0818');
