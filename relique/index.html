@@ -475,7 +475,8 @@ function knifePiece(pts0, mat) {
     const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = [dy / L, -dx / L];
     nrm.push(o);
     const mx = (a[0] + b[0]) / 2 + o[0] * 0.012, my = (a[1] + b[1]) / 2 + o[1] * 0.012;
-    outer.push(o[0] < 0.9 && !CHIP_PARTS.some(p => insidePoly(p, mx, my)));   // l'avant (côté broches, +X) reste droit
+    const front = o[0] > 0.9 && mx > 4.0;              // seul le vrai bout avant (côté broches) reste droit
+    outer.push(!front && !CHIP_PARTS.some(p => insidePoly(p, mx, my)));
   }
   const off = pts.map((v, i) => {                     // sommets du plateau : arêtes extérieures rentrées de c
     const ip = (i - 1 + n) % n, c1 = outer[ip] ? KNIFE.c : 0, c2 = outer[i] ? KNIFE.c : 0;
