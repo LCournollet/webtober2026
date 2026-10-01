@@ -585,7 +585,7 @@ pieceI(rectP(700, 602, 738, 630), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { 
 pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
-  const k = 0.72, kw = k * 1.25;                     // broches réduites autour de leur pied (y 275), un peu élargies
+  const k = 0.72, kw = k * 1.4;                      // broches réduites autour de leur pied (y 275), élargies (les bases se touchent presque)
   // tête centrale raccourcie (214→246 au lieu de 198→246) : la pointe est plus longue, longueur totale inchangée
   pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 214], [xc + 14, 220], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 220], [xc - 5, 214]]
     .map(([x, y]) => [xc + (x - xc) * kw, 275 + (y - 275) * k]), TH / 2 - 0.024, TH / 2 + 0.024, metal, { bevel: 0.008 });
