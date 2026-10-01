@@ -588,7 +588,7 @@ pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { 
 [548, 598, 648, 698].forEach(xc => {
   const k = 0.72, kw = 1.28;                         // broches réduites en longueur autour de leur pied (y 275), larges : ~4 px entre les bases
   // tête centrale 202→246, pointe 170→202 (même longueur qu'avant) : la broche s'allonge d'autant
-  pieceI([[xc - 5, 170], [xc + 5, 170], [xc + 5, 202], [xc + 14, 208], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 208], [xc - 5, 202]]
+  pieceI([[xc - 5, 170], [xc + 5, 170], [xc + 5, 202], [xc + 14, 208], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 14, 268], [xc + 14, 282], [xc - 14, 282], [xc - 14, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 208], [xc - 5, 202]]
     .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - KNIFE.ridgeFront / 2, TH / 2 + KNIFE.ridgeFront / 2, metal, { bevel: 0.004, seg: 2 }); // même épaisseur que l arête : la pente arrive pile à leur base
 });
 // perforations de la plaque
