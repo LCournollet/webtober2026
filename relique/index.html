@@ -580,8 +580,9 @@ pieceI(rectP(700, 602, 738, 630), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.0
 pieceI(rectP(502, 824, 538, 850), TH - 0.012, TH + 0.006, redGloss, { bevel: 0.004, seg: 2 });
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
-  pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]],
-    TH / 2 - 0.032, TH / 2 + 0.032, metal, { bevel: 0.01 });
+  const k = 0.72;                                     // broches réduites autour de leur pied (y 275)
+  pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 198], [xc + 14, 206], [xc + 14, 236], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 236], [xc - 14, 206], [xc - 5, 198]]
+    .map(([x, y]) => [xc + (x - xc) * k, 275 + (y - 275) * k]), TH / 2 - 0.024, TH / 2 + 0.024, metal, { bevel: 0.008 });
 });
 // perforations de la plaque
 const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
