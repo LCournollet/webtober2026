@@ -663,25 +663,27 @@ function insidePlate(x, y, margin) {
   return true;
 }
 { // empreintes "pointe de stylo" : la plaque est percée, une cuvette sphérique ferme chaque trou
-  const pts = [];
+  const pts = [], back = [];                         // back : empreintes du dos seulement, là où le dessus porte le logo
   const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
   for (let row = 0, y = 1302; y <= 1632; row++, y += DY) for (let x = 540 + (row % 2) * DX / 2; x <= 712; x += DX) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
-    if (x > 568 && x < 676 && y > 1495 && y < 1606) continue;   // logo + inscription RELIC (la rangée d'empreintes suivante passe sous les lettres)
     if (!insidePlate(x, y, 10)) continue;
     if (x > 552 && x < 616 && y < 1368) continue;
+    if (x > 568 && x < 676 && y > 1495 && y < 1606) { back.push(IMG([[x, y]])[0]); continue; }   // logo + inscription RELIC (la rangée suivante passe sous les lettres)
     pts.push(IMG([[x, y]])[0]);
   }
   const r = 0.024, h = 0.005, Rs = (r * r + h * h) / (2 * h), th = Math.asin(r / Rs);   // creux léger : la hauteur du logo, en négatif
-  const holes = pts.map(([x, y]) => Array.from({ length: 32 }, (_, i) => { const a = -i / 32 * Math.PI * 2; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; }));
-  piece(PLATE, 0, TH, blackPlate, { holes, bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
+  const hole = ([x, y]) => Array.from({ length: 32 }, (_, i) => { const a = -i / 32 * Math.PI * 2; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; });
+  const SKIN = 0.006;                                // peau du dos : seule percée aussi sous le logo
+  piece(PLATE, SKIN, TH, blackPlate, { holes: pts.map(hole), bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
+  piece(PLATE, 0, SKIN, blackPlate, { holes: [...pts, ...back].map(hole), bevel: 0 });
   const cup = new THREE.SphereGeometry(Rs, 32, 6, 0, Math.PI * 2, Math.PI - th, th).rotateX(Math.PI / 2); // calotte tournée vers le bas (axe Z)
   const bowls = new THREE.InstancedMesh(cup, dimpleMat, pts.length), m = new THREE.Matrix4();
   pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs - 0.0002), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
   bowls.frustumCulled = false; chip.add(bowls);
-  // dessous de la relique : la même empreinte, en miroir (pas de logo)
-  const under = new THREE.InstancedMesh(cup, dimpleMat, pts.length), mz = new THREE.Vector3(1, 1, -1);
-  pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, h - Rs + 0.0002), new THREE.Quaternion(), mz); under.setMatrixAt(i, m); });
+  // dessous de la relique : la même empreinte en miroir, y compris sous le logo (pas de logo dans le dos)
+  const all = [...pts, ...back], under = new THREE.InstancedMesh(cup, dimpleMat, all.length), mz = new THREE.Vector3(1, 1, -1);
+  all.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, h - Rs + 0.0002), new THREE.Quaternion(), mz); under.setMatrixAt(i, m); });
   under.frustumCulled = false; chip.add(under);
 }
 // logo Relic en relief dans le plastique (contour vectorisé depuis le logo officiel, coordonnées normalisées)
