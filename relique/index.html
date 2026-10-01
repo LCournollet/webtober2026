@@ -593,28 +593,27 @@ const BAND_TOP = TH * 0.7;
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
 // fils : un réseau très dense de pistes (droites, virages à 90° et 45°) en très léger relief, sur toutes les faces du bloc
 const wireBump = (() => {
-  const W = 1024, H = 2048, S = 8, C = W / S | 0, Rw = H / S | 0;      // grille de routage : une piste par case
+  // nappes de fils parallèles qui courent dans la longueur de la relique ; une nappe tourne d'un bloc (pan à 45°), jamais un fil seul
+  const W = 1024, H = 2048, S = 12;                  // S : pas entre deux fils (≈ 1,8 px photo)
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = g.fillStyle = '#fff'; g.lineWidth = 4.3; g.lineCap = 'round'; g.lineJoin = 'round';
-  const used = new Uint8Array(C * Rw), free = (x, y) => x >= 0 && y >= 0 && x < C && y < Rw && !used[y * C + x];
-  const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const order = [...Array(C * Rw).keys()].sort(() => rnd() - 0.5);
-  for (const k of order) {
-    let x = k % C, y = k / C | 0; if (used[k]) continue;
-    let d = (rnd() * 4 | 0) * 2, len = 0; const path = [[x, y]]; used[k] = 1;
-    while (len < 120) {
-      if (rnd() < 0.12) d = (d + (rnd() < 0.5 ? 1 : 7) * (rnd() < 0.5 ? 1 : 2)) % 8;   // virage à 45° ou 90°
-      const [dx, dy] = DIRS[d], nx = x + dx, ny = y + dy;
-      if (!free(nx, ny) || (dx && dy && (!free(x + dx, y) && !free(x, y + dy)))) break;
-      x = nx; y = ny; used[y * C + x] = 1; path.push([x, y]); len++;
+  g.strokeStyle = g.fillStyle = '#fff'; g.lineWidth = 7; g.lineCap = 'butt'; g.lineJoin = 'miter';
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let v0 = 0; v0 < H; ) {
+    const n = 5 + (rnd() * 8 | 0), k = 2 + (rnd() * 3 | 0), up = rnd() < 0.5;   // n fils, décalage de k pas
+    const jogs = []; for (let u = 60 + rnd() * 160; u < W - 60; u += 140 + rnd() * 260) jogs.push(u);
+    for (let i = 0; i < n; i++) {
+      let v = v0 + (up ? k : 0) * S + i * S + S / 2, dir = up ? -1 : 1;
+      g.beginPath(); g.moveTo(0, v);
+      for (const u of jogs) {                        // pans parallèles : le fil intérieur au virage tourne plus tôt (décalage S·(√2−1))
+        const ui = u - (dir > 0 ? i : n - 1 - i) * S * (Math.SQRT2 - 1);
+        g.lineTo(ui, v); v += dir * k * S; g.lineTo(ui + k * S, v); dir = -dir;
+      }
+      g.lineTo(W, v); g.stroke();
     }
-    const P = ([px, py]) => [px * S + S / 2, py * S + S / 2];
-    g.beginPath(); g.moveTo(...P(path[0])); path.forEach(q => g.lineTo(...P(q))); g.stroke();
-    if (path.length > 2) for (const q of [path[0], path.at(-1)]) { g.beginPath(); g.arc(...P(q), 3.2, 0, 7); g.fill(); }  // petites pastilles aux extrémités
+    v0 += (n + k) * S + S;                            // une piste vide entre deux nappes
   }
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
   // UV des pièces extrudées = coordonnées locales : on cale la texture sur l'emprise du bloc (≈ 1 case = 1,1 px photo)
   t.repeat.set(1 / 1.0, 1 / 2.0); return t;
 })();
