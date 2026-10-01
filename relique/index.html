@@ -121,6 +121,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -592,38 +594,43 @@ const BAND_H = 0.22, BAND_BOT = TH / 2 - BAND_H / 2, BAND_TOP = TH / 2 + BAND_H 
 // caoutchouc noir brillant
 const glossRubber = new THREE.MeshPhysicalMaterial({ color: '#0b0b0d', metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.9 });
 // fils : un réseau très dense de pistes (droites, virages à 90° et 45°) en très léger relief, sur toutes les faces du bloc
-const wireBump = (() => {
-  // nappes de fils parallèles qui font le tour du bloc (dessus → tranche → dos) ; une nappe tourne d'un bloc (pan à 45°), jamais un fil seul
-  // tracé en travers de la relique (axe v des UV) : sur les tranches extrudées les UV valent (x, z), donc chaque fil y descend tout droit et passe dans le dos
-  const W = 1024, H = 2048, S = 12;                  // S : pas entre deux fils (≈ 1,8 px photo)
+// pistes du bloc noir, comme sur un circuit imprimé : nappes de fils parallèles qui partent des bords
+// et contournent le connecteur en épousant sa forme (virages à 90° arrondis), dessinées en coordonnées photo
+const wireTex = (() => {
+  const W = 1024, H = 2048, OX = 2.31, OY = 0.45;   // UV des pièces extrudées = coordonnées locales, recalées sur le bloc
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = g.fillStyle = '#fff'; g.lineWidth = 7; g.lineCap = 'butt'; g.lineJoin = 'miter';
-  g.setTransform(0, 1, 1, 0, 0, 0);                  // on dessine « couché » : x du dessin = v de la texture
-  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let v0 = 0; v0 < W; ) {
-    const n = 5 + (rnd() * 8 | 0), k = 2 + (rnd() * 3 | 0), up = rnd() < 0.5;   // n fils, décalage de k pas
-    const jogs = []; for (let u = 60 + rnd() * 160; u < H - 60; u += 140 + rnd() * 260) jogs.push(u);
-    for (let i = 0; i < n; i++) {
-      let v = v0 + (up ? k : 0) * S + i * S + S / 2, dir = up ? -1 : 1;
-      g.beginPath(); g.moveTo(0, v);
-      for (const u of jogs) {                        // pans parallèles : le fil intérieur au virage tourne plus tôt (décalage S·(√2−1))
-        const ui = u - (dir > 0 ? i : n - 1 - i) * S * (Math.SQRT2 - 1);
-        g.lineTo(ui, v); v += dir * k * S; g.lineTo(ui + k * S, v); dir = -dir;
-      }
-      g.lineTo(H, v); g.stroke();
-    }
-    v0 += (n + k) * S + S;                            // une piste vide entre deux nappes
+  const C = (x, y) => [((925 - y) * PX + OX) * W, (1 - ((x - 620) * PX * 0.5 + OY)) * H];   // px photo → px texture
+  g.strokeStyle = '#fff'; g.lineWidth = 0.95 * PX * W; g.lineCap = 'butt'; g.lineJoin = 'round';
+  const trace = (pts, r = 2.6) => {                  // polyligne à coins arrondis (rayon r px photo)
+    g.beginPath(); g.moveTo(...C(...pts[0]));
+    for (let i = 1; i < pts.length - 1; i++) g.arcTo(...C(...pts[i]), ...C(...pts[i + 1]), r * PX * W);
+    g.lineTo(...C(...pts.at(-1))); g.stroke();
+  };
+  const G = 1.85;                                    // pas entre deux fils (px photo)
+  // gauche : des L emboîtés autour du coin bas-gauche du connecteur — chaque fil part de la tranche, file vers le connecteur puis remonte vers le verre
+  for (let i = 0; ; i++) {
+    const y = 1265 - i * G, x = 561 - i * G; if (x < 489) break;
+    if (i % 6 === 5) continue;                       // une piste vide entre deux nappes
+    trace([[480, y], [x, y], [x, 1196]]);
   }
-const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
-  // UV des pièces extrudées = coordonnées locales : on cale la texture sur l'emprise du bloc (≈ 1 case = 1,1 px photo)
-  t.repeat.set(1 / 1.0, 1 / 2.0); return t;
+  // droite : la même chose en miroir autour du coin bas-droit du connecteur, jusqu'au col en biais
+  for (let i = 0; ; i++) {
+    const y = 1265 - i * G, x = 679 + i * G; if (x > 754) break;
+    if (i % 6 === 5) continue;
+    trace([[762, y], [x, y], [x, 1120]]);
+  }
+  // au-dessus du connecteur : peigne de fils qui descendent du verre et entrent dans le connecteur
+  for (let x = 567; x <= 602; x += G) trace([[x, 1196], [x, 1221]]);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.repeat.set(1, 0.5); t.offset.set(OX, OY);
+  return t;
 })();
-const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireBump; wireRubber.bumpScale = 0.95;
+const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireTex; wireRubber.bumpScale = 1.1;
+wireRubber.map = wireTex; wireRubber.color.set('#26262c');   // les fils, un peu plus clairs que le fond, accrochent mieux la lumière
 pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber);
 pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber);
 // verre
-const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.02, seg: 4 }); // un peu en retrait sous le métal glass.renderOrder = 10;
+const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
 CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]));
 [FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
@@ -660,7 +667,7 @@ function insidePlate(x, y, margin) {
   const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
   for (let row = 0, y = 1302; y <= 1632; row++, y += DY) for (let x = 540 + (row % 2) * DX / 2; x <= 712; x += DX) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
-    if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
+    if (x > 568 && x < 676 && y > 1495 && y < 1622) continue;   // logo + inscription RELIC
     if (!insidePlate(x, y, 10)) continue;
     if (x > 552 && x < 616 && y < 1368) continue;
     pts.push(IMG([[x, y]])[0]);
@@ -686,6 +693,15 @@ const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0
   const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.003, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.003, bevelOffset: -0.003, bevelSegments: 3, curveSegments: 6 });
   const m = new THREE.Mesh(geo, blackPlate); m.position.z = TH + 0.002; chip.add(m); // même caoutchouc, juste un léger relief
 }
+// « RELIC » en capitales sous le logo, même relief caoutchouc
+new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts/helvetiker_bold.typeface.json', font => {
+  const geo = new TextGeometry('R E L I C', { font, size: 0.05, depth: 0.003, curveSegments: 4, bevelEnabled: true, bevelThickness: 0.0015, bevelSize: 0.0015, bevelSegments: 2 });
+  geo.computeBoundingBox(); const bb = geo.boundingBox;
+  geo.translate(-(bb.min.x + bb.max.x) / 2, -(bb.min.y + bb.max.y) / 2, 0);
+  const m = new THREE.Mesh(geo, blackPlate), [c] = IMG([[622, 1606]]);
+  m.rotation.z = -Math.PI / 2;                       // même sens de lecture que le logo : haut vers les broches
+  m.position.set(c[0], c[1], TH + 0.002); chip.add(m);
+});
 // LED dans l'insert de verre : faible lueur rouge qui respire
 {
   const led = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.045, 0.02), new THREE.MeshStandardMaterial({ color: '#2a0006', emissive: '#ff2236', emissiveIntensity: 1.2 }));
