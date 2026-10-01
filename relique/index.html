@@ -699,11 +699,11 @@ const RELIC_LOGO = [[0.0982,0.4998],[-0.4191,0.4991],[-0.4298,0.4977],[-0.4405,0
 pieceI(rectP(565, 1220, 604, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 }); pieceI(rectP(650, 1220, 675, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 });
 pieceI(rectP(578, 1230, 600, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 }); pieceI(rectP(654, 1230, 670, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 });
 // bouton latéral : lentille douce en plastique bordeaux translucide, bord extérieur légèrement ondulé, petite inscription blanche
-const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux translucide, assez foncé
-  color: '#d0283f', metalness: 0, roughness: 0.1, transmission: 1, thickness: 0.14, ior: 1.49,
-  attenuationColor: '#7a0a1e', attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.05, specularIntensity: 0.7, envMapIntensity: 0.7,
+const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux translucide dépoli (effet brume), assez foncé
+  color: '#d0283f', metalness: 0, roughness: 0.38, transmission: 1, thickness: 0.18, ior: 1.49,
+  attenuationColor: '#7a0a1e', attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.08, sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.7,
   emissive: '#5e0718', emissiveIntensity: 0.7,
-  transparent: true, opacity: 0.78,
+  transparent: true, opacity: 0.88,
 });
 {
   const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 6, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
@@ -719,7 +719,7 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   pts.push([XO - DEPTH, Y0 + (Y1 - Y0) * 0.66], [XO - DEPTH, Y0 + (Y1 - Y0) * 0.34]);
   const BTN_TOP = TH - 0.004, BTN_BOT = 0.02;          // juste au-dessus du verre et de la bande
   // arêtes arrondies, surtout dans l'épaisseur pour garder les petites bosses
-  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.009, bevelT: 0.03, seg: 8 }); btn.renderOrder = 11;
+  const btn = pieceI(pts, BTN_BOT, BTN_TOP, burgundy, { bevel: 0.013, bevelT: 0.045, seg: 10 }); btn.renderOrder = 11;
   // inscription + carré barré d'une croix en dessous
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
   g.fillStyle = g.strokeStyle = '#fff'; g.font = '700 50px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
