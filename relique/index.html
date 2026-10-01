@@ -236,9 +236,10 @@ const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y 
 const WINDOW = IMG([[526, 372], [709, 372], ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
   [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1)]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
-const FRONT = IMG([[522, 275], [722, 275], [747, 320], ...notchOuter(747, -1, NY.R, 1), [747, 595], [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
+const FRONT = IMG([[522, 300], [722, 300], [747, 345],   // tête raccourcie de 25 px (broches plus près du verre)
+  ...notchOuter(747, -1, NY.R, 1), [747, 595], [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), [709, 372],
   [526, 372], ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
-  [488, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 322]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
+  [488, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 347]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
 const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], ...notchInner(720, 755, -1, NY.G, 1), [720, 1640], [530, 1640], ...notchInner(530, 492, 1, NY.G, -1), [530, 1318], [548, 1318], [548, 1290]];
 const PLATE = IMG([[548, 1290], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
@@ -484,7 +485,7 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 // bord métallique taillé en lame : seuls les bords EXTÉRIEURS de la puce sont chanfreinés (haut et bas se rejoignent
 // sur une arête fine au milieu de l'épaisseur) ; les bords qui touchent le verre / la plaque restent verticaux.
-const KNIFE = { c: 0.225, cBack: 0.15, ridge: 0.1, cFront: 0.32, ridgeFront: 0.09 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
+const KNIFE = { c: 0.225, cBack: 0.15, ridge: 0.1, cFront: 0.2, ridgeFront: 0.09 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.14; knifeMats.set(mat, k); } return knifeMats.get(mat); };
@@ -588,7 +589,7 @@ pieceI(rectP(502, 824, 538, 850), PAD_TOP - 0.012, PAD_TOP + 0.006, redGloss, { 
   const k = 0.72, kw = 1.28;                         // broches réduites en longueur autour de leur pied (y 275), larges : ~4 px entre les bases
   // tête centrale raccourcie (214→246 au lieu de 198→246) : la pointe est plus longue, longueur totale inchangée
   pieceI([[xc - 5, 182], [xc + 5, 182], [xc + 5, 214], [xc + 14, 220], [xc + 14, 238], [xc + 7, 246], [xc + 7, 256], [xc + 18, 268], [xc + 18, 282], [xc - 18, 282], [xc - 18, 268], [xc - 7, 256], [xc - 7, 246], [xc - 14, 238], [xc - 14, 220], [xc - 5, 214]]
-    .map(([x, y]) => [xc + (x - xc) * kw, 275 + (y - 275) * k]), TH / 2 - 0.024, TH / 2 + 0.024, metal, { bevel: 0.008 });
+    .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - 0.034, TH / 2 + 0.034, metal, { bevel: 0.01 });
 });
 // perforations de la plaque
 const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
