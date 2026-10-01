@@ -68,6 +68,7 @@
   .btn:hover { background: #fff0f6; }
   .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
   .btn.on { background: var(--pink); }
+  .btn.reset { width: 100%; margin-top: 16px; background: #ffe3ec; font-size: 14px; }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
   .sw { display: flex; flex-wrap: wrap; gap: 6px; }
   .sw button { width: 26px; height: 26px; border-radius: 6px; border: 3px solid var(--ink); cursor: pointer; padding: 0; box-shadow: 2px 2px 0 var(--ink); }
@@ -114,7 +115,7 @@
 <header>
   <div class="side"><a class="pill" href="/">← <span class="hide-sm">Devtober</span></a></div>
   <h1 class="title">Pomme <span>Sweet</span> Pomme</h1>
-  <div class="side"><button class="pill" id="mute" title="Son">♪ on</button><button class="pill" id="reset" title="Nouvelle pomme">↺</button></div>
+  <div class="side"><button class="pill" id="mute" title="Son">♪ on</button><button class="pill" id="reset" title="Recommencer une nouvelle partie">↺ <span class="hide-sm">Nouvelle partie</span></button></div>
 </header>
 
 <main class="app">
@@ -135,6 +136,7 @@
     <h3>Accessoire</h3>
     <div class="chips" id="accs"></div>
     <p class="hint">Clique sur ton ver pour un <b>câlin</b>. Un intérieur cosy le rend heureux.</p>
+    <button class="btn reset" id="reset2">↺ Nouvelle partie</button>
   </aside>
 
   <section class="console">
@@ -971,9 +973,11 @@ function buildUI() {
   $('aFeed').onclick = feed; $('aPlay').onclick = play; $('aSleep').onclick = toggleSleep;
   $('name').oninput = () => { S.worm.name = $('name').value.trim() || 'Pépito'; save(); };
   $('mute').onclick = () => { S.muted = !S.muted; refreshUI(); save(); };
-  $('reset').onclick = () => {
-    if (!confirm('Recommencer avec une nouvelle pomme ? Ta maison actuelle sera effacée.')) return;
-    S = freshSave(); grid = Int8Array.from(S.grid); marks = new Set(); start();
+  $('reset').onclick = $('reset2').onclick = () => {
+    if (!confirm('Recommencer une nouvelle partie ? Ta maison, ton ver et tes objets seront effacés.')) return;
+    const muted = S.muted;
+    S = freshSave(); S.muted = muted; grid = Int8Array.from(S.grid); marks = new Set();
+    selItem = 'lampe'; selColor = 'rose'; flip = false; setTool('dig'); start();
   };
   setTool('dig');
 }
