@@ -706,7 +706,7 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   transparent: true, opacity: 0.78,
 });
 {
-  const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 10, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
+  const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 4, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
   for (let i = 0; i <= 280; i++) {                   // bord extérieur : 7 petites bosses rondes, et entre elles des creux ronds (la même courbe, inversée)
     const t = i / 280, y = Y0 + (Y1 - Y0) * t, c = Math.abs((t * 7 % 1) - 0.5);
