@@ -673,9 +673,9 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
 {
   const Y0 = 1130, Y1 = 1250, XO = 768, DEPTH = 44, END = 12, pts = [];   // centré sur y 1190 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé (petit plat)
-  for (let i = 0; i <= 240; i++) {                   // bord extérieur : 7 petites bosses en demi-lune, un peu espacées (même taille de bosse qu'à 8)
-    const t = i / 240, y = Y0 + (Y1 - Y0) * t, u = ((t * 7 % 1) * 2 - 1) * 8 / 7;
-    pts.push([XO - 2 + 5 * Math.sqrt(Math.max(0, 1 - u * u)), y]);
+  for (let i = 0; i <= 240; i++) {                   // bord extérieur : 7 petites bosses rondes, espacées
+    const t = i / 240, y = Y0 + (Y1 - Y0) * t, u = ((t * 7 % 1) * 2 - 1) / 0.6;
+    pts.push([XO + 2.2 * Math.sqrt(Math.max(0, 1 - u * u)), y]);
   }
   pts.push([XO - END, Y1]);                          // bout droit écrasé
   // bord intérieur : V écrasé symétrique, deux côtés droits de même longueur, pointe aplatie centrée
