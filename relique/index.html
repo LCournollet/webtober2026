@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Relic 2.0 · Devtober J02</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #ff2a3a; --red2: #ff6070; --dim: #7a1d24; --bg: #050203; --ink: #f4dede; --muted: #a07c80; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
+  #gl { position: fixed; inset: 0; display: block; touch-action: none; }
+  .scan { position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
+  .vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.75) 100%); }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; display: grid; place-items: center;
+    background: repeating-linear-gradient(0deg, rgba(255,42,58,.35) 0 2px, rgba(0,0,0,.6) 2px 5px), #1a0205; }
+  #flash b { font-family: Rajdhani, sans-serif; font-size: clamp(28px, 6vw, 72px); letter-spacing: .25em; color: #fff; text-shadow: 3px 0 #ff2a3a, -3px 0 #00e5ff; }
+  #flash.on { animation: flash 1.1s steps(12) forwards; }
+  @keyframes flash { 0% { opacity: 0 } 8% { opacity: 1 } 20% { opacity: .4 } 30% { opacity: 1 } 70% { opacity: 1 } 100% { opacity: 0 } }
+
+  .hud { position: fixed; pointer-events: none; font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .tl { top: 16px; left: 16px; display: flex; gap: 12px; align-items: center; pointer-events: auto; }
+  .tl a { color: var(--ink); text-decoration: none; border: 1px solid var(--dim); padding: 6px 10px; background: rgba(20,2,4,.6); clip-path: polygon(0 0, 100% 0, 100% 70%, 88% 100%, 0 100%); }
+  .tl a:hover { border-color: var(--red); color: #fff; }
+  .tl b { color: var(--red); font-weight: 500; }
+  .tr { top: 16px; right: 16px; text-align: right; line-height: 1.7; }
+  .tr .v { color: var(--ink); }
+  .tr .blink { color: var(--red); animation: blink 1.2s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .2 } }
+
+  #depth { right: 18px; top: 50%; transform: translateY(-50%); display: grid; gap: 14px; }
+  body.card #depth { opacity: 0; }
+  #depth { transition: opacity .3s; }
+  #depth div { display: flex; align-items: center; justify-content: flex-end; gap: 10px; transition: color .3s; }
+  #depth div::after { content: ""; width: 10px; height: 10px; border: 1px solid var(--dim); transform: rotate(45deg); transition: all .3s; }
+  #depth div.on { color: #fff; }
+  #depth div.on::after { background: var(--red); border-color: var(--red); box-shadow: 0 0 12px var(--red); }
+
+  #intro { position: fixed; left: clamp(16px, 5vw, 64px); bottom: clamp(20px, 7vh, 72px); max-width: 460px; transition: opacity .4s, transform .4s; }
+  #intro.gone { opacity: 0; transform: translateY(12px); pointer-events: none; }
+  .kicker { font-size: 11px; letter-spacing: .3em; color: var(--red); }
+  #intro h1 { font-family: Rajdhani, sans-serif; font-weight: 700; font-size: clamp(56px, 9vw, 110px); line-height: .9; margin: 10px 0 12px; letter-spacing: .02em;
+    color: #fff; text-shadow: 0 0 30px rgba(255,42,58,.5); }
+  #intro h1 span { color: var(--red); }
+  #intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  #intro p b { color: var(--ink); font-weight: 500; }
+  .row { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+  .btn { font: inherit; font-family: Rajdhani, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .14em; text-transform: uppercase; color: #fff; cursor: pointer;
+    background: var(--red); border: 0; padding: 12px 26px 11px; clip-path: polygon(0 0, 100% 0, 100% 65%, 90% 100%, 0 100%); transition: filter .15s, transform .15s; }
+  .btn:hover { filter: brightness(1.15); transform: translateX(2px); }
+  .btn.ghost { background: transparent; color: var(--ink); outline: 1px solid var(--dim); outline-offset: -1px; font-size: 14px; padding: 9px 16px 8px; }
+  .row small { font-size: 11px; color: var(--muted); letter-spacing: .12em; }
+
+  #hint { left: 50%; bottom: 22px; transform: translateX(-50%); text-align: center; transition: opacity .4s; white-space: nowrap; }
+  #hint i { font-style: normal; color: var(--red); }
+  #back { position: fixed; left: 16px; bottom: 16px; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  body.brain #back { opacity: 1; pointer-events: auto; }
+
+  #tip { position: fixed; pointer-events: none; padding: 4px 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #fff;
+    background: rgba(255,42,58,.85); transform: translate(14px, -50%); opacity: 0; transition: opacity .15s; white-space: nowrap; }
+
+  #card { position: fixed; right: clamp(16px, 4vw, 56px); top: 50%; width: min(400px, calc(100% - 32px)); transform: translateY(-50%);
+    background: linear-gradient(160deg, rgba(40,4,8,.92), rgba(10,1,2,.94)); border: 1px solid var(--dim); padding: 22px 22px 20px;
+    clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px)); box-shadow: 0 0 60px rgba(255,42,58,.15);
+    opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #card.on { opacity: 1; pointer-events: auto; animation: glitchIn .45s steps(6); }
+  @keyframes glitchIn { 0% { clip-path: inset(40% 0 45% 0); transform: translate(-6px, -50%); } 30% { clip-path: inset(10% 0 70% 0); } 60% { clip-path: inset(60% 0 5% 0); transform: translate(4px, -50%); } }
+  #card::before { content: ""; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: var(--red); box-shadow: 0 0 14px var(--red); }
+  #card .code { font-size: 11px; letter-spacing: .25em; color: var(--red); display: flex; justify-content: space-between; }
+  #card h2 { font-family: Rajdhani, sans-serif; font-size: 34px; font-weight: 700; margin: 6px 0 4px; letter-spacing: .03em; color: #fff; text-transform: uppercase; }
+  #card .role { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0; }
+  #card h3 { font-size: 10px; letter-spacing: .25em; color: var(--red); margin: 18px 0 6px; font-weight: 500; }
+  #card .relic { font-size: 14px; line-height: 1.6; margin: 0; }
+  #card .int { display: flex; align-items: center; gap: 10px; font-size: 10px; letter-spacing: .2em; color: var(--muted); margin-top: 14px; }
+  #card .int i { flex: 1; height: 6px; background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px); opacity: .9; }
+  #card .int i em { display: block; height: 100%; background: rgba(5,2,3,.85); margin-left: auto; }
+  #card blockquote { margin: 16px 0 0; padding: 12px 14px; border-left: 2px solid var(--red); background: rgba(255,42,58,.07); font-size: 15px; line-height: 1.5; color: #fff; }
+  #card blockquote cite { display: block; margin-top: 6px; font-size: 11px; font-style: normal; letter-spacing: .15em; color: var(--red); text-transform: uppercase; }
+  #card blockquote.corrupt { color: var(--muted); font-size: 12px; letter-spacing: .1em; }
+  #card .x { position: absolute; top: 12px; right: 30px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 18px; cursor: pointer; }
+  #card .x:hover { color: #fff; }
+
+  .legal { position: fixed; right: 16px; bottom: 12px; font-size: 9px; letter-spacing: .12em; color: rgba(160,124,128,.6); pointer-events: none; }
+
+  @media (max-width: 760px) {
+    #depth { display: none; }
+    .tr { font-size: 9px; }
+    #card { top: auto; bottom: 12px; transform: none; max-height: 62vh; overflow: auto; }
+    @keyframes glitchIn { 0% { clip-path: inset(40% 0 45% 0); } 30% { clip-path: inset(10% 0 70% 0); } 60% { clip-path: inset(60% 0 5% 0); } }
+    #hint { bottom: 64px; font-size: 10px; }
+    .legal { display: none; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="scan"></div>
+<div class="vig"></div>
+
+<div class="hud tl"><a href="/">← Devtober</a><span>J02 · <b>Relique</b></span></div>
+<div class="hud tr">
+  <div>Biochip <span class="v">Relic 2.0</span></div>
+  <div>Engram <span class="v">J. Silverhand</span></div>
+  <div>Intégrité <span class="blink" id="integ">37%</span></div>
+  <div>Mag <span class="v" id="mag">×1.0</span></div>
+</div>
+<div class="hud" id="depth">
+  <div data-l="0">Puce</div><div data-l="1">Circuit</div><div data-l="2">Noyau</div><div data-l="3">Engramme</div>
+</div>
+
+<section id="intro">
+  <div class="kicker">DEVTOBER · J02 · RELIQUE</div>
+  <h1>RELIC <span>2.0</span></h1>
+  <p>Biopuce expérimentale. À l'intérieur, l'engramme de <b>Johnny Silverhand</b> est en train de réécrire le cerveau de <b>V</b>. Zoome jusqu'au cœur.</p>
+  <div class="row"><button class="btn" id="dive">Plonger ▸</button><small>ou molette / glisser</small></div>
+</section>
+
+<div class="hud" id="hint">Molette pour zoomer · <i>▼</i></div>
+<button class="btn ghost" id="back">↺ Retour à la puce</button>
+<div id="tip"></div>
+
+<aside id="card">
+  <button class="x" id="cardX" aria-label="Fermer">✕</button>
+  <div class="code"><span id="cCode">SEC-01</span><span id="cId">0x00</span></div>
+  <h2 id="cName">—</h2>
+  <p class="role" id="cRole"></p>
+  <h3>// Effet de la relique</h3>
+  <p class="relic" id="cRelic"></p>
+  <div class="int"><span>Réécriture</span><i><em id="cInt"></em></i><span id="cIntV">0%</span></div>
+  <blockquote id="cQuote"></blockquote>
+</aside>
+
+<div id="flash"><b>NEURAL LINK</b></div>
+<div class="legal">Fan project · Cyberpunk 2077 © CD PROJEKT RED</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const RED = '#ff2a3a';
+
+/* =========================================================
+   Textures de la puce (dessinées au canvas)
+   ========================================================= */
+function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); }
+function chromeV(g, y0, y1) {
+  const gr = g.createLinearGradient(0, y0, 0, y1);
+  gr.addColorStop(0, '#55555c'); gr.addColorStop(.3, '#f4f4f7'); gr.addColorStop(.55, '#8d8d96'); gr.addColorStop(.8, '#e6e6ea'); gr.addColorStop(1, '#3e3e44');
+  return gr;
+}
+function glowPath(g, pts, col, w, blur) {
+  g.save(); g.strokeStyle = col; g.lineWidth = w; g.lineJoin = 'round'; g.lineCap = 'round'; g.shadowColor = RED; g.shadowBlur = blur;
+  g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.restore();
+}
+function edgeFade(g, S, inner = 0.62) {
+  g.save(); g.globalCompositeOperation = 'destination-in';
+  const gr = g.createRadialGradient(S / 2, S / 2, S * inner / 2, S / 2, S / 2, S / 2);
+  gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, S, S); g.restore();
+}
+// piste de circuit : segments horizontaux / verticaux / diagonaux à 45°
+function trace(x, y, dir, steps, bounds, min = 30, max = 160) {
+  const pts = [[x, y]];
+  for (let i = 0; i < steps; i++) {
+    const r = Math.random();
+    if (r < 0.25) dir = [dir[0] + dir[1], dir[1] - dir[0]].map(Math.sign);
+    else if (r < 0.5) dir = [dir[0] - dir[1], dir[1] + dir[0]].map(Math.sign);
+    else if (r < 0.62 && (dir[0] && dir[1])) dir = Math.random() < .5 ? [dir[0], 0] : [0, dir[1]];
+    const L = rnd(min, max) * (dir[0] && dir[1] ? 0.7 : 1);
+    x += dir[0] * L; y += dir[1] * L;
+    if (bounds && (x < bounds[0] || x > bounds[2] || y < bounds[1] || y > bounds[3])) { x = clamp(x, bounds[0], bounds[2]); y = clamp(y, bounds[1], bounds[3]); pts.push([x, y]); break; }
+    pts.push([x, y]);
+  }
+  return pts;
+}
+function pad(g, x, y, r, col = RED) { g.save(); g.fillStyle = col; g.shadowColor = RED; g.shadowBlur = 10; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = '#1a0204'; g.beginPath(); g.arc(x, y, r * .45, 0, 7); g.fill(); g.restore(); }
+
+function drawNeural(g, x0, y0, w, h, dens) {
+  const nodes = [];
+  const n = Math.round(30 * dens);
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, 6.283), d = Math.pow(Math.random(), 0.7) * 0.5;
+    nodes.push([x0 + w / 2 + Math.cos(a) * d * w, y0 + h / 2 + Math.sin(a) * d * h, rnd(4, 11) * Math.sqrt(dens + .2)]);
+  }
+  g.save(); g.lineCap = 'round'; g.shadowColor = RED;
+  // axones entre neurones proches
+  for (const a of nodes) for (const b of nodes) {
+    if (a === b) continue; const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (d > w * 0.22 || Math.random() > 0.35) continue;
+    g.strokeStyle = `rgba(255,60,75,${rnd(.25, .6)})`; g.lineWidth = rnd(1, 2.5) * Math.sqrt(dens); g.shadowBlur = 8;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo((a[0] + b[0]) / 2 + rnd(-40, 40), (a[1] + b[1]) / 2 + rnd(-40, 40), b[0], b[1]); g.stroke();
+  }
+  const branch = (x, y, ang, len, wid, depth) => {
+    const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+    g.strokeStyle = `rgba(255,${50 + depth * 25},${60 + depth * 20},${0.95 - depth * 0.15})`; g.lineWidth = wid; g.shadowBlur = 14 - depth * 2;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo((x + x2) / 2 + rnd(-len, len) * .25, (y + y2) / 2 + rnd(-len, len) * .25, x2, y2); g.stroke();
+    if (depth < 4) for (let k = 0; k < 2; k++) branch(x2, y2, ang + rnd(.3, .8) * (k ? 1 : -1), len * rnd(.55, .8), wid * .62, depth + 1);
+    else if (Math.random() < .5) { g.fillStyle = '#ffd0d4'; g.shadowBlur = 12; g.beginPath(); g.arc(x2, y2, 1.6 * Math.sqrt(dens), 0, 7); g.fill(); }
+  };
+  for (const [x, y, r] of nodes) {
+    const k = Math.floor(rnd(4, 8));
+    for (let i = 0; i < k; i++) branch(x, y, rnd(0, 6.283), r * rnd(5, 9), r * .5, 0);
+  }
+  for (const [x, y, r] of nodes) {
+    g.shadowBlur = 30; g.fillStyle = '#ff3646'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.shadowBlur = 0; g.fillStyle = '#ffe1e3'; g.beginPath(); g.arc(x, y, r * .4, 0, 7); g.fill();
+  }
+  g.restore();
+}
+
+const CHIP_W = 10, CHIP_H = 2.5, CORE = new THREE.Vector2(1.2, 0); // en unités monde (repère de la puce)
+const L1_SIZE = 2.0, L2_SIZE = 0.5;
+
+function drawChip() {
+  const W = 4096, H = 1024, c = mk(W, H), g = c.getContext('2d');
+  const coreX = (CORE.x / CHIP_W + .5) * W, coreY = H / 2;
+  // broches
+  for (let i = 0; i < 4; i++) {
+    const y = 392 + i * 80;
+    g.fillStyle = chromeV(g, y - 16, y + 16); g.fillRect(3640, y - 16, 330, 32);
+    g.fillStyle = chromeV(g, y - 22, y + 22); g.fillRect(3880, y - 22, 24, 44);
+    g.fillStyle = chromeV(g, y - 7, y + 7); g.fillRect(3960, y - 7, 112, 14);
+    g.fillStyle = chromeV(g, y - 12, y + 12); g.fillRect(4030, y - 12, 18, 24);
+  }
+  // corps
+  const body = [[60, 210], [150, 120], [1480, 120], [1520, 160], [2880, 160], [2920, 120], [3480, 120], [3560, 200], [3700, 280], [3700, 744], [3560, 824], [3480, 904], [2320, 904], [2280, 864], [1320, 864], [1280, 904], [150, 904], [60, 814]];
+  poly(g, body);
+  const bg = g.createLinearGradient(0, 120, 0, 904); bg.addColorStop(0, '#2c2b30'); bg.addColorStop(.5, '#141316'); bg.addColorStop(1, '#222125'); g.fillStyle = bg; g.fill();
+  // poignée perforée
+  g.fillStyle = '#19181c'; g.beginPath(); g.roundRect(130, 190, 1050, 644, 18); g.fill();
+  for (let x = 470; x < 1150; x += 46) for (let y = 232; y < 810; y += 46) {
+    if (x > 400 && x < 790 && y > 420 && y < 610) continue;
+    g.fillStyle = '#050506'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 11, 0.2, 2.9); g.stroke();
+  }
+  // logo et gravures
+  g.strokeStyle = '#c9c9cf'; g.lineWidth = 8; g.strokeRect(178, 258, 222, 236);
+  g.lineWidth = 18; g.lineJoin = 'miter'; g.beginPath();
+  g.moveTo(215, 460); g.lineTo(215, 290); g.lineTo(330, 290); g.lineTo(365, 325); g.lineTo(365, 355); g.lineTo(330, 385); g.lineTo(215, 385); g.moveTo(300, 385); g.lineTo(365, 460); g.stroke();
+  g.fillStyle = '#9a9aa2'; g.font = '600 34px JetBrains Mono, monospace'; g.fillText('R E L I C', 182, 548);
+  g.font = '500 28px JetBrains Mono, monospace'; g.fillStyle = '#7d7d86'; g.fillText('PAT. X1JS/881', 182, 800);
+  // capsule + tube
+  g.fillStyle = '#1d0306'; g.fillRect(760, 470, 470, 84); g.strokeStyle = '#8d8d96'; g.lineWidth = 4; g.strokeRect(760, 470, 470, 84);
+  glowPath(g, [[760, 495], [1230, 495]], '#ff4554', 9, 30); glowPath(g, [[760, 530], [1230, 530]], '#ff4554', 9, 30);
+  const cap = g.createLinearGradient(0, 452, 0, 572); cap.addColorStop(0, '#fbeadf'); cap.addColorStop(.6, '#e2c3b0'); cap.addColorStop(1, '#a98a78');
+  g.fillStyle = cap; g.beginPath(); g.roundRect(430, 452, 340, 120, 60); g.fill(); g.strokeStyle = '#5d4c44'; g.lineWidth = 4; g.stroke();
+  // fenêtre rouge
+  const win = [[1210, 232], [2050, 232], [2090, 272], [3300, 272], [3340, 232], [3520, 232], [3600, 302], [3600, 722], [3520, 792], [2350, 792], [2310, 752], [1210, 752]];
+  g.save(); poly(g, win); g.clip();
+  g.fillStyle = '#100103'; g.fillRect(1200, 220, 2420, 590);
+  for (let i = 0; i < 26; i++) { const x = rnd(1250, 3550), y = rnd(260, 760), r = rnd(80, 260); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(160,0,20,.35)'); gr.addColorStop(1, 'rgba(160,0,20,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 7000; i++) { // fibres "glitch"
+    const x = rnd(1210, 3600), y = rnd(232, 792), L = rnd(4, 46);
+    g.strokeStyle = `rgba(255,${rnd(30, 70) | 0},70,${rnd(.06, .32)})`; g.lineWidth = rnd(1, 2.4);
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + rnd(-2, 2), y + L); g.stroke();
+  }
+  for (let i = 0; i < 90; i++) { const p = trace(rnd(1230, 3580), rnd(260, 770), [Math.random() < .5 ? 1 : -1, 0], 5, [1215, 240, 3595, 785], 20, 90); glowPath(g, p, `rgba(255,70,85,${rnd(.35, .8)})`, rnd(1.5, 3.5), 8); pad(g, ...p[p.length - 1], 5); }
+  for (let k = 0; k < 5; k++) { // artères principales
+    let x = 1220, y = rnd(320, 700); const p = [[x, y]];
+    while (x < 3590) {
+      if (Math.random() < .55) x += rnd(60, 220); else { const d = rnd(30, 100) * (Math.random() < .5 ? 1 : -1); const ny = clamp(y + d, 300, 730); x += Math.abs(ny - y); y = ny; }
+      p.push([Math.min(x, 3590), y]);
+    }
+    glowPath(g, p, '#ff2a3a', 10, 34); glowPath(g, p, '#ffb3b9', 3, 0);
+  }
+  g.strokeStyle = 'rgba(255,60,75,.8)'; g.lineWidth = 3;
+  for (let i = 0; i < 14; i++) { const x = rnd(1260, 3500), y = rnd(280, 720); g.strokeRect(x, y, 38, 38); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 38, y + 38); g.moveTo(x + 38, y); g.lineTo(x, y + 38); g.stroke(); }
+  g.fillStyle = 'rgba(255,90,100,.75)'; g.font = '500 22px JetBrains Mono, monospace';
+  ['ENGRAM // J.SILVERHAND', 'SOULKILLER BUILD 2.0.77', 'NRL-BUS 0x7F3A', 'MIKOSHI LINK: LOST', '>> REWRITE 37%'].forEach((t, i) => g.fillText(t, 1260 + i * 470, i % 2 ? 300 : 770));
+  // noyau
+  g.fillStyle = '#2a0408'; g.fillRect(coreX - 103, coreY - 103, 206, 206);
+  drawNeural(g, coreX - 100, coreY - 100, 200, 200, 0.35);
+  g.save(); g.strokeStyle = '#ff6a76'; g.lineWidth = 5; g.shadowColor = RED; g.shadowBlur = 30; g.strokeRect(coreX - 103, coreY - 103, 206, 206); g.restore();
+  g.restore();
+  g.strokeStyle = chromeV(g, 232, 792); g.lineWidth = 12; poly(g, win); g.stroke();
+  // bouton rouge
+  poly(g, [[1560, 124], [1584, 82], [1736, 82], [1760, 124]]); g.fillStyle = '#d61e2c'; g.fill();
+  g.strokeStyle = '#7a0d16'; g.lineWidth = 4; for (let x = 1600; x < 1730; x += 18) { g.beginPath(); g.moveTo(x, 90); g.lineTo(x, 120); g.stroke(); }
+  // chrome du contour + reflets
+  const cg = g.createLinearGradient(0, 0, W, 0); cg.addColorStop(0, '#9a9aa3'); cg.addColorStop(.3, '#e9e9ee'); cg.addColorStop(.5, '#7b7b84'); cg.addColorStop(.75, '#f2f2f5'); cg.addColorStop(1, '#8a8a93');
+  g.strokeStyle = cg; g.lineWidth = 22; g.lineJoin = 'round'; poly(g, body); g.stroke();
+  g.strokeStyle = '#08080a'; g.lineWidth = 4; g.stroke();
+  g.save(); g.strokeStyle = '#fff'; g.shadowColor = '#ffd9b0'; g.shadowBlur = 20; g.lineWidth = 4;
+  [[[300, 126], [900, 126]], [[2950, 126], [3300, 126]], [[1700, 897], [2200, 897]], [[3590, 230], [3680, 290]]].forEach(([a, b]) => { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); });
+  g.restore();
+  g.fillStyle = 'rgba(20,20,22,.9)'; g.font = '500 20px JetBrains Mono, monospace'; g.fillText('RELIC 2.0 — EXPERIMENTAL BIOCHIP — DO NOT REMOVE', 1420, 893);
+  return c;
+}
+
+function drawCircuit() { // niveau 1 : la zone autour du noyau
+  const S = 2048, c = mk(S, S), g = c.getContext('2d'), C = S / 2, D = S * (L2_SIZE / L1_SIZE) / 2;
+  g.fillStyle = '#070102'; g.fillRect(0, 0, S, S);
+  const rg = g.createRadialGradient(C, C, 0, C, C, S * .6); rg.addColorStop(0, 'rgba(130,0,18,.55)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(255,40,60,.06)'; g.lineWidth = 1;
+  for (let i = 0; i < S; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, S); g.moveTo(0, i); g.lineTo(S, i); g.stroke(); }
+  for (let i = 0; i < 3000; i++) { const x = rnd(0, S), y = rnd(0, S); g.strokeStyle = `rgba(255,50,70,${rnd(.04, .2)})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + rnd(4, 30)); g.stroke(); }
+  for (let i = 0; i < 170; i++) { // pistes qui partent du noyau
+    const side = i % 4, t = rnd(-D + 10, D - 10);
+    const [x, y, dir] = side === 0 ? [C + D, C + t, [1, 0]] : side === 1 ? [C - D, C + t, [-1, 0]] : side === 2 ? [C + t, C + D, [0, 1]] : [C + t, C - D, [0, -1]];
+    const p = [[x, y]]; let cx = x, cy = y, d = dir;
+    for (let k = 0; k < 9; k++) {
+      const L = rnd(30, 150); if (Math.random() < .3) d = d[0] ? [d[0], Math.random() < .5 ? 1 : -1] : [Math.random() < .5 ? 1 : -1, d[1]]; else d = dir;
+      cx += d[0] * L * (d[0] && d[1] ? .7 : 1); cy += d[1] * L * (d[0] && d[1] ? .7 : 1); p.push([cx, cy]);
+      if (cx < 0 || cy < 0 || cx > S || cy > S) break;
+    }
+    const w = rnd(2, 6);
+    glowPath(g, p, `rgba(255,${rnd(40, 80) | 0},80,${rnd(.5, 1)})`, w, 14);
+    if (w > 4) glowPath(g, p, 'rgba(255,200,205,.8)', 1.4, 0);
+    const e = p[p.length - 1]; if (e[0] > 0 && e[0] < S && e[1] > 0 && e[1] < S) pad(g, e[0], e[1], rnd(5, 10));
+  }
+  for (let i = 0; i < 70; i++) { // composants CMS
+    let x, y; do { x = rnd(80, S - 80); y = rnd(80, S - 80); } while (Math.abs(x - C) < D + 60 && Math.abs(y - C) < D + 60);
+    const v = Math.random() < .5, w = v ? 22 : 44, h = v ? 44 : 22;
+    g.fillStyle = '#2a0a0e'; g.fillRect(x, y, w, h);
+    g.fillStyle = '#b8b8c0'; if (v) { g.fillRect(x, y, w, 8); g.fillRect(x, y + h - 8, w, 8); } else { g.fillRect(x, y, 8, h); g.fillRect(x + w - 8, y, 8, h); }
+  }
+  g.fillStyle = 'rgba(255,90,100,.7)'; g.font = '500 18px JetBrains Mono, monospace';
+  ['NRL-BUS 0x7F', 'SYN-GATE A', 'SOULKILLER v2', 'ENGRAM SECTOR', 'CORTEX MAP 03', 'BIO-IF 2077', 'R/W LOCK: OFF', 'NANITE FEED'].forEach((t, i) => g.fillText(t, rnd(100, S - 300), rnd(100, S - 100)));
+  // le noyau
+  g.fillStyle = '#140204'; g.fillRect(C - D, C - D, D * 2, D * 2);
+  drawNeural(g, C - D + 10, C - D + 10, D * 2 - 20, D * 2 - 20, 0.7);
+  g.save(); g.strokeStyle = '#ff6a76'; g.lineWidth = 6; g.shadowColor = RED; g.shadowBlur = 40; g.strokeRect(C - D, C - D, D * 2, D * 2); g.restore();
+  g.fillStyle = 'rgba(255,42,58,.9)'; for (let k = -D + 8; k < D; k += 16) { g.fillRect(C + k, C - D - 14, 6, 10); g.fillRect(C + k, C + D + 4, 6, 10); g.fillRect(C - D - 14, C + k, 10, 6); g.fillRect(C + D + 4, C + k, 10, 6); }
+  g.fillStyle = '#ff8a94'; g.font = '700 22px JetBrains Mono, monospace'; g.fillText('ENGRAM CORE // J.S.', C - D, C - D - 26);
+  edgeFade(g, S);
+  return c;
+}
+function drawEngram() { // niveau 2 : réseau de neurones
+  const S = 2048, c = mk(S, S), g = c.getContext('2d');
+  g.fillStyle = '#0b0103'; g.fillRect(0, 0, S, S);
+  const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S * .55); rg.addColorStop(0, 'rgba(150,0,22,.6)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, S, S);
+  drawNeural(g, 0, 0, S, S, 2.2);
+  edgeFade(g, S, .5);
+  return c;
+}
+
+/* =========================================================
+   Rendu
+   ========================================================= */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const chipScene = new THREE.Scene(); chipScene.background = new THREE.Color('#050203');
+const camA = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.01, 200);
+const brainScene = new THREE.Scene(); brainScene.background = new THREE.Color('#040102');
+const camB = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 100);
+
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(chipScene, camA);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.5, 0.62);
+composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
+
+function tex(cv) { const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t; }
+const chipCv = drawChip(), circCv = drawCircuit(), engCv = drawEngram();
+const chip = new THREE.Group(); chipScene.add(chip);
+const mat = (cv, o = 1) => new THREE.MeshBasicMaterial({ map: tex(cv), transparent: true, opacity: o, depthWrite: false });
+const chipMesh = new THREE.Mesh(new THREE.PlaneGeometry(CHIP_W, CHIP_H), mat(chipCv));
+const l1 = new THREE.Mesh(new THREE.PlaneGeometry(L1_SIZE, L1_SIZE), mat(circCv, 0));
+const l2 = new THREE.Mesh(new THREE.PlaneGeometry(L2_SIZE, L2_SIZE), mat(engCv, 0));
+l1.position.set(CORE.x, CORE.y, 0.002); l2.position.set(CORE.x, CORE.y, 0.004);
+l1.renderOrder = 1; l2.renderOrder = 2;
+chip.add(chipMesh, l1, l2);
+// poussière rouge en suspension
+{
+  const n = 900, p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { p[i * 3] = rnd(-14, 14); p[i * 3 + 1] = rnd(-8, 8); p[i * 3 + 2] = rnd(-10, 3); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  chipScene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: '#ff3040', size: 0.03, transparent: true, opacity: .5 })));
+}
+
+/* =========================================================
+   Le cerveau en nuage de points
+   ========================================================= */
+function hash3(x, y, z) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(z, 1274126177)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf), L = (a, b, t) => a + (b - a) * t;
+  const c = (i, j, k) => hash3(xi + i, yi + j, zi + k);
+  return L(L(L(c(0, 0, 0), c(1, 0, 0), u), L(c(0, 1, 0), c(1, 1, 0), u), v), L(L(c(0, 0, 1), c(1, 0, 1), u), L(c(0, 1, 1), c(1, 1, 1), u), v), w);
+}
+const fbm = (x, y, z) => vnoise(x, y, z) * .6 + vnoise(x * 2.1, y * 2.1, z * 2.1) * .3 + vnoise(x * 4.3, y * 4.3, z * 4.3) * .1;
+function randDir() { let x, y, z, l; do { x = rnd(-1, 1); y = rnd(-1, 1); z = rnd(-1, 1); l = x * x + y * y + z * z; } while (l > 1 || l < 1e-4); l = Math.sqrt(l); return [x / l, y / l, z / l]; }
+
+const REG = { FRONTAL: 0, PARIETAL: 1, TEMPORAL: 2, OCCIPITAL: 3, CERVELET: 4, TRONC: 5, LIMBIQUE: 6, CALLEUX: 7 };
+function cortexRegion(x, y, z) {
+  const w = (vnoise(x * 6 + 3, y * 6, z * 6) - .5) * .16; // frontières irrégulières
+  if (z > 0.28 + w - y * .25) return REG.FRONTAL;
+  if (z < -0.45 + w) return REG.OCCIPITAL;
+  if (y < -0.02 + w * .6) return REG.TEMPORAL;
+  return REG.PARIETAL;
+}
+function buildBrain() {
+  const P = [], R = [], Sz = [], H = [];
+  const push = (x, y, z, r, s, h) => { P.push(x, y, z); R.push(r); Sz.push(s); H.push(h); };
+  // hémisphères
+  for (let side = -1; side <= 1; side += 2) {
+    let made = 0;
+    while (made < 21000) {
+      const [ux, uy, uz] = randDir();
+      let x = ux * .40, y = uy * .56, z = uz * .84;
+      if (ux * side < 0) x *= .32;                         // face interne aplatie (scissure)
+      if (z > 0) y *= 1 - .12 * z;                          // front plus bas
+      if (y < 0) y *= .82;
+      if (y < 0 && z > -.35 && z < .55) { y *= 1.25; x *= 1.06; } // lobes temporaux
+      const n = fbm(x * 2.4 + side * 7, y * 2.4, z * 2.4), gr = Math.pow(.5 + .5 * Math.cos(n * Math.PI * 18), 5); // sillons = lignes de niveau du bruit
+      if (Math.random() < gr * .93) continue;
+      const k = 1 - .08 * gr + rnd(-.008, .008);
+      const X = side * .37 + x * k, Y = .1 + y * k, Z = z * k;
+      push(X, Y, Z, cortexRegion(X, Y, Z), rnd(1.1, 1.9), 0); made++;
+    }
+  }
+  // cervelet
+  for (let i = 0; i < 8000;) {
+    const [ux, uy, uz] = randDir();
+    if (uz > .35 && uy > .2) continue;
+    const fol = Math.sin(uy * 34) * .5 + .5; if (Math.random() < fol * .55) continue;
+    const k = 1 - .04 * fol;
+    push(ux * .52 * k, -.42 + uy * .23 * k, -.56 + uz * .32 * k, REG.CERVELET, rnd(1, 1.6), 0); i++;
+  }
+  // tronc cérébral
+  for (let i = 0; i < 2600; i++) {
+    const t = Math.random(), a = rnd(0, 6.283), r = .12 * (1 - .3 * t);
+    push(Math.cos(a) * r, -.32 - t * .75, -.24 - t * .12 + Math.sin(a) * r * .8, REG.TRONC, rnd(1.1, 1.8), 0);
+  }
+  // corps calleux (arche au centre)
+  for (let i = 0; i < 3200; i++) {
+    const a = rnd(.12, .88) * Math.PI;
+    push(rnd(-.3, .3), .12 + .18 * Math.sin(a) + rnd(-.03, .03), .48 * Math.cos(a), REG.CALLEUX, rnd(1.4, 2.3), 1);
+  }
+  // système limbique : hippocampes + amygdales
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 1500; i++) {
+      const s = Math.random(), a = rnd(0, 6.283), r = .05;
+      push(side * (.28 + .04 * Math.sin(s * 3)) + Math.cos(a) * r, -.16 + .1 * s + Math.sin(a) * r, .22 - s * .5, REG.LIMBIQUE, rnd(1.4, 2.3), 1);
+    }
+    for (let i = 0; i < 500; i++) { const [ux, uy, uz] = randDir(), r = Math.cbrt(Math.random()) * .075; push(side * .29 + ux * r, -.2 + uy * r, .3 + uz * r, REG.LIMBIQUE, rnd(1.4, 2.3), 1); }
+  }
+  return { P: new Float32Array(P), R: new Float32Array(R), S: new Float32Array(Sz), H: new Float32Array(H) };
+}
+const brain = buildBrain();
+const COUNT = brain.R.length;
+const bGeo = new THREE.BufferGeometry();
+bGeo.setAttribute('position', new THREE.BufferAttribute(brain.P, 3));
+bGeo.setAttribute('aStart', new THREE.BufferAttribute(new Float32Array(COUNT * 3), 3));
+bGeo.setAttribute('aRegion', new THREE.BufferAttribute(brain.R, 1));
+bGeo.setAttribute('aSize', new THREE.BufferAttribute(brain.S, 1));
+bGeo.setAttribute('aHeat', new THREE.BufferAttribute(brain.H, 1));
+bGeo.setAttribute('aRnd', new THREE.BufferAttribute(Float32Array.from({ length: COUNT }, Math.random), 1));
+const bMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uMorph: { value: 0 }, uTime: { value: 0 }, uHover: { value: -1 }, uSel: { value: -1 }, uPix: { value: renderer.getPixelRatio() } },
+  vertexShader: `
+    attribute vec3 aStart; attribute float aRegion, aSize, aHeat, aRnd;
+    uniform float uMorph, uTime, uHover, uSel, uPix;
+    varying vec3 vCol; varying float vA;
+    void main() {
+      float t = clamp(uMorph * 1.6 - aRnd * .6, 0., 1.); t = 1. - pow(1. - t, 3.);
+      vec3 p = mix(aStart, position, t);
+      p *= 1. + .012 * sin(uTime * 1.4 + aRnd * 6.28) * t;
+      float hov = 1. - step(.5, abs(aRegion - uHover)), sel = 1. - step(.5, abs(aRegion - uSel));
+      float k = max(sel, hov * .75);
+      vec4 mv = modelViewMatrix * vec4(p, 1.);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = aSize * (1. + k * .35 + aHeat * .15) * uPix * (2.9 / -mv.z);
+      float scan = smoothstep(.05, 0., abs(p.y - (mod(uTime * .45, 2.6) - 1.3)));
+      vCol = mix(vec3(1., .1, .16), vec3(1., .42, .4), k) + vec3(1., .35, .35) * scan * .7;
+      vA = (.42 + .22 * k + aHeat * .04) * (.65 + .35 * sin(uTime * 2.6 + aRnd * 50.));
+      if (uSel > -.5 && sel < .5) vA *= .45;
+      vA *= mix(1., .9, t);
+    }`,
+  fragmentShader: `
+    varying vec3 vCol; varying float vA;
+    void main() { float d = length(gl_PointCoord - .5); if (d > .5) discard; gl_FragColor = vec4(vCol, vA * smoothstep(.5, .05, d)); }`,
+});
+const brainPts = new THREE.Points(bGeo, bMat); brainPts.frustumCulled = false;
+brainScene.add(brainPts);
+
+camB.position.set(3.1, .55, 1.25); camB.lookAt(0, -.1, 0);
+const controls = new OrbitControls(camB, canvas);
+controls.target.set(0, -.1, 0); controls.enableDamping = true; controls.enablePan = false;
+controls.minDistance = 2.2; controls.maxDistance = 7; controls.autoRotateSpeed = .55; controls.enabled = false;
+
+// positions de départ : les pixels lumineux du réseau de neurones, étalés face à la caméra
+function seedStart() {
+  const S = engCv.width, data = engCv.getContext('2d').getImageData(0, 0, S, S).data;
+  const st = bGeo.attributes.aStart.array;
+  camB.updateMatrixWorld();
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camB.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camB.quaternion);
+  const centre = controls.target.clone(), D = camB.position.distanceTo(centre), vis = 2 * D * Math.tan(THREE.MathUtils.degToRad(camB.fov / 2));
+  const frac = 0.41;
+  for (let i = 0; i < COUNT; i++) {
+    let u, v, tries = 0;
+    do { u = rnd(.5 - frac * camB.aspect / 2, .5 + frac * camB.aspect / 2); v = rnd(.5 - frac / 2, .5 + frac / 2); tries++; }
+    while (tries < 30 && data[((clamp(v * S | 0, 0, S - 1)) * S + clamp(u * S | 0, 0, S - 1)) * 4] < 120);
+    const sx = (u - .5) / frac * vis, sy = -(v - .5) / frac * vis;
+    const p = centre.clone().addScaledVector(right, sx).addScaledVector(up, sy);
+    st[i * 3] = p.x; st[i * 3 + 1] = p.y; st[i * 3 + 2] = p.z;
+  }
+  bGeo.attributes.aStart.needsUpdate = true;
+}
+
+/* =========================================================
+   Contenu des zones
+   ========================================================= */
+// Citations : uniquement des répliques sûres. null = fragment à compléter.
+const REGIONS = [
+  { code: 'SEC-01', name: 'Lobe frontal', role: 'Décisions, personnalité, contrôle de soi, planification.', relic: 'Le front de la réécriture. Les choix de V, son humour, sa colère… peu à peu, ce sont ceux de Johnny qui prennent le dessus.', rate: 74, quote: null },
+  { code: 'SEC-02', name: 'Lobe pariétal', role: 'Toucher, position du corps, perception de l\'espace.', relic: 'Les signaux du corps se brouillent. V sent parfois une main qui n\'est pas la sienne, le poids d\'un bras en chrome qui n\'existe pas.', rate: 41, quote: null },
+  { code: 'SEC-03', name: 'Lobe temporal', role: 'Mémoire, langage, reconnaissance des sons.', relic: 'Les souvenirs de Johnny remontent sans prévenir : Samurai sur scène, Alt, la nuit de 2023 à Arasaka Tower.', rate: 63, quote: null },
+  { code: 'SEC-04', name: 'Lobe occipital', role: 'Vision : il assemble tout ce que l\'œil voit.', relic: 'Le cortex visuel affiche ce que la puce projette. Johnny apparaît là où il n\'y a personne, aussi réel que le reste.', rate: 58, quote: { text: 'Wake the fuck up, Samurai. We have a city to burn.', who: 'Johnny Silverhand' } },
+  { code: 'SEC-05', name: 'Cervelet', role: 'Coordination, équilibre, gestes précis.', relic: 'Quand Johnny prend les commandes, chaque geste passe par ici. V se réveille sans savoir ce que son corps a fait.', rate: 35, quote: null },
+  { code: 'SEC-06', name: 'Tronc cérébral', role: 'Respiration, rythme cardiaque, fonctions vitales.', relic: 'Le compte à rebours. Quand la réécriture atteint les fonctions vitales, chaque crise peut être la dernière.', rate: 22, quote: null },
+  { code: 'SEC-07', name: 'Système limbique', role: 'Émotions, peur, attachement, mémoire affective.', relic: 'Deux tempêtes dans un seul crâne : la rage de Johnny, la peur de V, et ce lien étrange qui grandit entre eux.', rate: 49, quote: null },
+  { code: 'SEC-08', name: 'Corps calleux', role: 'Le pont qui relie les deux hémisphères.', relic: 'Le pont entre deux esprits. Bientôt, impossible de dire où finit V et où commence Johnny.', rate: 88, quote: { text: 'Never fade away.', who: 'Samurai' } },
+];
+
+const GLYPHS = '!<>-_\\/[]{}—=+*^?#01ABCDEF';
+function scramble(el, text) {
+  let f = 0; const total = 14;
+  clearInterval(el._s);
+  el._s = setInterval(() => {
+    f++;
+    el.textContent = text.split('').map((ch, i) => ch === ' ' || i < (f / total) * text.length ? ch : GLYPHS[Math.random() * GLYPHS.length | 0]).join('');
+    if (f >= total) { clearInterval(el._s); el.textContent = text; }
+  }, 28);
+}
+function openCard(i) {
+  const r = REGIONS[i];
+  bMat.uniforms.uSel.value = i; controls.autoRotate = false;
+  $('cCode').textContent = r.code + ' // ' + 'CORTEX MAP';
+  $('cId').textContent = '0x' + (0x3a + i * 17).toString(16).toUpperCase();
+  scramble($('cName'), r.name);
+  $('cRole').textContent = r.role; $('cRelic').textContent = r.relic;
+  $('cInt').style.width = (100 - r.rate) + '%'; $('cIntV').textContent = r.rate + '%';
+  const q = $('cQuote');
+  if (r.quote) { q.className = ''; q.innerHTML = ''; q.append('« ' + r.quote.text + ' »'); const c = document.createElement('cite'); c.textContent = '— ' + r.quote.who; q.append(c); }
+  else { q.className = 'corrupt'; q.textContent = '▒▒ fragment mémoriel corrompu — données en attente ▒▒'; }
+  const card = $('card'); card.classList.remove('on'); void card.offsetWidth; card.classList.add('on'); document.body.classList.add('card');
+}
+function closeCard() { $('card').classList.remove('on'); document.body.classList.remove('card'); bMat.uniforms.uSel.value = -1; controls.autoRotate = true; }
+$('cardX').onclick = closeCard;
+
+/* =========================================================
+   Navigation : zoom dans la puce → cerveau
+   ========================================================= */
+let mode = 'chip', z = 0, zT = 0, autoDive = false, morphT = 0;
+const D_END = 0.22;
+const d0 = () => Math.max(11, 13 / (2 * Math.tan(THREE.MathUtils.degToRad(25)) * camA.aspect));
+const mouse = { x: 0, y: 0, px: 0, py: 0, sx: 0, sy: 0 };
+
+addEventListener('wheel', e => {
+  if (mode !== 'chip') return;
+  e.preventDefault(); autoDive = false;
+  zT = clamp(zT + e.deltaY * 0.0006, 0, 1);
+}, { passive: false });
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { y: e.clientY, x: e.clientX, moved: 0 }; });
+addEventListener('pointerup', e => {
+  if (drag && mode === 'brain' && drag.moved < 6) pick(e.clientX, e.clientY, true);
+  drag = null;
+});
+addEventListener('pointermove', e => {
+  mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.px = e.clientX; mouse.py = e.clientY;
+  if (drag) {
+    drag.moved += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0);
+    if (mode === 'chip') { zT = clamp(zT + (drag.y - e.clientY) * 0.0018, 0, 1); drag.y = e.clientY; autoDive = false; }
+  }
+  if (mode === 'brain' && !drag) wantPick = true;
+});
+addEventListener('keydown', e => {
+  if (mode === 'chip' && (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); autoDive = true; }
+  if (mode === 'chip' && e.key === 'ArrowUp') zT = clamp(zT - .1, 0, 1);
+  if (e.key === 'Escape') { if ($('card').classList.contains('on')) closeCard(); else if (mode === 'brain') backToChip(); }
+});
+$('dive').onclick = () => { autoDive = true; };
+$('back').onclick = backToChip;
+
+function flash(label) {
+  const f = $('flash'); f.querySelector('b').textContent = label;
+  f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+}
+function enterBrain() {
+  mode = 'linking'; flash('NEURAL LINK');
+  setTimeout(() => {
+    mode = 'brain'; morphT = 0; document.body.classList.add('brain');
+    camB.position.set(3.1, .55, 1.25); controls.target.set(0, -.1, 0); camB.lookAt(controls.target); controls.update();
+    seedStart(); bMat.uniforms.uMorph.value = 0;
+    renderPass.scene = brainScene; renderPass.camera = camB;
+    bloom.strength = .85; bloom.threshold = .05; bloom.radius = .4;
+    $('hint').innerHTML = 'Clique une zone du cerveau · <i>glisser</i> pour tourner';
+  }, 380);
+}
+function backToChip() {
+  closeCard(); flash('DISCONNECT');
+  setTimeout(() => {
+    mode = 'chip'; z = zT = 0.55; autoDive = false; document.body.classList.remove('brain');
+    controls.enabled = false; controls.autoRotate = false;
+    renderPass.scene = chipScene; renderPass.camera = camA;
+    bloom.strength = .75; bloom.threshold = .62; bloom.radius = .5; $('tip').style.opacity = 0;
+    $('hint').innerHTML = 'Molette pour zoomer · <i>▼</i>';
+  }, 380);
+}
+
+// survol / clic sur le cerveau : point le plus proche à l'écran
+let wantPick = false, hoverReg = -1;
+const v3 = new THREE.Vector3();
+function pick(cx, cy, click) {
+  if (mode !== 'brain' || bMat.uniforms.uMorph.value < 1) return;
+  const pos = brain.P, w = innerWidth, h = innerHeight;
+  let best = -1, bd = 18 * 18, bz = Infinity;
+  camB.updateMatrixWorld();
+  for (let i = 0; i < COUNT; i += 3) {
+    v3.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).project(camB);
+    const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h, d = (sx - cx) ** 2 + (sy - cy) ** 2;
+    if (d < bd || (d < bd + 40 && v3.z < bz)) { bd = d; bz = v3.z; best = i; }
+  }
+  const reg = best < 0 ? -1 : brain.R[best];
+  hoverReg = reg; bMat.uniforms.uHover.value = reg;
+  const tip = $('tip');
+  if (reg >= 0) { tip.textContent = REGIONS[reg].name; tip.style.left = cx + 'px'; tip.style.top = cy + 'px'; tip.style.opacity = 1; canvas.style.cursor = 'pointer'; }
+  else { tip.style.opacity = 0; canvas.style.cursor = 'grab'; }
+  if (click) { if (reg >= 0) openCard(reg); else closeCard(); }
+}
+
+/* =========================================================
+   Boucle
+   ========================================================= */
+const clock = new THREE.Clock();
+const DEPTHS = [...document.querySelectorAll('#depth div')];
+const focus = new THREE.Vector3(), qTilt = new THREE.Quaternion(), eul = new THREE.Euler();
+let simT = 0;
+function tick(dt) {
+  simT += dt; const t = simT;
+  mouse.sx += (mouse.x - mouse.sx) * (1 - Math.exp(-4 * dt)); mouse.sy += (mouse.y - mouse.sy) * (1 - Math.exp(-4 * dt));
+
+  if (mode === 'chip' || mode === 'linking') {
+    if (autoDive) zT = clamp(zT + dt * 0.16, 0, 1);
+    z += (zT - z) * (1 - Math.exp(-3.5 * dt));
+    const D0 = d0(), d = D0 * Math.pow(D_END / D0, z);
+    // inclinaison qui se redresse en plongeant + légère parallaxe souris
+    const tilt = 1 - smooth(0, .42, z);
+    eul.set(-.75 * tilt + mouse.sy * .06 * tilt, -.28 * tilt + mouse.sx * .1 * tilt, .22 * tilt);
+    chip.quaternion.setFromEuler(eul);
+    const f = smooth(0, .32, z);
+    focus.set(CORE.x * f, CORE.y * f, 0).applyQuaternion(chip.quaternion);
+    chip.position.set(-focus.x, -focus.y, -d - focus.z);
+    camA.position.set(0, 0, 0); camA.lookAt(0, 0, -1);
+    l1.material.opacity = smooth(3.4, 2.3, d);
+    l2.material.opacity = smooth(.75, .5, d);
+    chipMesh.material.opacity = 1 - smooth(1.6, 1.1, d) * .9;
+    $('mag').textContent = '×' + (D0 / d).toFixed(D0 / d < 10 ? 1 : 0);
+    const lvl = d > 2.3 ? 0 : d > .5 ? 1 : z < .985 ? 2 : 3;
+    DEPTHS.forEach((el, i) => el.classList.toggle('on', i === lvl));
+    $('intro').classList.toggle('gone', z > .05);
+    $('hint').style.opacity = z > .9 ? 0 : 1;
+    if (mode === 'chip' && z > .985 && zT > .98) enterBrain();
+  } else if (mode === 'brain') {
+    morphT += dt;
+    const m = clamp(morphT / 2.8, 0, 1); bMat.uniforms.uMorph.value = m;
+    if (m >= 1 && !controls.enabled) { controls.enabled = true; controls.autoRotate = bMat.uniforms.uSel.value < 0; }
+    controls.update();
+    DEPTHS.forEach((el, i) => el.classList.toggle('on', i === 3));
+    $('mag').textContent = '×' + (2400 + Math.sin(t) * 40 | 0);
+    if (wantPick) { wantPick = false; pick(mouse.px, mouse.py, false); }
+  }
+  $('integ').textContent = (37 - (Math.sin(t * .3) > .97 ? 1 : 0)) + '%';
+  bMat.uniforms.uTime.value = t;
+  composer.render();
+}
+function frame() { tick(Math.min(clock.getDelta(), 0.05)); requestAnimationFrame(frame); }
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+  camA.aspect = camB.aspect = innerWidth / innerHeight; camA.updateProjectionMatrix(); camB.updateProjectionMatrix();
+});
+frame();
+</script>
+</body>
+</html>
