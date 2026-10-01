@@ -450,11 +450,27 @@ pieceI(rectP(526, 339, 718, 345), 0.02, TH * 0.6, redGloss, { bevel: 0.002, seg:
     TH * 0.3, TH * 0.62, metal, { bevel: 0.01 });
 });
 // perforations de la plaque
+const PLATE_PX = [[548, 1290], [702, 1290], [702, 1318], [720, 1318], [720, 1466], [684, 1486], [684, 1512], [720, 1532], [720, 1640], [530, 1640], [530, 1532], [564, 1512], [564, 1486], [530, 1466], [530, 1318], [548, 1318]];
+function insidePlate(x, y, margin) {
+  let inside = false;
+  for (let i = 0, j = PLATE_PX.length - 1; i < PLATE_PX.length; j = i++) {
+    const [xi, yi] = PLATE_PX[i], [xj, yj] = PLATE_PX[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  if (!inside) return false;
+  for (let i = 0, j = PLATE_PX.length - 1; i < PLATE_PX.length; j = i++) { // distance aux bords
+    const [ax, ay] = PLATE_PX[j], [bx, by] = PLATE_PX[i], dx = bx - ax, dy = by - ay;
+    const t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1);
+    if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < margin) return false;
+  }
+  return true;
+}
 {
   const pts = [];
   for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
     if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
+    if (!insidePlate(x, y, 9)) continue;                 // pas de trou hors de la plaque (encoches)
     pts.push(IMG([[x, y]])[0]);
   }
   const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.016, 16), new THREE.MeshBasicMaterial({ color: '#000' }), pts.length);
