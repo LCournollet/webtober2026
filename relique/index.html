@@ -498,7 +498,8 @@ function insidePlate(x, y, margin) {
 }
 { // empreintes "pointe de stylo" : la plaque est percée, une cuvette sphérique ferme chaque trou
   const pts = [];
-  for (let y = 1300; y <= 1630; y += 22) for (let x = 548; x <= 708; x += 20) {
+  const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
+  for (let row = 0, y = 1302; y <= 1632; row++, y += DY) for (let x = 540 + (row % 2) * DX / 2; x <= 712; x += DX) {
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
     if (x > 574 && x < 670 && y > 1495 && y < 1598) continue;
     if (!insidePlate(x, y, 10)) continue;
