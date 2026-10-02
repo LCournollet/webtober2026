@@ -280,7 +280,11 @@ const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0],
 
 // fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
 poly(WINDOW, '#160308');
-PRIMS.push({ t: 'clip', pts: WINDOW, bb: [-1e9, -1e9, 1e9, 1e9] });
+// le circuit déborde un peu sous les rails autour des encoches : à travers leurs parois vitrées, il va jusqu'au bord
+const notchZone = (xi, x0, s, yc, dir) => { const { Wo } = NOTCH, p = [[xi, yc - Wo / 2 - 4], [x0, yc - Wo / 2 - 4], ...notchOuter(x0, s, yc, 1), [x0, yc + Wo / 2 + 4], [xi, yc + Wo / 2 + 4]]; return dir > 0 ? p : p.reverse(); };
+const CIRCUIT_CLIP = IMG([...RC_FL, ...RC_FR, ...notchZone(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,
+  [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchZone(526, 488, 1, NY.L2, -1), ...notchZone(526, 488, 1, NY.L1, -1)]);
+PRIMS.push({ t: 'clip', pts: CIRCUIT_CLIP, bb: [-1e9, -1e9, 1e9, 1e9] });
 { // la route : petites pistes rouges serrées, pastilles, fibres
   const RX0 = -3.78, RX1 = -1.8, RY0 = -0.1, RY1 = 0.2, RB = [RX0, RY0, RX1, RY1];
   for (let i = 0; i < 1200; i++) { const x = rnd(RX0, RX1), y = rnd(-0.42, 0.24), L = rnd(0.006, 0.03); line([[x, y], [x, y + L]], 0.002, 'rgba(255,40,70,1)', 0, rnd(0.1, 0.35)); }
@@ -736,13 +740,13 @@ knifePiece(GRIP_FRAME, metal);
     attenuationColor: '#ff6070', attenuationDistance: 0.8, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 0.8, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   // retrait d'un polygone convexe (dans le plan de la paroi) : l'arête de métal reste visible en haut et en bas de la fenêtre
-  const inset = (pts, m) => {
+  const inset = (pts, m, keep = () => false) => {
     pts = pts.filter((p, i) => { const q = pts[(i + 1) % pts.length]; return Math.hypot(p.x - q.x, p.y - q.y) > 1e-6; });
     const n = pts.length; if (n < 3) return null;
     const ar = pts.reduce((a, p, i) => { const q = pts[(i + 1) % n]; return a + p.x * q.y - q.x * p.y; }, 0), sg = ar > 0 ? 1 : -1;
     // seules les arêtes du haut et du bas (horizontales ou en biais) sont gardées : les côtés verticaux ne sont pas rognés
     const lines = pts.map((p, i) => { const q = pts[(i + 1) % n], dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy), nx = -dy / L * sg, ny = dx / L * sg;
-      const mm = Math.abs(dx) < 0.15 * Math.abs(dy) ? 0 : m;
+      const vert = Math.abs(dx) < 0.15 * Math.abs(dy), mm = vert && !keep(p.x) ? 0 : m;
       return { p: [p.x + nx * mm, p.y + ny * mm], d: [dx, dy] }; });
     const out = [];
     for (let i = 0; i < n; i++) {
@@ -758,7 +762,10 @@ knifePiece(GRIP_FRAME, metal);
   const onWall = (ring, nr, A, B) => {
     if (!onNotch(A, B)) return;
     const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
-    const flat = inset(ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2])), RIM);
+    // le bout de la paroi qui touche le bord extérieur (pointe du triangle) garde son arête ; les jonctions entre vitres non
+    const outerV = NOTCH_O.flatMap(o => [o[0], o[3]]), atOuter = V => outerV.some(o => Math.hypot(o[0] - V[0], o[1] - V[1]) < 1e-4);
+    const ends = [...(atOuter(A) ? [0] : []), ...(atOuter(B) ? [L] : [])];
+    const flat = inset(ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2])), RIM, x => ends.some(e => Math.abs(x - e) < 1e-4));
     if (!flat) return;
     const to3 = v => [A[0] + dx / L * v.x + nr[0] * 0.0012, A[1] + dy / L * v.x + nr[1] * 0.0012, v.y];
     for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) P.push(...to3(flat[k]));
