@@ -263,7 +263,7 @@ const FRONT = IMG([[522, 300], ...SLOTS_PX, [722, 300], [747, 345],   // tête r
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
 // le caoutchouc arrière descend jusqu'à la bande noire : le métal ne garde que le bord (deux flancs + l'arrière)
 // + deux petites languettes de métal en trapèze qui avancent des flancs dans le caoutchouc, près de l'arrière (visibles dessus et dessous)
-const TAB = { y0: 1567, y1: 1617, d: 18, c: 11 };   // base le long du flanc, profondeur, retrait des pans
+const TAB = { y0: 1567, y1: 1617, d: 12, c: 8 };   // base le long du flanc, profondeur, retrait des pans
 const PLATE_RING = [[720, 1268], ...notchInner(720, 755, -1, NY.G, 1),
   [720, TAB.y0], [720 - TAB.d, TAB.y0 + TAB.c], [720 - TAB.d, TAB.y1 - TAB.c], [720, TAB.y1],
   ...RC_BR, ...RC_BL,
