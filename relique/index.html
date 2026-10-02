@@ -261,11 +261,12 @@ const FRONT = IMG([[522, 300], ...SLOTS_PX, [722, 300], [747, 345],   // tête r
   ...rev(RC_FL), ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
   [488, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 347]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
-const PLATE_RING = [[702, 1290], [702, 1318], [720, 1318], ...notchInner(720, 755, -1, NY.G, 1), ...RC_BR, ...RC_BL, ...notchInner(530, 492, 1, NY.G, -1), [530, 1318], [548, 1318], [548, 1290]];
-const PLATE = IMG([[548, 1290], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1290], ...PLATE_RING.slice(0, -1)]);
+// le caoutchouc arrière descend jusqu'à la bande noire : le métal ne garde que le bord (deux flancs + l'arrière)
+const PLATE_RING = [[720, 1268], ...notchInner(720, 755, -1, NY.G, 1), ...RC_BR, ...RC_BL, ...notchInner(530, 492, 1, NY.G, -1), [530, 1268]];
+const PLATE = IMG([[530, 1268], [565, 1268], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1268], ...PLATE_RING.slice(0, -1)]);
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
-const GRIP_FRAME = IMG([[650, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1),
-  [492, 1268], [565, 1268], [565, 1290], ...PLATE_RING.slice().reverse(), [650, 1290]]);
+const GRIP_FRAME = IMG([[755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1),
+  [492, 1268], ...PLATE_RING.slice().reverse()]);
 const METAL = { grad: ['#f3eeef', '#b6aeb1', '#e4dddf', '#8a8285'] };
 const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]), fill, stroke, w);
 
@@ -619,31 +620,39 @@ const wireTex = (() => {
     g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.stroke();
   };
   const G = 1.85;                                    // pas entre deux fils (px photo)
-  for (let i = 0; ; i++) {                           // gauche : L emboîtés autour du coin du connecteur
+  let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // nappes de taille variable (3 à 8 fils) séparées par 1 ou 2 pistes vides : chaque côté tire son propre découpage
+  const lanes = n => { const out = []; let k = 0; while (k < n) { const m = 3 + (rnd() * 6 | 0); for (let j = 0; j < m && k < n; j++) out.push(k++); k += 1 + (rnd() < 0.35 ? 1 : 0); } return out; };
+  // gauche : L emboîtés à coins arrondis autour du coin du connecteur
+  for (const i of lanes(40)) {
     const y = 1265 - i * G, x = 561 - i * G; if (x < 489) break;
-    if (i % 6 === 5) continue;                       // une piste vide entre deux nappes
-    trace([[486, y], [x, y], [x, 1196]]); wrap(y, -1);
+    trace([[486, y], [x, y], [x, 1196]], 2 + rnd() * 2.5); wrap(y, -1);
   }
-  for (let i = 0; ; i++) {                           // droite : la même chose en miroir, jusqu'au col en biais
-    const y = 1265 - i * G, x = 679 + i * G; if (x > 754) break;
-    if (i % 6 === 5) continue;
-    trace([[757, y], [x, y], [x, 1120]]); wrap(y, 1);
+  // droite : autre dessin — les nappes descendent du col, coupent à 45° puis filent vers la tranche
+  for (const i of lanes(40)) {
+    const y = 1265 - i * G, x = 681 + i * G; if (x > 754) break;
+    const d = Math.max(0, Math.min(14, y - 1212));  // longueur du pan à 45°
+    trace([[757, y], [x + d, y], [x, y - d], [x, 1120]], 1.2); wrap(y, 1);
   }
   for (let x = 567; x <= 602; x += G) trace([[x, 1196], [x, 1221]]);   // peigne au-dessus du connecteur
-  // quelques fils qui passent PAR-DESSUS les nappes (câblage emmêlé) : un liseré sombre les détache, ils sont plus hauts
-  const over = (pts, py) => {
-    path(pts, 4); g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = '#000'; g.lineWidth = LW * 2.6; g.stroke();
-    g.strokeStyle = '#fff'; g.lineWidth = LW * 1.15; g.stroke();
-    if (py) { g.beginPath(); g.moveTo(...CV(py.y, py.side < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(py.y, py.side < 0 ? BAND_V0 : BAND_V1));
-      g.strokeStyle = '#000'; g.lineWidth = LW * 2.6; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = LW * 1.15; g.stroke(); }
+  // faisceaux qui passent PAR-DESSUS les nappes (câblage emmêlé) : 3 à 5 fils parallèles, plus hauts, détachés par un liseré sombre
+  const bundle = (n, make, wrapSide) => {
+    const paths = Array.from({ length: n }, (_, i) => make(i * G));
+    for (const [col, w] of [['#000', 2.6], ['#fff', 1.15]]) {
+      g.strokeStyle = col; g.lineWidth = LW * w; g.lineCap = 'round'; g.lineJoin = 'round';
+      paths.forEach(pts => { path(pts, 3); g.stroke(); });
+      if (wrapSide) paths.forEach(pts => {
+        const y = pts.at(-1)[1]; g.beginPath();
+        g.moveTo(...CV(y, wrapSide < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(y, wrapSide < 0 ? BAND_V0 : BAND_V1)); g.stroke();
+      });
+    }
   };
-  over([[536, 1200], [536, 1222], [508, 1250], [486, 1250]], { y: 1250, side: -1 });
-  over([[548, 1200], [548, 1226], [522, 1252], [522, 1262], [486, 1262]], { y: 1262, side: -1 });
-  over([[500, 1200], [500, 1214], [520, 1234], [552, 1234], [552, 1268]]);
-  over([[702, 1150], [702, 1222], [730, 1250], [757, 1250]], { y: 1250, side: 1 });
-  over([[690, 1200], [690, 1230], [718, 1258], [757, 1258]], { y: 1258, side: 1 });
-  over([[744, 1140], [744, 1210], [716, 1238], [688, 1238], [688, 1268]]);
+  // gauche : un faisceau de 4 qui descend du verre, coupe en biais et plonge sur la tranche
+  bundle(4, o => [[531 + o, 1200], [531 + o, 1224 + o], [505 + o, 1250 + o], [486, 1250 + o]], -1);
+  // gauche : un faisceau de 3 qui traverse en biais vers l'arrière
+  bundle(3, o => [[496 + o, 1200], [496 + o, 1208 - o], [524 + o, 1236 - o], [548 + o, 1236 - o], [548 + o, 1268]]);
+  // droite : un seul gros faisceau de 5, tracé différent : part du col, descend puis bascule vers la tranche
+  bundle(5, o => [[712 + o, 1150], [712 + o, 1232 - o], [740 + o, 1260 - o], [757, 1260 - o]], 1);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; return t;
 })();
 const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireTex; wireRubber.bumpScale = 1.1;
@@ -681,7 +690,7 @@ pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, s
     .map(([x, y]) => [xc + (x - xc) * kw, 300 + (y - 275) * k]), TH / 2 - KNIFE.ridgeFront / 2, TH / 2 + KNIFE.ridgeFront / 2, knifeMat(metal), { bevel: 0.004, seg: 2 }); // même épaisseur que l arête : la pente arrive pile à leur base
 });
 // perforations de la plaque
-const PLATE_PX = [[548, 1290], ...PLATE_RING.slice(0, -1)];
+const PLATE_PX = PLATE_RING.slice();
 function insidePlate(x, y, margin) {
   let inside = false;
   for (let i = 0, j = PLATE_PX.length - 1; i < PLATE_PX.length; j = i++) {
@@ -699,8 +708,9 @@ function insidePlate(x, y, margin) {
 { // empreintes "pointe de stylo" : la plaque est percée, une cuvette sphérique ferme chaque trou
   const pts = [], back = [];                         // back : empreintes du dos seulement, là où le dessus porte le logo
   const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
-  for (let row = 0, y = 1302; y <= 1632; row++, y += DY) for (let x = 540 + (row % 2) * DX / 2; x <= 712; x += DX) {
+  for (let row = -1, y = 1302 - DY; y <= 1632; row++, y += DY) for (let x = 540 + (row & 1) * DX / 2; x <= 712; x += DX) {   // rangée -1 : la nouvelle zone de caoutchouc à l'avant
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
+    if (x > 556 && x < 660 && y < 1300) continue;    // route de verre entre la bande et la capsule
     if (!insidePlate(x, y, 10)) continue;
     if (x > 552 && x < 616 && y < 1368) continue;
     if (x > 568 && x < 676 && y > 1495 && y < 1606) { back.push(IMG([[x, y]])[0]); continue; }   // logo + inscription RELIC (la rangée suivante passe sous les lettres)
