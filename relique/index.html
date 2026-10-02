@@ -1130,6 +1130,21 @@ function insidePlate(x, y, margin) {
   const plateMat = blackPlate.clone(); plateMat.transparent = true;
   piece(PLATE, SKIN, TH, plateMat, { holes: pts.map(hole), bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
   piece(PLATE, 0, SKIN, plateMat, { holes: [...pts, ...back].map(hole), bevel: 0 });
+  // ruban de caoutchouc posé sur la jointure plaque / cadre (dessus et dessous) : la micro-fente entre les deux pièces
+  // laissait voir la paroi de métal en pointillés en zoomant
+  {
+    const R = IMG(PLATE_RING), w = 0.0045, P = [];
+    for (let i = 0; i < R.length - 1; i++) {
+      const [ax, ay] = R[i], [bx, by] = R[i + 1], L = Math.hypot(bx - ax, by - ay); if (L < 1e-6) continue;
+      const tx = (bx - ax) / L, ty = (by - ay) / L, nx = -ty * w, ny = tx * w, ex = tx * w, ey = ty * w;
+      for (const z of [TH + 0.0004, -0.0004]) {
+        const q = [[ax - ex - nx, ay - ey - ny], [bx + ex - nx, by + ey - ny], [bx + ex + nx, by + ey + ny], [ax - ex + nx, ay - ey + ny]].map(([x, y]) => [x, y, z]);
+        P.push(...q[0], ...q[1], ...q[2], ...q[0], ...q[2], ...q[3]);
+      }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.computeVertexNormals();
+    const strip = new THREE.Mesh(g, plateMat.clone()); strip.material.side = THREE.DoubleSide; chip.add(strip);
+  }
   const cup = new THREE.SphereGeometry(Rs, 32, 6, 0, Math.PI * 2, Math.PI - th, th).rotateX(Math.PI / 2); // calotte tournée vers le bas (axe Z)
   const bowls = new THREE.InstancedMesh(cup, dimpleMat, pts.length), m = new THREE.Matrix4();
   pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs - 0.0002), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
