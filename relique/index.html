@@ -819,7 +819,17 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
           items.push(['seg', IMG([[px, py]])[0], IMG([[nx, ny]])[0], z, wd, col]); px = nx; py = ny;
         }
       }
-      for (let i = 0; i < 260; i++) { const px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, TH / 2 + rr(-0.03, 0.03), rr(0.004, 0.009), cols[R() * 3 | 0]]); }
+      for (let i = 0; i < 1500; i++) { const px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, TH / 2 + rr(-0.035, 0.035), rr(0.0018, 0.006), cols[R() * 3 | 0]]); }
+      // amas de « neurones » : points serrés autour de quelques noyaux
+      for (let k = 0; k < 7; k++) { const cx = rr(Math.min(x0, xIn), Math.max(x0, xIn)), cy = rr(y0, y1), cz = TH / 2 + rr(-0.02, 0.02);
+        for (let i = 0; i < 90; i++) { const px = cx + (R() + R() + R() - 1.5) * 6, py = cy + (R() + R() + R() - 1.5) * 6; if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, cz + rr(-0.012, 0.012), rr(0.0015, 0.004), cols[0]]); } }
+      // filaments neuronaux : fines pousses ramifiées
+      for (let f = 0; f < 40; f++) {
+        const st = [[rr(Math.min(x0, xIn), Math.max(x0, xIn)), rr(y0, y1), TH / 2 + rr(-0.03, 0.03), R() * Math.PI * 2, 0]];
+        while (st.length) { let [px, py, pz, a, dep] = st.pop();
+          for (let k = 0; k < 28; k++) { a += rr(-0.5, 0.5); const nx = px + Math.cos(a) * 2.2, ny = py + Math.sin(a) * 2.2, nz = clamp(pz + rr(-0.004, 0.004), TH / 2 - 0.035, TH / 2 + 0.035);
+            if (!ok(px, py) || !ok(nx, ny)) break; items.push(['seg', IMG([[px, py]])[0], IMG([[nx, ny]])[0], nz, 0.0016, cols[R() < 0.3 ? 2 : 1]]); px = nx; py = ny; pz = nz;
+            if (R() < 0.08 && dep < 3) st.push([px, py, pz, a + rr(0.6, 1.2) * (R() < 0.5 ? 1 : -1), dep + 1]); } } }
       // fond du compartiment : une lame de « verre » rouge sombre lumineux, entre le caoutchouc du dessus et du dessous
       const lo = Math.min(x0, xIn) + 1, hi = Math.max(x0, xIn) - 1, nO = notchOuter(x0, s, NY.G, 1).map(([px, py]) => [px + s * 1.5, py]);   // juste derrière les parois de l'encoche
       const fill = s < 0 ? [[hi, y0], ...nO, [hi, y1], [lo, y1], [lo, y0]] : [[lo, y0], ...nO, [lo, y1], [hi, y1], [hi, y0]];
@@ -831,7 +841,7 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
     segs.forEach(([, a, b, z, w, c], i) => { const dx = b[0] - a[0], dy = b[1] - a[1]; q.setFromAxisAngle(ZA, Math.atan2(dy, dx)); ms.setMatrixAt(i, m4.compose(new THREE.Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z), q, new THREE.Vector3(Math.hypot(dx, dy) + w, w, w * 0.6))); ms.setColorAt(i, c); });
     dots.forEach(([, a, , z, r, c], i) => { md.setMatrixAt(i, m4.compose(new THREE.Vector3(a[0], a[1], z), q.identity(), new THREE.Vector3(r, r, r))); md.setColorAt(i, c); });
     chip.add(ms, md);
-    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 0.0012, 0.03), toneMapped: false });
+    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.0002, 0.008), toneMapped: false });   // fond sombre : le contenu ressort
     fills.forEach(f => piece(IMG(f), TH / 2 - 0.045, TH / 2 + 0.045, fillMat, { bevel: 0 }));
   }
   front.material = front.material.clone(); front.material.transparent = true; front.material.opacity = 1;
@@ -1062,10 +1072,11 @@ const INTERIOR_FX = [];
   const col = (k) => { const r = R(), c = r < 0.04 ? [1.2, 0.05, 0.13] : r < 0.3 ? [1.0, 0.004, 0.035] : [0.55, 0.001, 0.015]; return c.map(v => v * k); };   // pourpre, quelques étincelles plus claires
   const put = (x, y, z, s, c) => { z = zFit(x, y, clamp(z, ZMIN, ZMAX)); if (!fitsInside(x, y, z, s * 0.6)) return; P.push(x, y, z); S.push(s); C.push(...c); };
   LV.forEach(sc => {
-    const somas = sc === 1 ? 24 : sc > 0.2 ? 6 : sc > 0.05 ? 16 : 34;   // peu d'amas aux échelles visibles de loin : le centre reste aéré
+    const somas = sc === 1 ? 24 : sc > 0.2 ? 6 : sc > 0.05 ? 22 : 52;   // peu d'amas aux échelles visibles de loin ; denses là où l'on plonge
+    const centers = [];
     for (let n = 0; n < somas; n++) {
       const p = pick(sc); if (!p) continue;
-      const cz = zAt(sc, rr(0.15, 0.85)), rad = rr(0.012, 0.03) * sc;
+      const cz = zAt(sc, rr(0.15, 0.85)), rad = rr(0.012, 0.03) * sc; centers.push([p[0], p[1], cz]);
       for (let i = 0; i < 260; i++) put(p[0] + gauss() * rad, p[1] + gauss() * rad, cz + gauss() * rad * 0.7, rr(0.004, 0.009) * sc, col(0.6));
       // dendrites : marches aléatoires qui se divisent, semées de points
       const stack = []; for (let b = 0; b < 5 + (R() * 4 | 0); b++) { const a = R() * Math.PI * 2, e = rr(-0.5, 0.5); stack.push([p[0], p[1], cz, Math.cos(a), Math.sin(a), e, 0]); }
@@ -1083,18 +1094,28 @@ const INTERIOR_FX = [];
       }
     }
     // brume : poussière très fine dans tout le volume (l'effet « saturation »)
-    for (let i = 0, n = sc === 1 ? 40000 : 16000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.14)); }
+    // connexions : chaque neurone tend 2-3 filaments ondulés vers ses voisins (synapses), semés de petits points
+    if (sc < 0.2) centers.forEach((A, ia) => {
+      centers.map((B, ib) => [ib, Math.hypot(B[0] - A[0], B[1] - A[1])]).filter(([ib, d]) => ib > ia && d < 1.4 * sc).sort((u, v) => u[1] - v[1]).slice(0, 2 + (R() < 0.4)).forEach(([ib, d]) => {
+        const B = centers[ib], nx = -(B[1] - A[1]) / d, ny = (B[0] - A[0]) / d, amp = rr(-0.18, 0.18) * d, ph = R() * 6;
+        let prev = A;
+        for (let k = 1; k <= 28; k++) { const t = k / 28, w = Math.sin(t * Math.PI) * amp + Math.sin(t * 9 + ph) * 0.02 * d;
+          const P2 = [A[0] + (B[0] - A[0]) * t + nx * w, A[1] + (B[1] - A[1]) * t + ny * w, A[2] + (B[2] - A[2]) * t + Math.sin(t * Math.PI) * 0.05 * d];
+          link(...prev, ...P2, 1.4); if (k % 2) put(...P2, rr(0.0015, 0.0035) * sc, col(0.9)); prev = P2; }
+      });
+    });
+    for (let i = 0, n = sc === 1 ? 40000 : 26000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.14)); }
   });
   // réseaux qui naissent sur les bords du verre et poussent vers le centre en se ramifiant (amas de points aux embranchements)
   for (let n = 0; n < 280; n++) {
     const fromSide = true, sy = R() < 0.5 ? 1 : -1;   // uniquement depuis les deux grands bords (ceux des extrémités traçaient des traînées dans la longueur)
-    let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? sy * rr(0.5, 0.62) : rr(-0.5, 0.5);
+    let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? (sy > 0 ? rr(0.56, 0.595) : rr(-0.625, -0.585)) : rr(-0.5, 0.5);
     if (!inGlass(x, y)) continue;
     const stack = [[x, y, rr(ZMIN + 0.02, ZMAX - 0.02), R() < 0.5 ? 1 : -1, -sy * 0.2, 0]];   // départ le long du bord
-    let budget = 1900;                               // dense et ramifié sur les bords, il s'éclaircit en avançant vers l'axe
+    let budget = 3400;                               // dense et ramifié sur les bords, il s'éclaircit en avançant vers l'axe
     while (stack.length && budget > 0) {
       let [px, py, pz, dx, dy, depth] = stack.pop();
-      for (let st = 0, len = 40 + (R() * 90 | 0); st < len && budget > 0; st++, budget--) {
+      for (let st = 0, len = 90 + (R() * 150 | 0); st < len && budget > 0; st++, budget--) {
         // dérive vers l'axe central, avec du jeu
         // cap vers le centre : on oriente la direction vers l'axe (y = 0) avec du jeu, comme une pousse qui cherche la lumière
         // près du bord la pousse longe la relique, puis plonge de plus en plus franchement vers l'axe
