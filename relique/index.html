@@ -1063,21 +1063,22 @@ function glassLabel(x0, x1, yc, h, draw) {
     g.drawImage(M, 0, 0); tex.needsUpdate = true;
   };
   paint(); document.fonts.load('500 64px "JetBrains Mono"').then(paint);
-  // opaque (découpe alpha) : dessiné avant le verre, il passe dans la transmission → reflets et teinte du verre par-dessus
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(L, h), new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(2.2, 0.025, 0.06), alphaTest: 0.5, toneMapped: false }));
-  m.position.set((x0 + x1) / 2, yc, TH - 0.014); chip.add(m);
+  // opaque (découpe alpha) : dessiné avant le verre, il passe dans la transmission → reflets et teinte du verre par-dessus ;
+  // sans écriture de profondeur, sinon il masque le nuage additif derrière lui → silhouette sombre décalée (« ombre »). Rouge du mot arasaka
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(L, h), new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.4, 0.004, 0.035), alphaTest: 0.5, depthWrite: false, toneMapped: false }));
+  m.position.set((x0 + x1) / 2, yc, LOGO_Z); m.renderOrder = 14; chip.add(m);   // même matière, même profondeur que le logo arasaka
 }
 // en haut, à gauche du cube avant : repères de montage
 glassLabel(0.84, 1.66, 0.62, 0.1, (g, w, h) => {
-  g.lineWidth = 11; for (let i = 0; i < 5; i++) g.strokeRect(14 + i * 84, h / 2 - 32, 64, 64);
+  g.lineWidth = 14; for (let i = 0; i < 5; i++) g.strokeRect(14 + i * 84, h / 2 - 32, 64, 64);
   const tri = (x, up) => { g.beginPath(); g.moveTo(x, h / 2 + (up ? 36 : -36)); g.lineTo(x + 60, h / 2 + (up ? 36 : -36)); g.lineTo(x + 30, h / 2 + (up ? -36 : 36)); g.closePath(); g.fill(); };
   tri(446, false); tri(516, true);
-  g.font = MONO(100); g.textBaseline = 'middle'; g.fillText('SB-07', 598, h / 2 + 6);
+  g.font = MONO(100); g.textBaseline = 'middle'; g.lineWidth = 6; g.fillText('SB-07', 598, h / 2 + 6); g.strokeText('SB-07', 598, h / 2 + 6);
 });
 // en bas, à gauche du cube du bas : réglette graduée + numéro de lot
 glassLabel(-0.62, 0.18, -0.61, 0.1, (g, w, h) => {
-  for (let i = 0; i < 13; i++) g.fillRect(12 + i * 22, h / 2 - (i % 4 ? 28 : 50), 8, i % 4 ? 56 : 100);
-  g.font = MONO(92); g.textBaseline = 'middle'; g.fillText('LOT 0477-R', 306, h / 2 + 6);
+  for (let i = 0; i < 13; i++) g.fillRect(12 + i * 22, h / 2 - (i % 4 ? 28 : 50), 11, i % 4 ? 56 : 100);
+  g.font = MONO(92); g.textBaseline = 'middle'; g.lineWidth = 6; g.fillText('LOT 0477-R', 306, h / 2 + 6); g.strokeText('LOT 0477-R', 306, h / 2 + 6);
 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
