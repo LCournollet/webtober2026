@@ -1316,7 +1316,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
 
 /* ---- mise en scène : fond noir uni, main en nuage de points sous la relique, contre-jours rouges sur le métal ---- */
 const BG_ROOM = new THREE.Group(), BG_FADE = { value: 1 };
-let HAND;   // BG_FADE : la main s'efface quand on plonge
+let HAND; const HAND_OFF = new THREE.Vector3(), HAND_TIP = new THREE.Vector3(0.3, -0.8, 0.35);   // BG_FADE : la main s'efface quand on plonge
 {
   const bg = BG_ROOM; chipScene.add(bg);
   // main en 3D, en nuage de points, façon « Création d'Adam » verticale : elle monte du bas, semi-détendue, l'index presque tendu
@@ -1342,34 +1342,35 @@ let HAND;   // BG_FADE : la main s'efface quand on plonge
     };
     const grad = p => { const e = 0.003, g = V(sdf(V(p.x + e, p.y, p.z)) - sdf(V(p.x - e, p.y, p.z)), sdf(V(p.x, p.y + e, p.z)) - sdf(V(p.x, p.y - e, p.z)), sdf(V(p.x, p.y, p.z + e)) - sdf(V(p.x, p.y, p.z - e))); return g.normalize(); };
     // repère local : paume dans le plan xy, doigts vers +y, flexion vers +z (paume)
-    cap(V(0.2, -6.5, -0.05), V(0.02, -1.55, 0), 0.5, 0.36, 0.72, 0.2);            // avant-bras → poignet
-    cap(V(-0.3, -1.2, 0), V(0.3, -1.2, 0), 0.4, 0.38, 0.55, 0.25);                // talon de la main
-    const knuck = [[-0.5, 0.55, 0.04], [-0.16, 0.63, 0.02], [0.18, 0.58, 0.0], [0.48, 0.44, -0.01]];
-    knuck.forEach(([x, y, z], i) => cap(V(x * 0.55, -1.15, 0), V(x, y, z), 0.3, 0.24, 0.45, 0.25));   // métacarpes : paume plate
-    // doigts semi-détendus : l'index presque droit, chaque doigt suivant un peu plus replié (cascade douce)
+    cap(V(0.25, -6.5, -0.1), V(0.0, -1.5, 0), 0.72, 0.52, 0.66, 0.25);            // avant-bras → poignet (pleins, pas rachitiques)
+    cap(V(-0.35, -1.15, 0.02), V(0.35, -1.15, 0.02), 0.5, 0.48, 0.55, 0.3);       // talon de la main
+    const knuck = [[-0.55, 0.55, 0.03], [-0.18, 0.63, 0.02], [0.18, 0.58, 0.0], [0.52, 0.43, -0.02]];
+    knuck.forEach(([x, y, z], i) => cap(V(x * 0.6, -1.1, 0), V(x, y, z), 0.34, 0.27, 0.5, 0.3));   // métacarpes : paume pleine et plate
+    // l'index se tend doucement vers la relique ; majeur, annulaire et auriculaire sont repliés en un poing lâche
     const fingers = [
-      { b: 0, L: [0.78, 0.48, 0.36], r: 0.12, flex: [0.1, 0.16, 0.12], splay: -0.06 },
-      { b: 1, L: [0.86, 0.54, 0.38], r: 0.125, flex: [0.38, 0.5, 0.32], splay: 0.0 },
-      { b: 2, L: [0.8, 0.5, 0.36], r: 0.117, flex: [0.52, 0.6, 0.38], splay: 0.06 },
-      { b: 3, L: [0.62, 0.39, 0.31], r: 0.102, flex: [0.68, 0.62, 0.42], splay: 0.14 },
+      { b: 0, L: [0.72, 0.43, 0.36], r: 0.158, flex: [0.18, 0.38, 0.2], splay: -0.04 },
+      { b: 1, L: [0.8, 0.5, 0.39], r: 0.162, flex: [0.95, 1.3, 0.6], splay: 0.02 },
+      { b: 2, L: [0.75, 0.47, 0.37], r: 0.152, flex: [1.05, 1.3, 0.6], splay: 0.0 },
+      { b: 3, L: [0.56, 0.34, 0.3], r: 0.133, flex: [1.15, 1.25, 0.6], splay: -0.05 },
     ];
     let indexTip = null;
     for (const f of fingers) {
       let p = V(...knuck[f.b]), ang = 0, r = f.r;
       f.L.forEach((len, j) => {
         ang += f.flex[j]; const d = V(Math.sin(f.splay) * Math.cos(ang), Math.cos(f.splay) * Math.cos(ang), Math.sin(ang)).normalize();
-        const q = p.clone().addScaledVector(d, len), r2 = r * (j === 2 ? 0.72 : 0.88);
-        cap(p, q, r, r2, 0.92, 0.045); p = q; r = r2;
+        const q = p.clone().addScaledVector(d, len), r2 = r * (j === 2 ? 0.8 : 0.92);
+        cap(p, q, r, r2, 0.9, 0.05); p = q; r = r2;
         if (f.b === 0 && j === 2) indexTip = q.clone().addScaledVector(d, r2);
       });
     }
-    // pouce relâché, écarté vers l'avant
-    { let p = V(-0.42, -1.0, 0.12), r = 0.2; const dirs = [V(-0.85, 0.45, 0.25), V(-0.55, 0.75, 0.3), V(-0.3, 0.9, 0.25)], ls = [0.6, 0.45, 0.36];
-      dirs.forEach((d, j) => { d.normalize(); const q = p.clone().addScaledVector(d, ls[j]), r2 = r * (j === 2 ? 0.75 : 0.88); cap(p, q, r, r2, 0.9, j ? 0.04 : 0.12); p = q; r = r2; }); }
+    // pouce : il vient se poser contre le majeur replié
+    { const J = [V(-0.5, -0.9, 0.15), V(-0.72, -0.38, 0.5), V(-0.6, 0.0, 0.8), V(-0.38, 0.35, 1.0)], rs = [0.29, 0.23, 0.2, 0.16];
+      cap(V(-0.1, -0.85, 0.08), J[1], 0.42, 0.24, 0.75, 0.25);   // éminence thénar : comble le creux à la base du pouce
+      for (let j = 0; j < 3; j++) cap(J[j], J[j + 1], rs[j], rs[j + 1], 0.9, j ? 0.05 : 0.18); }
     // échantillonnage : points semés autour de chaque os puis projetés sur la peau (gradient de la surface)
     const P = [], N = [], K = [];
     for (const [a, b, , ra, rb] of caps) {
-      const L = a.distanceTo(b), n = Math.round((L + ra + rb) * (ra + rb) * (L > 3 ? 1500 : 3400));
+      const L = a.distanceTo(b), n = Math.round((L + ra + rb) * (ra + rb) * (L > 3 ? 3000 : 8000));
       for (let i = 0; i < n; i++) {
         const t = rr(-0.1, 1.1), r = ra + (rb - ra) * clamp(t, 0, 1);
         const p = a.clone().lerp(b, t).add(V(rr(-1, 1), rr(-1, 1), rr(-1, 1)).normalize().multiplyScalar(r));
@@ -1385,20 +1386,30 @@ let HAND;   // BG_FADE : la main s'efface quand on plonge
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); geo.setAttribute('aK', new THREE.Float32BufferAttribute(K, 1));
     const mat = new THREE.ShaderMaterial({
-      transparent: false, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
       uniforms: { uFade: BG_FADE, uPR: { value: renderer.getPixelRatio() } },
       vertexShader: `attribute float aK; uniform float uPR; varying vec3 vC;
         void main(){
           vec4 mv = modelViewMatrix * vec4(position, 1.); vec3 n = normalize(normalMatrix * normal), v = normalize(-mv.xyz);
           float lit = pow(0.5 + 0.5 * dot(n, normalize(vec3(-0.5, 0.7, 0.5))), 1.5), rim = pow(1. - abs(dot(n, v)), 2.2);
-          float k = aK < 0. ? -aK : aK * (0.12 + 1.15 * lit + 0.7 * rim);   // aK < 0 : poussière (pas d'éclairage)
+          float k = aK < 0. ? -aK : aK * (0.1 + 0.9 * lit + 0.55 * rim);   // aK < 0 : poussière (pas d'éclairage)
           vC = vec3(1., 0.02, 0.1) * k;
-          gl_PointSize = clamp(16. / -mv.z, 1.1, 3.5) * uPR; gl_Position = projectionMatrix * mv; }`,
+          gl_PointSize = clamp(14. / -mv.z, 1.1, 3.) * uPR * (aK < 0. || dot(n, v) > -0.05 ? 1. : 0.); gl_Position = projectionMatrix * mv; }`,   // faces cachées : la main se lit comme un volume plein
       fragmentShader: `uniform float uFade; varying vec3 vC; void main(){ vec2 d = gl_PointCoord - .5; if (dot(d, d) > .25) discard; gl_FragColor = vec4(vC * uFade, 1.); }`,
     });
     const pts = new THREE.Points(geo, mat); pts.frustumCulled = false;
-    pts.rotation.set(-0.25, 0.9, 0);               // paume tournée de trois-quarts : le volume se lit
-    HAND.add(pts); HAND.scale.setScalar(0.78);
+    pts.rotation.order = 'YXZ'; pts.rotation.set(-0.2, 1.9, 0.08);   // l'index pointe vers le haut ; vue de profil / trois-quarts dos               // paume tournée de trois-quarts : le volume se lit
+    // volume opaque invisible (depth seul) : les points cachés derrière les doigts et la paume disparaissent → main pleine
+    const occ = new THREE.Group(), occMat = new THREE.MeshBasicMaterial({ colorWrite: false });
+    for (const [a, , ba, ra, rb, fz] of caps) {
+      const q = V(ba.x, ba.y, ba.z / fz), L = q.length(), r0 = Math.max(0.01, ra - 0.02), r1 = Math.max(0.01, rb - 0.02), g = new THREE.Group();
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, L, 18, 1, true), occMat); cyl.position.y = L / 2;
+      const s0 = new THREE.Mesh(new THREE.SphereGeometry(r0, 16, 12), occMat), s1 = new THREE.Mesh(new THREE.SphereGeometry(r1, 16, 12), occMat); s1.position.y = L;
+      const inner = new THREE.Group(); inner.add(cyl, s0, s1); inner.quaternion.setFromUnitVectors(V(0, 1, 0), q.clone().normalize());
+      g.add(inner); g.scale.z = fz; g.position.copy(a).sub(indexTip); occ.add(g);
+    }
+    occ.traverse(o => { if (o.isMesh) o.renderOrder = -1; }); occ.rotation.copy(pts.rotation); HAND.add(occ); HAND.userData.occ = occ;
+    HAND.add(pts); HAND.scale.setScalar(0.72);
   }
   // contre-jours rouges : liserés pourpres sur les arêtes du métal, comme les néons de la pièce
   const r1 = new THREE.DirectionalLight('#ff1030', 1.1); r1.position.set(-6, 2, -4); chipScene.add(r1);
@@ -1717,8 +1728,13 @@ function tick(dt) {
     camA.near = Math.max(1e-5, d * 0.02); camA.far = d * 6 + 30; camA.updateProjectionMatrix();
     BG_ROOM.scale.setScalar(Math.min(1, camA.far * 0.85 / 72));
     BG_FADE.value = 1 - smooth(0.01, 0.08, z);                        // la main s'efface en douceur quand on plonge
-    // la main : immobile, le bout de l'index juste sous la relique (calée en vue d'ensemble seulement ; elle s'efface quand on plonge)
-    if (HAND && z < 0.002) HAND.position.set(chip.position.x + 0.3, chip.position.y - 0.8, chip.position.z + 0.35);
+    // la main : le bout de l'index juste sous la relique ; elle s'efface quand on plonge
+    if (HAND) HAND.userData.occ.visible = BG_FADE.value > 0.01;
+    if (HAND) {   // solidaire de la relique : en faisant tourner, c'est la caméra qui orbite autour des deux
+      qa.setFromAxisAngle(X, spin.pitch); qb.setFromAxisAngle(Y_AX, spin.yaw); qa.multiply(qb); qb.copy(qa).invert();
+      const base = HAND_OFF.copy(focus).applyQuaternion(qb).negate().add(HAND_TIP);   // relique sans la rotation libre → point sous elle
+      HAND.position.copy(base).applyQuaternion(qa); HAND.position.z -= d; HAND.quaternion.copy(qa);
+    }
   } else if (mode === 'brain') {
     revealT += dt;
     brainMat.uniforms.uReveal.value = -1.15 + Math.min(revealT / 2.6, 1) * 2.1 + (revealT > 2.6 ? 5 : 0);
