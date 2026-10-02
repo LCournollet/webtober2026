@@ -645,8 +645,8 @@ const redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.06, 
 const plum = new THREE.MeshPhysicalMaterial({ color: '#3a2a42', metalness: 0.6, roughness: 0.3 });
 // verre : vraie réfraction, teinté rouge en profondeur comme une résine
 const glassMat = new THREE.MeshPhysicalMaterial({
-  color: '#ffffff', metalness: 0, roughness: 0.06, transmission: 1, thickness: 0.18, ior: 1.5,
-  attenuationColor: '#ff3a48', attenuationDistance: 0.55, clearcoat: 0.6, clearcoatRoughness: 0.03, specularIntensity: 0.7, envMapIntensity: 0.8,
+  color: '#ffffff', metalness: 0, roughness: 0.06, transmission: 1, thickness: 0.05, ior: 1.5,   // réfraction faible : les cubes de métal ne « débordent » plus en image fantôme dans le verre
+  attenuationColor: '#ff3a48', attenuationDistance: 0.153,   // même teinte qu'avant (distance réduite dans la même proportion) clearcoat: 0.6, clearcoatRoughness: 0.03, specularIntensity: 0.7, envMapIntensity: 0.8,
 });
 
 function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return s; }
