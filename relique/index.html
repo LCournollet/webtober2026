@@ -21,7 +21,7 @@
 
   #home { top: 18px; left: 18px; }
   #home b { color: var(--red); font-weight: 500; }
-  #mag { right: 18px; bottom: 16px; }
+  #mag { right: 18px; bottom: 36px; }
   body.brain #mag { opacity: .6; }
   #hint { left: 50%; bottom: 16px; transform: translateX(-50%); white-space: nowrap; transition: opacity .4s; }
   #back { right: 18px; top: 18px; opacity: 0; pointer-events: none; transition: opacity .4s; }
@@ -47,6 +47,33 @@
   body.pre #intro h1, body.pre #intro p, body.pre #dive, body.pre .logo span { opacity: 0; }
   body.pre .logo svg { visibility: hidden; }
   #intro h1, #intro p, .logo span { transition: opacity .9s ease .15s; }
+  #credBtn { right: 18px; bottom: 16px; transition: color .2s; }
+  #credits { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 40; overflow-y: auto; overscroll-behavior: contain;
+    background: rgba(9, 2, 4, .9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-left: 1px solid var(--dim);
+    padding: 26px 26px 40px; transform: translateX(102%); transition: transform .5s cubic-bezier(.7,0,.2,1); user-select: text; -webkit-user-select: text; }
+  #credits.on { transform: none; }
+  #credits header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
+  #credits h2 { font-family: Michroma, sans-serif; font-weight: 400; font-size: 15px; letter-spacing: .4em; margin: 0; color: #fff; }
+  #credits h3 { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--red); font-weight: 500; margin: 30px 0 12px; }
+  #credits a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--dim); transition: border-color .2s, color .2s; }
+  #credits a:hover { color: #fff; border-color: var(--red); }
+  #credits .x { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+  #credits .x:hover { color: #fff; }
+  .feat { border: 1px solid var(--dim); padding: 16px 18px; background: rgba(255, 42, 58, .05); }
+  .feat .who { font-family: Michroma, sans-serif; font-size: 17px; color: #fff; letter-spacing: .04em; }
+  .feat .role { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 4px 0 12px; }
+  .feat p, #credits li { font-size: 12px; line-height: 1.7; color: var(--ink); margin: 0; }
+  #credits ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  #credits li span { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  #credits .gt { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 20px 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .grid figure { margin: 0; }
+  .grid a { display: block; border: 0 !important; }
+  .grid img { display: block; width: 100%; height: 108px; object-fit: cover; border: 1px solid #2a1013; filter: saturate(.9); transition: filter .2s, border-color .2s; }
+  .grid a:hover img { filter: saturate(1.1) brightness(1.1); border-color: var(--red); }
+  .grid figcaption { font-size: 10px; line-height: 1.5; color: var(--ink); margin-top: 6px; }
+  .grid figcaption i { display: block; font-style: normal; color: var(--muted); letter-spacing: .06em; }
+  #credits .legalx { margin-top: 34px; font-size: 10px; line-height: 1.7; color: var(--muted); }
   #flood { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #ff5a68 0%, #ef1032 16%, #9a061f 44%, #3e020b 78%, #1a0105 100%); }
   #flash.on { animation: flash .9s steps(10) forwards; }
   @keyframes flash { 0% { opacity: 0 } 10% { opacity: 1 } 25% { opacity: .3 } 35% { opacity: 1 } 70% { opacity: 1 } 100% { opacity: 0 } }
@@ -120,6 +147,87 @@
   <blockquote id="cQuote"></blockquote>
 </aside>
 <div id="flash"></div>
+<button class="ui" id="credBtn">Credits</button>
+<aside id="credits" aria-label="Credits">
+  <header><h2>CREDITS</h2><button class="x" id="credX" aria-label="Close">✕</button></header>
+  <h3>// Main inspiration</h3>
+  <div class="feat">
+    <div class="who"><a href="https://www.artstation.com/benandrewsart" target="_blank" rel="noopener">Ben Andrews</a></div>
+    <div class="role">Concept artist · Relic biochip</div>
+    <p>The design of this Relic follows Ben Andrews' concept work for Cyberpunk 2077 above all else.<br>
+      → <a href="https://www.artstation.com/artwork/03qOBK" target="_blank" rel="noopener">The Relic on ArtStation</a><br>
+      → <a href="https://www.artstation.com/benandrewsart" target="_blank" rel="noopener">artstation.com/benandrewsart</a></p>
+  </div>
+  <h3>// Sources</h3>
+  <ul>
+    <li><span>Wiki</span><a href="https://cyberpunk.fandom.com/fr/wiki/Relic" target="_blank" rel="noopener">Relic — Cyberpunk Wiki (fandom, FR)</a></li>
+    <li><span>Reddit · r/cyberpunkgame</span><a href="https://www.reddit.com/r/cyberpunkgame/comments/1p5h1z7/what_is_all_the_fuss_about_relic/?tl=fr" target="_blank" rel="noopener">What is all the fuss about Relic?</a></li>
+    <li><span>cbrpnk.de</span><a href="https://www.cbrpnk.de/blog/relic-geschichte-und-technische-daten/" target="_blank" rel="noopener">Relic — Geschichte und technische Daten</a></li>
+  </ul>
+  <div id="credImgs"></div>
+  <p class="legalx">Cyberpunk 2077, the Relic, Arasaka and all related marks © CD PROJEKT S.A. Unofficial, non-commercial fan project made for Devtober.
+    Every reference image above belongs to its respective author or rights holder; they were only used as visual references.</p>
+</aside>
+<script>
+// crédits : toutes les images de référence externes utilisées pendant la création
+(() => {
+  const G = [
+    ['Relic — concept, renders &amp; photos', [
+      [11, 'Relic biochip — concept board', 'Ben Andrews · Cyberpunk 2077'],
+      [4, 'Relic — official render', 'CD PROJEKT RED'],
+      [3, 'Relic — "Secure your soul" key art', 'CD PROJEKT RED'],
+      [5, 'Relic — in-game / trailer frame', 'CD PROJEKT RED'],
+      [2, 'Relic — 3D render, red resin core', 'Unknown author'],
+      [60, 'Relic — render close-up', 'Unknown author'],
+      [10, 'Relic — 3D blockout model', 'Unknown author'],
+      [1, 'Relic — physical replica', 'Unknown author'],
+      [12, 'Relic — replica, front view', 'Unknown author'],
+      [15, 'Relic logo — sticker', 'Unknown author'],
+      [49, 'Relic — end cap detail', 'Unknown author'],
+      [38, 'Detail — PAT. X1JS/881 plate', 'CD PROJEKT RED'],
+      [31, 'Detail — connector pins', 'CD PROJEKT RED'],
+      [34, 'Detail — red latch', 'CD PROJEKT RED'],
+      [48, 'Detail — R logo end', 'CD PROJEKT RED'],
+      [53, 'Detail — notches &amp; particles', 'CD PROJEKT RED'],
+      [39, 'Detail — latch &amp; glowing core', 'Unknown author'],
+      [44, 'Detail — bracket', 'Unknown author'],
+      [58, 'Detail — replica, vertical', 'Unknown author'],
+    ]],
+    ['Cards &amp; merch', [
+      [83, 'Cyberpunk TCG — The Relic, Experimental Biochip', 'Illust. Dardo Studios · © CD PROJEKT S.A.'],
+      [81, 'Cyberpunk TCG — Hanako Arasaka, In a Gilded Cage', 'Illust. Daniel Valaisis · © CD PROJEKT S.A.'],
+      [82, 'Arasaka circuit desk mat', 'Arasaka · CD PROJEKT RED'],
+    ]],
+    ['Brain anatomy', [
+      [6, 'Brain — labelled illustration', 'Unknown author'],
+      [7, 'Brain lobes — colour coded', 'Unknown author'],
+      [8, 'Brain — lateral &amp; sagittal diagrams', 'Unknown author'],
+    ]],
+    ['Hands', [
+      [68, 'The Creation of Adam — detail', 'Michelangelo · Sistine Chapel'],
+      [69, 'Pointing hand', 'Stock photo'],
+      [70, 'Hand pointing upward', 'Stock photo'],
+      [71, 'Outstretched pointing arm', 'Shutterstock · 2601136963'],
+      [72, 'Hand collage cutout', 'Alamy · 3DDMY7C'],
+      [73, 'Raised reaching hand', 'Vecteezy'],
+      [74, 'Pointing hand close-up', 'Vecteezy'],
+      [75, 'Pointing hand &amp; forearm', 'Alamy · 3DE1DDM'],
+    ]],
+    ['Drapery (the veil under the brain)', [
+      [78, 'Draped table runner', 'Stock photo'],
+      [79, 'Curtain drapery', 'Stock photo'],
+      [80, 'Blanket draped off a bed', 'Stock photo'],
+    ]],
+  ];
+  const id = n => String(n).padStart(2, '0');
+  document.getElementById('credImgs').innerHTML = '<h3>// Reference images</h3>' + G.map(([t, L]) => `<p class="gt">${t}</p><div class="grid">` +
+    L.map(([n, d, src]) => `<figure><a href="credits/${id(n)}.webp" target="_blank" rel="noopener"><img src="credits/${id(n)}.webp" alt="${d}" loading="lazy"></a><figcaption>${d}<i>${src}</i></figcaption></figure>`).join('') + '</div>').join('');
+  const P = document.getElementById('credits'), open = v => P.classList.toggle('on', v);
+  document.getElementById('credBtn').onclick = () => open(!P.classList.contains('on'));
+  document.getElementById('credX').onclick = () => open(false);
+  addEventListener('keydown', e => { if (e.key === 'Escape') open(false); });
+})();
+</script>
 <div id="flood"></div>
 <div id="loader"></div>
 <svg id="ldLogo" viewBox="-0.52 -0.52 1.04 1.04" aria-hidden="true">
@@ -902,6 +1010,48 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
 const PAD_TOP = TH + 0.002;
 pieceI(rectP(694, 595.7, 747, 641.3), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });   // arêtes arrondies
 pieceI(rectP(488, 816.7, 545, 857.3), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });
+// gravures sur le métal : textes et repères incisés dans la pente des arêtes (creux sombre + liseré clair, comme gravé au laser)
+// side : −1 = flanc 488 (devant, en bas à l'écran), +1 = flanc 755 ; edgeY : |y| de l'arête ; c : largeur de la pente ; [t0, t1] : bande utilisée sur la pente
+function engrave(x0, x1, side, edgeY, c, t0, t1, draw) {
+  const zTop = TH, zMid = (TH + KNIFE.ridge) / 2;
+  const P = (x, t) => [x, side * (edgeY - c + c * t), zTop + (zMid - zTop) * t];   // t : 0 = haut de la pente → 1 = arête
+  const H = Math.hypot(c, zTop - zMid) * (t1 - t0), L = Math.abs(x1 - x0), hPx = 256, wPx = Math.round(hPx * L / H);
+  const xl = side < 0 ? Math.min(x0, x1) : Math.max(x0, x1), xr = side < 0 ? Math.max(x0, x1) : Math.min(x0, x1);   // lu de gauche à droite depuis l'extérieur
+  const cv = document.createElement('canvas'); cv.width = wPx; cv.height = hPx;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const paint = () => {
+    const g = cv.getContext('2d'); g.clearRect(0, 0, wPx, hPx);
+    const pass = (col, dy) => { g.save(); g.translate(0, dy); g.fillStyle = g.strokeStyle = col; draw(g, wPx, hPx); g.restore(); };
+    pass('rgba(255,255,255,.42)', 3); pass('rgba(14,14,17,.9)', 0);                 // liseré clair sous le creux, puis le creux
+    tex.needsUpdate = true;
+  };
+  paint(); document.fonts.load('500 64px "JetBrains Mono"').then(paint);
+  const v = [P(xl, t0), P(xr, t0), P(xl, t1), P(xr, t1)];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(v.flat(), 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2));
+  g.setIndex(side < 0 ? [0, 2, 1, 1, 2, 3] : [0, 1, 2, 1, 3, 2]); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, metalness: 0.85, roughness: 0.4,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  m.renderOrder = 20; chip.add(m);
+}
+const MONO = s => `500 ${s}px "JetBrains Mono", ui-monospace, monospace`;
+// derrière l'encoche arrière, sur la pente de la poignée : la plaque de brevet
+engrave(-3.2, -2.5, -1, (620 - 488) * PX, 0.15, 0.1, 0.9, (g, w, h) => {
+  g.font = MONO(104); g.textBaseline = 'alphabetic'; g.fillText('PAT. X1JS/881', 28, 118);
+  g.font = MONO(44); g.fillText('ARASAKA BIOTECH  ·  RLC 2.0.77  ·  MADE IN NIGHT CITY', 30, 214);
+});
+// le long du rail, juste à côté du cube avant : repères de montage (carrés, flèches, code)
+engrave(2.26, 2.72, 1, (755 - 620) * PX, KNIFE.c, 0.22, 0.78, (g, w, h) => {
+  g.lineWidth = 7; for (let i = 0; i < 5; i++) g.strokeRect(24 + i * 64, h / 2 - 20, 40, 40);
+  const tri = (x, up) => { g.beginPath(); g.moveTo(x, h / 2 + (up ? 26 : -26)); g.lineTo(x + 30, h / 2 + (up ? 26 : -26)); g.lineTo(x + 15, h / 2 + (up ? -24 : 24)); g.closePath(); g.fill(); };
+  tri(372, false); tri(418, true);
+  g.font = MONO(70); g.textBaseline = 'middle'; g.fillText('SB-07', 484, h / 2 + 4);
+});
+// le long du rail, à côté du cube du bas : réglette graduée + numéro de lot
+engrave(0.78, 1.24, -1, (620 - 488) * PX, KNIFE.c, 0.22, 0.78, (g, w, h) => {
+  for (let i = 0; i < 13; i++) g.fillRect(22 + i * 22, h / 2 - (i % 4 ? 18 : 34), 6, i % 4 ? 36 : 68);
+  g.font = MONO(62); g.textBaseline = 'middle'; g.fillText('LOT 0477-R', 330, h / 2 + 4);
+});
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
@@ -1767,11 +1917,11 @@ const mouse = { x: 0, y: 0, px: 0, py: 0, sx: 0, sy: 0 };
 const spin = { yaw: 0, pitch: 0, vy: 0, vp: 0 };
 canvas.style.cursor = 'grab';
 
-addEventListener('wheel', e => { if (mode !== 'chip') return; e.preventDefault(); autoDive = false; zT = clamp(zT + e.deltaY * 0.00045, 0, 1); }, { passive: false });
+addEventListener('wheel', e => { if (mode !== 'chip' || e.target.closest('#credits')) return; e.preventDefault(); autoDive = false; zT = clamp(zT + e.deltaY * 0.00045, 0, 1); }, { passive: false });
 let drag = null;
 // clic gauche (ou doigt) n'importe où hors des boutons/carte pour tourner la relique ; le clic droit ne fait plus rien
 addEventListener('pointerdown', e => {
-  if (e.button !== 0 || e.target.closest('button, a, #card')) return;
+  if (e.button !== 0 || e.target.closest('button, a, #card, #credits')) return;
   if (mode === 'chip') { e.preventDefault(); canvas.style.cursor = 'grabbing'; }
   drag = { y: e.clientY, moved: 0 };
 });
@@ -1788,7 +1938,7 @@ addEventListener('pointermove', e => {
 addEventListener('keydown', e => {
   if (mode === 'chip' && (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); autoDive = true; }
   if (mode === 'chip' && e.key === 'ArrowUp') zT = clamp(zT - .08, 0, 1);
-  if (e.key === 'Escape') { if ($('card').classList.contains('on')) closeCard(); else if (mode === 'brain') backToChip(); }
+  if (e.key === 'Escape' && !$('credits').classList.contains('on')) { if ($('card').classList.contains('on')) closeCard(); else if (mode === 'brain') backToChip(); }
 });
 $('dive').onclick = () => { autoDive = true; };
 $('back').onclick = () => backToChip();
