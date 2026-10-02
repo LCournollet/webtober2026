@@ -922,7 +922,7 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
     const out = [];
     for (let i = 0; i < n; i++) {
       const A = lines[(i - 1 + n) % n], B = lines[i], den = A.d[0] * B.d[1] - A.d[1] * B.d[0];
-      if (Math.abs(den) < 1e-12) { out.push(new THREE.Vector2(...B.p)); continue; }
+      if (Math.abs(den) < 0.02 * Math.hypot(...A.d) * Math.hypot(...B.d)) { out.push(new THREE.Vector2(...B.p)); continue; }   // presque alignées : pas d'intersection lointaine
       const t = ((B.p[0] - A.p[0]) * B.d[1] - (B.p[1] - A.p[1]) * B.d[0]) / den;
       out.push(new THREE.Vector2(A.p[0] + A.d[0] * t, A.p[1] + A.d[1] * t));
     }
@@ -949,6 +949,14 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
         if (inside(v) !== inside(w)) { const t = (cut - v.x) / (w.x - v.x); out.push(new THREE.Vector2(cut, v.y + (w.y - v.y) * t)); } });
       flat = out; if (flat.length < 3) return;
     }
+    // la vitre reste strictement dans sa paroi : un coin presque plat peut projeter un sommet très loin (pointe fine et brillante)
+    const clipH = (keep, cut) => { const out = []; flat.forEach((v, i) => { const w = flat[(i + 1) % flat.length];
+      if (keep(v)) out.push(v); if (keep(v) !== keep(w)) out.push(cut(v, w)); }); flat = out; };
+    const cx = c => (v, w) => new THREE.Vector2(c, v.y + (w.y - v.y) * (c - v.x) / (w.x - v.x)), cy = c => (v, w) => new THREE.Vector2(v.x + (w.x - v.x) * (c - v.y) / (w.y - v.y), c);
+    const xMin = Math.min(...raw.map(v => v.x)), xMax = Math.max(...raw.map(v => v.x));
+    clipH(v => v.x >= xMin, cx(xMin)); if (flat.length >= 3) clipH(v => v.x <= xMax, cx(xMax));
+    if (flat.length >= 3) clipH(v => v.y >= RIM, cy(RIM)); if (flat.length >= 3) clipH(v => v.y <= TH - RIM, cy(TH - RIM));
+    if (flat.length < 3) return;
     const to3 = v => [A[0] + dx / L * v.x + nr[0] * 0.0012, A[1] + dy / L * v.x + nr[1] * 0.0012, v.y];
     for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) P.push(...to3(flat[k]));
   };
