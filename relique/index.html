@@ -214,7 +214,7 @@ const K_HOT = '#ff3446', K_MID = '#c4182c', K_DIM = '#6e0c18', K_WHITE = '#ffd6d
 const PX = 10 / 1490, IMG = pts => pts.map(([x, y]) => [(925 - y) * PX, (x - 620) * PX]); // photo en miroir : on la retourne
 // route de verre + insert en forme de capsule (centre 626,1458, rayon 29), prolongement du bloc de verre
 const CAP_ARC = (from, to) => Array.from({ length: 13 }, (_, i) => { const t = from + (to - from) * i / 12; return [626 + Math.cos(t) * 29, 1458 + Math.sin(t) * 29]; });
-const TAIL_PX = [[675, 1220], [650, 1220], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1350], [565, 1290], [565, 1266], [604, 1266], [604, 1205]];
+const TAIL_PX = [[675, 1220], [650, 1220], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1350], [565, 1290], [565, 1266], [590, 1266], [590, 1205]];   // route de verre élargie à gauche : centrée dans le U du connecteur
 // avant : les rails deviennent un liseré de métal fin (≈12 px) qui suit le contour et ses encoches ; le verre vient jusqu'à lui
 const LED = IMG([[626, 1440]])[0];
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
@@ -622,15 +622,19 @@ const wireTex = (() => {
   // gauche : L emboîtés à coins arrondis autour du coin du connecteur
   for (const i of lanes(40)) {
     const y = 1265 - i * G, x = 561 - i * G; if (x < 489) break;
-    trace([[486, y], [x, y], [x, 1196]], 2 + rnd() * 2.5); wrap(y, -1);
+    if (y > 1224 && y < 1263) trace([[486, y], [567, y]]);   // à hauteur du U : le fil file droit et vient se brancher sur son flanc
+    else trace([[486, y], [x, y], [x, 1196]], 2 + rnd() * 2.5);
+    wrap(y, -1);
   }
   // droite : autre dessin — les nappes descendent du col, coupent à 45° puis filent vers la tranche
   for (const i of lanes(40)) {
     const y = 1265 - i * G, x = 681 + i * G; if (x > 754) break;
     const d = Math.max(0, Math.min(14, y - 1212));  // longueur du pan à 45°
-    trace([[757, y], [x + d, y], [x, y - d], [x, 1120]], 1.2); wrap(y, 1);
+    if (y > 1224 && y < 1263) trace([[757, y], [673, y]]);   // branché sur l'autre flanc du U
+    else trace([[757, y], [x + d, y], [x, y - d], [x, 1120]], 1.2);
+    wrap(y, 1);
   }
-  for (let x = 567; x <= 602; x += G) trace([[x, 1196], [x, 1221]]);   // peigne au-dessus du connecteur
+  for (let x = 567; x <= 588; x += G) trace([[x, 1196], [x, x < 576 ? 1221 : 1225]]);   // peigne : du verre jusqu'au U et au crochet
   // faisceaux qui passent PAR-DESSUS les nappes (câblage emmêlé) : 3 à 5 fils parallèles, plus hauts, détachés par un liseré sombre
   const bundle = (n, make, wrapSide) => {
     const paths = Array.from({ length: n }, (_, i) => make(i * G));
@@ -700,7 +704,7 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
   }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
 }
-[pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 }),
+[pieceI([[488, 1204], [590, 1204], [590, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 }),
  pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 })].forEach(unfoldBandUV);   // arêtes arrondies
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
@@ -797,13 +801,13 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.8,
   emissive: '#2a0309', emissiveIntensity: 0.6,
 });
-// connecteur : un grand U en plastique bordeaux qui enjambe la route de verre (ouvert côté verre), et dedans deux crochets
-// face à face (petite barre en T en haut, descente, puis retour vers le centre) ; barres de 6-7 px, arêtes arrondies ; le même au dos
-const CONN = [
-  [[568, 1222], [575, 1222], [575, 1257], [665, 1257], [665, 1222], [672, 1222], [672, 1264], [568, 1264]],
-  [[584, 1226], [600, 1226], [600, 1232], [595, 1232], [595, 1244], [614, 1244], [614, 1250], [589, 1250], [589, 1232], [584, 1232]],
-  [[584, 1226], [600, 1226], [600, 1232], [595, 1232], [595, 1244], [614, 1244], [614, 1250], [589, 1250], [589, 1232], [584, 1232]].map(([x, y]) => [1240 - x, y]).reverse(),
-];
+// connecteur : un cadre fermé en plastique bordeaux qui enjambe la route de verre — côtés et fond pleins, et en haut deux barres
+// qui partent des coins puis plongent à l'intérieur et reviennent vers le centre (deux crochets face à face) ;
+// une seule pièce, barres de 6-7 px, arêtes arrondies ; le même au dos
+const CONN = [[
+  [568, 1222], [595, 1222], [595, 1244], [614, 1244], [614, 1250], [589, 1250], [589, 1229], [575, 1229],
+  [575, 1257], [665, 1257], [665, 1229], [651, 1229], [651, 1250], [626, 1250], [626, 1244], [645, 1244],
+  [645, 1222], [672, 1222], [672, 1264], [568, 1264]]];
 CONN.forEach(c => {
   pieceI(c, BAND_TOP - 0.01, TH + 0.016, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
   pieceI(c, -0.016, BAND_BOT + 0.01, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
