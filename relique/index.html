@@ -613,11 +613,12 @@ const wireTex = (() => {
     g.lineTo(...C(...pts.at(-1)));
   };
   const trace = (pts, r = 2.6) => { path(pts, r); g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.lineCap = 'butt'; g.lineJoin = 'round'; g.stroke(); };
-  const wrap = (py, side) => {                       // le fil continue tout droit : tranche puis dos (gauche) ou tranche (droite)
+  const sideY = { '-1': [], '1': [] };             // fils qui descendent chaque tranche (pour les raccorder au dessin du dos)
+  const wrap = (py, side) => {                       // le fil continue tout droit sur la tranche, puis le dessin du dos prend le relais
     g.beginPath();
-    if (side < 0) { g.moveTo(...CV(py, BAND_Y0 + 0.004)); g.lineTo(...CV(py, BAND_V0)); }
+    if (side < 0) { g.moveTo(...CV(py, BAND_Y0 + 0.004)); g.lineTo(...CV(py, BAND_Y0 - BAND_H - 0.004)); }
     else { g.moveTo(...CV(py, BAND_Y1 - 0.004)); g.lineTo(...CV(py, BAND_V1)); }
-    g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.stroke();
+    g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.stroke(); sideY[side].push(py);
   };
   const G = 1.85;                                    // pas entre deux fils (px photo)
   let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -643,7 +644,7 @@ const wireTex = (() => {
       paths.forEach(pts => { path(pts, 3); g.stroke(); });
       if (wrapSide) paths.forEach(pts => {
         const y = pts.at(-1)[1]; g.beginPath();
-        g.moveTo(...CV(y, wrapSide < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(y, wrapSide < 0 ? BAND_V0 : BAND_V1)); g.stroke();
+        g.moveTo(...CV(y, wrapSide < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(y, wrapSide < 0 ? BAND_Y0 - BAND_H - 0.06 : BAND_V1)); g.stroke();
       });
     }
   };
@@ -653,6 +654,44 @@ const wireTex = (() => {
   bundle(3, o => [[496 + o, 1200], [496 + o, 1208 - o], [524 + o, 1236 - o], [548 + o, 1236 - o], [548 + o, 1268]]);
   // droite : un seul gros faisceau de 5, tracé différent : part du col, descend puis bascule vers la tranche
   bundle(5, o => [[712 + o, 1150], [712 + o, 1232 - o], [740 + o, 1260 - o], [757, 1260 - o]], 1);
+  // ---- le dos : un dessin à lui — les nappes arrivent des tranches, s'enfoncent plus ou moins loin, décalent d'un cran à 45°,
+  // s'arrêtent sur une pastille ; près de la route de verre, des nappes en travers avec leurs propres pans à 45°
+  const CB = (px, py) => CV(py, BAND_Y0 - BAND_H - ((px - 620) * PX - BAND_Y0));
+  const bpath = (pts, r = 2.4) => { g.beginPath(); g.moveTo(...CB(...pts[0])); for (let i = 1; i < pts.length - 1; i++) g.arcTo(...CB(...pts[i]), ...CB(...pts[i + 1]), r * PX * W); g.lineTo(...CB(...pts.at(-1))); };
+  const bwire = (pts, pad = true) => {
+    g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.lineCap = 'butt'; g.lineJoin = 'round'; bpath(pts); g.stroke();
+    if (pad) { g.fillStyle = '#c4c4c4'; g.beginPath(); g.arc(...CB(...pts.at(-1)), LW * 0.95, 0, 7); g.fill(); }
+  };
+  const groups = ys => { const s = [...ys].sort((p, q) => p - q), out = []; s.forEach(y => { const last = out.at(-1); if (last && y - last.at(-1) < G * 1.5) last.push(y); else out.push([y]); }); return out; };
+  for (const [side, edge, inner, reach] of [[-1, 488, 1, [520, 568]], [1, 755, -1, [690, 736]]]) {
+    const gs = groups(sideY[side]);
+    gs.forEach((grp, k) => {
+      const end = reach[0] + rnd() * (reach[1] - reach[0]);                        // profondeur atteinte par la nappe
+      const gapUp = k > 0 ? grp[0] - gs[k - 1].at(-1) : 99, gapDn = k < gs.length - 1 ? gs[k + 1][0] - grp.at(-1) : 99;
+      const dir = gapDn > gapUp ? 1 : -1, canJog = Math.max(gapUp, gapDn) > G * 1.9 && rnd() < 0.7;
+      const xj = edge + inner * (6 + rnd() * Math.max(2, Math.abs(end - edge) - 16));
+      grp.forEach(y => {
+        const pts = [[edge - inner * 1, y]];
+        if (canJog) pts.push([xj, y], [xj + inner * G, y + dir * G]);
+        pts.push([end, canJog ? y + dir * G : y]);
+        bwire(pts);
+      });
+    });
+  }
+  // près de la route de verre : nappes en travers (le long de la relique), chacune avec ses pans à 45°
+  const cross = (x0, n, y0, y1, jogs) => { for (let i = 0; i < n; i++) {
+    const pts = [[x0 + i * G, y0]]; let x = x0 + i * G;
+    jogs.forEach(([yj, dx]) => { const o = (dx > 0 ? n - 1 - i : i) * G * (Math.SQRT2 - 1); pts.push([x, yj - o], [x + dx, yj - o + Math.abs(dx)]); x += dx; });
+    pts.push([x, y1]); bwire(pts, false);
+  } };
+  cross(574, 6, 1204, 1268, [[1224, 6 * G * 0.6]]);
+  cross(593, 4, 1204, 1268, [[1240, 2 * G]]);
+  cross(656, 5, 1220, 1268, [[1236, 4 * G]]);
+  // sous le col : quatre nappes en travers, chacune avec son pan à 45° à une hauteur différente
+  cross(688, 5, 1120, 1186, [[1150, 2 * G]]);
+  cross(701, 6, 1120, 1186, [[1162, 2 * G]]);
+  cross(717, 7, 1120, 1186, [[1140, 3 * G]]);
+  cross(737, 8, 1120, 1186, [[1170, -G]]);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; return t;
 })();
 const wireRubber = glossRubber.clone(); wireRubber.bumpMap = wireTex; wireRubber.bumpScale = 1.1;
