@@ -520,6 +520,24 @@ const rectP = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 const KNIFE = { c: 0.225, cBack: 0.158, ridge: 0.1, cFront: 0.2, ridgeFront: 0.09 }; // flancs : pente qui part presque du bord intérieur ; arrière : cadre plus étroit ; avant : depuis le milieu de la tête
 const CHIP_PARTS = [];                               // toutes les pièces, pour savoir si un bord est à l'extérieur
 const insidePoly = (pts, x, y) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
+// contenance de l'intérieur : carte des distances au bord (positif dedans), calculée une fois, pour le verre et pour la zone
+// sous les rails ; un élément n'est gardé que s'il tient entier dedans (marge = sa demi-largeur) et, sous le métal, dans l'arête
+const DMAP = (() => {
+  const X0 = -3.7, X1 = 3.85, Y0 = -0.95, Y1 = 0.95, NX = 900, NY = 228, dx = (X1 - X0) / NX, dy = (Y1 - Y0) / NY;
+  const segD = (pts, x, y) => { let m = 1e9; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [ax, ay] = pts[j], [bx, by] = pts[i], ex = bx - ax, ey = by - ay, t = clamp(((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey || 1), 0, 1); m = Math.min(m, Math.hypot(x - ax - ex * t, y - ay - ey * t)); } return m; };
+  const build = poly => { const g = new Float32Array((NX + 1) * (NY + 1)); for (let iy = 0; iy <= NY; iy++) for (let ix = 0; ix <= NX; ix++) { const x = X0 + ix * dx, y = Y0 + iy * dy; g[iy * (NX + 1) + ix] = (insidePoly(poly, x, y) ? 1 : -1) * segD(poly, x, y); } return g; };
+  const clip = build(CIRCUIT_CLIP), glass = build(WINDOW);
+  const look = (g, x, y) => { const fx = clamp((x - X0) / dx, 0, NX - 1e-6), fy = clamp((y - Y0) / dy, 0, NY - 1e-6), ix = fx | 0, iy = fy | 0, u = fx - ix, v = fy - iy, k = iy * (NX + 1) + ix;
+    return (g[k] * (1 - u) + g[k + 1] * u) * (1 - v) + (g[k + NX + 1] * (1 - u) + g[k + NX + 2] * u) * v; };
+  return { clip: (x, y) => look(clip, x, y), glass: (x, y) => look(glass, x, y) };
+})();
+const Z_GLASS = [0.016, TH - 0.03], Z_RAIL = 0.035;          // dans le verre / sous le métal (autour du milieu de l'arête)
+const fitsInside = (x, y, z, m) => {
+  if (DMAP.clip(x, y) < m) return false;
+  if (DMAP.glass(x, y) >= m) return z > Z_GLASS[0] && z < Z_GLASS[1];
+  return Math.abs(z - TH / 2) < Z_RAIL;
+};
+const segFits = (a, b, z, m) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(2, Math.ceil(L / 0.005)); for (let i = 0; i <= n; i++) { const t = i / n; if (!fitsInside(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, z, m)) return false; } return true; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.34; k.color.set('#c2bec0'); knifeMats.set(mat, k); } return knifeMats.get(mat); };
 function knifePiece(pts0, mat, onWall) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
@@ -931,12 +949,12 @@ CONN.forEach(c => {
   const rr = (a, b) => a + (b - a) * R(), gauss = () => { let u = 0; for (let i = 0; i < 4; i++) u += R(); return (u - 2) / 0.58; };
   const ZMIN = 0.018, ZMAX = TH - 0.03;
   const LV = [1, 0.3, 0.09, 0.027, 0.008, 0.0024];       // échelles (1 = toute la relique)
-  const inGlass = (x, y) => insidePoly(CIRCUIT_CLIP, x, y);
+  const inGlass = (x, y) => DMAP.clip(x, y) > 0;
   const inRegion = (sc, x, y) => sc === 1 ? inGlass(x, y) : Math.hypot(x - CORE.x, y - CORE.y) < 2.4 * sc && inGlass(x, y);
   const pick = sc => { for (let k = 0; k < 60; k++) { const x = sc === 1 ? rr(-1.95, 3.75) : CORE.x + rr(-2.4, 2.4) * sc, y = sc === 1 ? rr(-0.9, 0.92) : CORE.y + rr(-2.4, 2.4) * sc; if (inRegion(sc, x, y)) return [x, y]; } return null; };
   const zAt = (sc, k) => sc === 1 ? ZMIN + (ZMAX - ZMIN) * k : clamp(CORE.z + (k - 0.5) * 0.12 * sc, ZMIN, ZMAX);
   // sous les rails (hors du verre), le métal s'amincit vers l'arête : on reste dans l'épaisseur de l'arête pour ne rien faire dépasser
-  const zFit = (x, y, z) => insidePoly(WINDOW, x, y) ? z : clamp(z, TH / 2 - 0.035, TH / 2 + 0.035);
+  const zFit = (x, y, z) => DMAP.glass(x, y) > 0 ? z : clamp(z, TH / 2 - 0.03, TH / 2 + 0.03);
 
   // ---- circuit : segments de pistes (boîtes plates instanciées), pastilles, composants ----
   const segs = [], pads = [], comps = [];
@@ -960,13 +978,16 @@ CONN.forEach(c => {
       for (let b = 0; b < bus; b++) {
         const o = (b - (bus - 1) / 2) * width * 3.2;
         const q = path.map(([px, py], i) => { const a = path[Math.max(0, i - 1)], c = path[Math.min(path.length - 1, i + 1)], tx = c[0] - a[0], ty = c[1] - a[1], tl = Math.hypot(tx, ty) || 1; return [px - ty / tl * o, py + tx / tl * o]; });
-        for (let i = 1; i < q.length; i++) { const a = q[i - 1], b = q[i], zz = insidePoly(WINDOW, ...a) && insidePoly(WINDOW, ...b) ? z : zFit(1e9, 0, z); segs.push([a, b, zz, width, col]); }
-        pads.push([...q[0], zFit(...q[0], z), width * 1.7, col === DIM ? MID : col], [...q.at(-1), zFit(...q.at(-1), z), width * 1.7, col === DIM ? MID : col]);
+        let last = 0;                                   // la piste s'arrête au premier segment qui sortirait (coin coupé, encoche, bloc de métal…)
+        for (let i = 1; i < q.length; i++) { const a = q[i - 1], b = q[i], zz = DMAP.glass(...a) > 0 && DMAP.glass(...b) > 0 ? z : zFit(1e9, 0, z);
+          if (!segFits(a, b, zz, width * 0.6 + 0.002)) break; segs.push([a, b, zz, width, col]); last = i; }
+        if (last === 0) continue;
+        for (const e of [q[0], q[last]]) { const ze = zFit(...e, z); if (fitsInside(...e, ze, width * 1.8)) pads.push([...e, ze, width * 1.7, col === DIM ? MID : col]); }
       }
     }
     // composants CMS (petits pavés sombres à bouts métalliques) et vias
     const nc = sc === 1 ? 160 : 70;
-    for (let i = 0; i < nc; i++) { const p = pick(sc); if (!p) continue; comps.push([...p, zFit(...p, zAt(sc, R())), sc * rr(0.02, 0.05), sc * rr(0.012, 0.022), R() < 0.5]); }
+    for (let i = 0; i < nc; i++) { const p = pick(sc); if (!p) continue; const z = zFit(...p, zAt(sc, R())), l = sc * rr(0.02, 0.05); if (fitsInside(...p, z, l * 0.6 + 0.003)) comps.push([...p, z, l, sc * rr(0.012, 0.022), R() < 0.5]); }
   });
   const box = new THREE.BoxGeometry(1, 1, 1), m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3(), ZA = new THREE.Vector3(0, 0, 1);
   const segMesh = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ toneMapped: false }), segs.length);
@@ -989,7 +1010,7 @@ CONN.forEach(c => {
   // ---- nuage de neurones : amas (somas), dendrites ramifiées, brume — points additifs, taille réelle dans le monde ----
   const P = [], S = [], C = [];
   const col = (k) => { const r = R(), c = r < 0.04 ? [1.2, 0.05, 0.13] : r < 0.3 ? [1.0, 0.004, 0.035] : [0.55, 0.001, 0.015]; return c.map(v => v * k); };   // pourpre, quelques étincelles plus claires
-  const put = (x, y, z, s, c) => { P.push(x, y, zFit(x, y, clamp(z, ZMIN, ZMAX))); S.push(s); C.push(...c); };
+  const put = (x, y, z, s, c) => { z = zFit(x, y, clamp(z, ZMIN, ZMAX)); if (!fitsInside(x, y, z, s * 0.6)) return; P.push(x, y, z); S.push(s); C.push(...c); };
   LV.forEach(sc => {
     const somas = sc === 1 ? 70 : 34;
     for (let n = 0; n < somas; n++) {
@@ -1076,7 +1097,8 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
   // le logo est centré sur le point de plongée : l'interstice entre deux lettres (u ≈ 0,0101) est pile dans l'axe → en zoomant on passe entre elles
   const LOGO_L = 0.8, LOGO_C = [CORE.x - 0.0101 * LOGO_L, CORE.y], LOGO_HALF = 0.45;   // l'artère s'ouvre pour l'encadrer
   const route = (y0, ymax, side, yr) => {
-    const p = [[LED[0] + 0.02, yr], [-1.82, yr]]; let x = -1.82, y = yr;   // part de la LED et remonte la route de verre
+    const x0 = (925 - 1373) * PX;                    // entrée de l'insert de la LED (le plastique cache la suite jusqu'à elle)
+    const p = [[x0, yr], [-1.82, yr]]; let x = -1.82, y = yr;   // part de la LED et remonte la route de verre
     const step = (tx, ty) => { const dy = ty - y; if (Math.abs(dy) > 1e-6) { x += Math.abs(dy); y = ty; p.push([x, y]); } if (tx > x) { x = tx; p.push([x, y]); } };
     step(-1.6, y0);
     while (x < 3.45) {
@@ -1096,7 +1118,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     const k = d / Math.max(0.5, nx * n1[0] + ny * n1[1]); return [v[0] + nx * k, v[1] + ny * k];
   });
   const segs = [];                                   // [a, b, z, largeur, hauteur, couleur]
-  const strip = (p, z, w, h, col) => { for (let i = 1; i < p.length; i++) segs.push([p[i - 1], p[i], z, w, h, col]); };
+  const strip = (p, z, w, h, col) => { for (let i = 1; i < p.length; i++) if (segFits(p[i - 1], p[i], z, w * 0.6 + 0.002)) segs.push([p[i - 1], p[i], z, w, h, col]); };
   for (const [P, dz] of [[A, 0.012], [B, -0.012]]) {
     const z = ZA + dz;
     strip(offset(P, W / 2), z, 0.0055, 0.006, EDGE); strip(offset(P, -W / 2), z, 0.0055, 0.006, EDGE);   // les deux bords incandescents
@@ -1119,7 +1141,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     let px = x0, py = y0, pz = ZA, L = rr(0.025, R() < 0.15 ? 0.11 : 0.06);
     const pts = [[px, py, pz]];
     for (let s = 0; s < 4; s++) { px += rr(-0.003, 0.003); py += side * rr(0, 0.006); pz -= L / 4; pts.push([px, py, Math.max(0.02, pz)]); }
-    fibers.push([pts, R() < 0.08 ? FIB[2] : R() < 0.5 ? FIB[0] : FIB[1]]);
+    if (pts.every(([fx, fy, fz]) => fitsInside(fx, fy, fz, 0.002))) fibers.push([pts, R() < 0.08 ? FIB[2] : R() < 0.5 ? FIB[0] : FIB[1]]);
   }
   const nF = fibers.reduce((a, f) => a + f[0].length - 1, 0);
   const box = new THREE.BoxGeometry(1, 1, 1), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), s = new THREE.Vector3(), X1 = new THREE.Vector3(1, 0, 0);
@@ -1445,7 +1467,10 @@ function tick(dt) {
     z += (zT - z) * (1 - Math.exp(-3 * dt));
     const D0 = d0(), d = D0 * Math.pow(D_END / D0, z), tilt = 1 - smooth(0, 0.3, z);   // à l'approche, vue plongeante : la caméra n'entre que par le dessus du verre
     if (!drag) { spin.yaw += spin.vy; spin.pitch = clamp(spin.pitch + spin.vp, -0.9, 0.9); spin.vy *= Math.exp(-3 * dt); spin.vp *= Math.exp(-3 * dt); }
-    const free = 1 - smooth(0.06, 0.26, z); // la rotation libre s'efface avant que la caméra soit assez près pour traverser le métal
+    // la rotation libre dépend de la distance réelle : en tournant, les bouts de la relique balaient une sphère autour du point visé —
+    // on efface la rotation avant que la caméra n'y entre (sinon elle traverse le métal)
+    const fx = CENTER.x + (CORE.x - CENTER.x) * smooth(0, 0.28, z), reach = Math.max(5.1 - fx, fx + 5.0) + 0.6;   // bouts : broches x≈5,1 / arrière x≈−5,0
+    const free = smooth(reach + 0.2, reach + 2.6, d);
     qa.setFromAxisAngle(X, -0.95 * tilt); qb.setFromAxisAngle(Z, 0.3 * tilt);
     chip.quaternion.copy(qa).multiply(qb);
     qa.setFromAxisAngle(X, spin.pitch * free); qb.setFromAxisAngle(Y_AX, spin.yaw * free);
