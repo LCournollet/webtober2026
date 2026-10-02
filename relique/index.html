@@ -797,12 +797,17 @@ const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordea
   sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.8,
   emissive: '#2a0309', emissiveIntensity: 0.6,
 });
-// connecteur en E : un cadre en plastique bordeaux qui enjambe la route de verre (barres épaisses, arêtes arrondies),
-// avec une languette au milieu et deux retours crochus de l'autre côté ; le même au dos, en miroir
-const E_CONN = [[568, 1222], [672, 1222], [672, 1237], [665, 1237], [665, 1229], [575, 1229], [575, 1239.5], [623, 1239.5], [623, 1234], [630, 1234],
-  [630, 1252], [623, 1252], [623, 1246.5], [575, 1246.5], [575, 1257], [665, 1257], [665, 1249], [672, 1249], [672, 1264], [568, 1264]];   // barres de 7 px
-pieceI(E_CONN, BAND_TOP - 0.01, TH + 0.016, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
-pieceI(E_CONN, -0.016, BAND_BOT + 0.01, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
+// connecteur : un grand U en plastique bordeaux qui enjambe la route de verre (ouvert côté verre), et dedans deux crochets
+// face à face (petite barre en T en haut, descente, puis retour vers le centre) ; barres de 6-7 px, arêtes arrondies ; le même au dos
+const CONN = [
+  [[568, 1222], [575, 1222], [575, 1257], [665, 1257], [665, 1222], [672, 1222], [672, 1264], [568, 1264]],
+  [[584, 1226], [600, 1226], [600, 1232], [595, 1232], [595, 1244], [614, 1244], [614, 1250], [589, 1250], [589, 1232], [584, 1232]],
+  [[584, 1226], [600, 1226], [600, 1232], [595, 1232], [595, 1244], [614, 1244], [614, 1250], [589, 1250], [589, 1232], [584, 1232]].map(([x, y]) => [1240 - x, y]).reverse(),
+];
+CONN.forEach(c => {
+  pieceI(c, BAND_TOP - 0.01, TH + 0.016, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
+  pieceI(c, -0.016, BAND_BOT + 0.01, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
+});
 {
   const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 6, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé : petit plat qui monte droit au pied de la première bosse
