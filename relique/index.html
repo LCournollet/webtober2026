@@ -42,7 +42,7 @@
   #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: repeating-linear-gradient(0deg, rgba(255,42,58,.3) 0 2px, rgba(0,0,0,.65) 2px 5px), #120103; }
   #loader { position: fixed; inset: 0; z-index: 60; background: #030102; transition: opacity .9s ease; }
   #loader.out { opacity: 0; pointer-events: none; }
-  #ldLogo { position: fixed; left: 50%; top: 50%; width: 132px; height: 132px; transform: translate(-50%, -50%); z-index: 61; pointer-events: none; overflow: visible; }
+  #ldLogo { visibility: hidden; position: fixed; left: 50%; top: 50%; width: 132px; height: 132px; transform: translate(-50%, -50%); z-index: 61; pointer-events: none; overflow: visible; }
   #ldLogo .fill { fill: #fff; }
   body.pre #intro h1, body.pre #intro p, body.pre #dive, body.pre .logo span { opacity: 0; }
   body.pre .logo svg { visibility: hidden; }
@@ -132,7 +132,7 @@
 // puis il recule et vient se poser à sa place, au-dessus de « Secure your soul »
 window.startLoader = () => {
   const p = document.getElementById('snake'), logo = document.getElementById('ldLogo'), L = p.getTotalLength();
-  p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L;
+  p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; logo.style.visibility = 'visible';
   const t0 = performance.now(), T = 2400, ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const step = now => { const k = Math.min(1, (now - t0) / T); p.style.strokeDashoffset = L * (1 - ease(k)); if (k < 1) requestAnimationFrame(step); else setTimeout(land, 250); };
   requestAnimationFrame(step);
@@ -141,6 +141,7 @@ window.startLoader = () => {
     logo.style.transition = ['left', 'top', 'width', 'height'].map(k => k + e).join(', ');
     Object.assign(logo.style, { left: r.left + r.width / 2 + 'px', top: r.top + r.height / 2 + 'px', width: r.width + 'px', height: r.height + 'px' });
     document.getElementById('loader').classList.add('out');
+    window.__loaded = true;
     setTimeout(() => { document.body.classList.remove('pre'); requestAnimationFrame(() => logo.remove()); }, 1150);
   }
 };
@@ -1542,12 +1543,22 @@ const bput = (x, y, z, c, s, r = -1, t = -1, ph = 0, n = [0, 0, 0]) => { BP.P.pu
 let bsd = 4711; const bR = () => (bsd = (bsd * 16807) % 2147483647) / 2147483647, brr = (a, b) => a + (b - a) * bR();
 const bg3 = () => (bR() + bR() + bR() + bR() - 2) / 0.58;
 // 1. structures internes : points projetés sur leur surface bosselée — densité et éclat inégaux, amas, quelques points en suspension
-const e = 0.002, gradI = (x, y, z) => { const gx = innerN(x + e, y, z) - innerN(x - e, y, z), gy = innerN(x, y + e, z) - innerN(x, y - e, z), gz = innerN(x, y, z + e) - innerN(x, y, z - e), l = Math.hypot(gx, gy, gz) || 1; return [gx / l, gy / l, gz / l]; };
+// le champ organique est précalculé sur une grille 3D (tranches courtes), puis lu par interpolation : l'échantillonnage devient quasi gratuit
+const IG = { x0: -0.47, y0: -0.41, z0: -0.52, h: 0.01, nx: 95, ny: 77, nz: 105 }; IG.v = new Float32Array(IG.nx * IG.ny * IG.nz);
+for (let i = 0; i < IG.nx; i++) jobs.push(() => { const x = IG.x0 + i * IG.h; for (let j = 0; j < IG.ny; j++) for (let k = 0; k < IG.nz; k++) IG.v[(i * IG.ny + j) * IG.nz + k] = innerN(x, IG.y0 + j * IG.h, IG.z0 + k * IG.h); });
+const innerG = (x, y, z) => {
+  const fx = (x - IG.x0) / IG.h, fy = (y - IG.y0) / IG.h, fz = (z - IG.z0) / IG.h;
+  if (fx < 0 || fy < 0 || fz < 0 || fx >= IG.nx - 1 || fy >= IG.ny - 1 || fz >= IG.nz - 1) return 1;
+  const i = fx | 0, j = fy | 0, k = fz | 0, u = fx - i, v = fy - j, w = fz - k, V = IG.v, at = (a, b, c) => V[((i + a) * IG.ny + j + b) * IG.nz + k + c];
+  const l = (a, b) => at(a, b, 0) * (1 - w) + at(a, b, 1) * w;
+  return (l(0, 0) * (1 - v) + l(0, 1) * v) * (1 - u) + (l(1, 0) * (1 - v) + l(1, 1) * v) * u;
+};
+const e = 0.004, gradI = (x, y, z) => { const gx = innerG(x + e, y, z) - innerG(x - e, y, z), gy = innerG(x, y + e, z) - innerG(x, y - e, z), gz = innerG(x, y, z + e) - innerG(x, y, z - e), l = Math.hypot(gx, gy, gz) || 1; return [gx / l, gy / l, gz / l]; };
 for (let job = 0; job < 30; job++) jobs.push(() => {
   for (let i = 0; i < 3600; i++) {
     let x = brr(-0.44, 0.44), y = brr(-0.36, 0.3), z = brr(-0.42, 0.42);
-    for (let k = 0; k < 6; k++) { const d = innerN(x, y, z); if (Math.abs(d) < 0.002) break; const g = gradI(x, y, z); x -= g[0] * d; y -= g[1] * d; z -= g[2] * d; }
-    if (Math.abs(innerN(x, y, z)) > 0.004) continue;
+    for (let k = 0; k < 6; k++) { const d = innerG(x, y, z); if (Math.abs(d) < 0.002) break; const g = gradI(x, y, z); x -= g[0] * d; y -= g[1] * d; z -= g[2] * d; }
+    if (Math.abs(innerG(x, y, z)) > 0.004) continue;
     const dens = vnoise(x * 11 + 3, y * 11, z * 11);               // plaques plus denses, d'autres clairsemées
     if (bR() > 0.25 + 0.75 * dens * dens) continue;
     if (bR() < 0.18) { const g = gradI(x, y, z), o = bg3() * 0.012; x += g[0] * o; y += g[1] * o; z += g[2] * o; }   // flou de surface
@@ -1559,8 +1570,8 @@ for (let job = 0; job < 30; job++) jobs.push(() => {
 jobs.push(() => {
   for (let i = 0; i < 60; i++) {                                   // nodules : petits amas plus lumineux
     let x = brr(-0.4, 0.4), y = brr(-0.36, 0.3), z = brr(-0.48, 0.48);
-    for (let k = 0; k < 6; k++) { const d = innerN(x, y, z), g = gradI(x, y, z); x -= g[0] * d; y -= g[1] * d; z -= g[2] * d; }
-    if (Math.abs(innerN(x, y, z)) > 0.006) continue;
+    for (let k = 0; k < 6; k++) { const d = innerG(x, y, z), g = gradI(x, y, z); x -= g[0] * d; y -= g[1] * d; z -= g[2] * d; }
+    if (Math.abs(innerG(x, y, z)) > 0.006) continue;
     const reg = callosum(x, y, z) < limbic(x, y, z) ? REG.CALLOSUM : REG.LIMBIC, rad = brr(0.006, 0.018);
     for (let j = 0; j < 70; j++) bput(x + bg3() * rad, y + bg3() * rad, z + bg3() * rad, [0.8, 0.06, 0.16], brr(0.002, 0.005), reg);
   }
@@ -1589,12 +1600,15 @@ jobs.push(() => {
     bput(CLOUD.x + g[0] * 0.6, CLOUD.y + g[1] * 0.32 - 0.1, CLOUD.z + g[2] * 0.55, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
   }
 });
+// pendant l'écran de chargement (rien ne bouge) on construit par grosses tranches ; ensuite, par petites tranches pour rester fluide
+const pumpCh = new MessageChannel();
 function pump() {
-  const t0 = performance.now();
-  while (jobs.length && performance.now() - t0 < 14) jobs.shift()();
-  if (jobs.length) setTimeout(pump, 0); else buildBrain();
+  const t0 = performance.now(), slice = window.__loaded ? 12 : 60;
+  while (jobs.length && performance.now() - t0 < slice) jobs.shift()();
+  if (jobs.length) pumpCh.port2.postMessage(0); else buildBrain();
 }
-setTimeout(pump, 300);
+pumpCh.port1.onmessage = pump;
+setTimeout(pump, 0);
 
 let brainLines, brainMat, brainPts, MID;
 function buildBrain() {
@@ -1864,7 +1878,11 @@ addEventListener('resize', () => {
   lineMats.forEach(m => m.resolution.set(innerWidth, innerHeight));
 });
 frame();
-window.startLoader?.();
+// le chargement ne démarre qu'une fois tout prêt : cerveau construit, polices chargées, shaders compilés, deux images rendues
+const brainBuilt = new Promise(r => { const w = () => brainData.ready ? r() : setTimeout(w, 100); w(); });
+Promise.all([brainBuilt, document.fonts.ready]).then(() => {
+  requestAnimationFrame(() => requestAnimationFrame(() => window.startLoader?.()));
+});
 </script>
 </body>
 </html>
