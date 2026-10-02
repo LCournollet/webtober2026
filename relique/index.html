@@ -1140,7 +1140,7 @@ const INTERIOR_FX = [];
         // dérive vers l'axe central, avec du jeu
         // cap vers le centre : on oriente la direction vers l'axe (y = 0) avec du jeu, comme une pousse qui cherche la lumière
         // près du bord la pousse longe la relique, puis plonge de plus en plus franchement vers l'axe
-        const e0 = clamp((Math.abs(py) - 0.05) / 0.55, 0, 1), slope = 0.18 + 0.9 * (1 - e0);
+        const e0 = clamp((Math.abs(py) - 0.05) / 0.55, 0, 1), slope = 0.03 + 0.95 * (1 - e0) ** 1.5;   // au bord : presque parallèle, puis plonge
         const tgt = Math.atan2(-Math.sign(py) * slope, Math.sign(dx) || 1), cur = Math.atan2(dy, dx), diff = Math.atan2(Math.sin(tgt - cur), Math.cos(tgt - cur));
         const a = cur + diff * 0.1 + rr(-0.3, 0.3); dx = Math.cos(a); dy = Math.sin(a);
         const stp = 0.007, ox = px, oy = py, oz = pz; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
@@ -1155,6 +1155,22 @@ const INTERIOR_FX = [];
       }
     }
   }
+  // coureurs de bord : filaments qui longent le bord du verre en se ramifiant (le bord ne reste jamais vide)
+  for (let n = 0; n < 120; n++) {
+    const sy = R() < 0.5 ? 1 : -1, edgeY = sy > 0 ? 0.598 : -0.629;
+    let px = rr(-1.85, 3.65), py = edgeY - sy * rr(0.004, 0.05), pz = rr(ZMIN + 0.01, ZMAX - 0.01), a = R() < 0.5 ? 0 : Math.PI;
+    for (let st = 0; st < 160; st++) {
+      const tg = Math.atan2(-sy * 0.04, Math.sign(Math.cos(a)) || 1), df = Math.atan2(Math.sin(tg - a), Math.cos(tg - a)); a += df * 0.15 + rr(-0.25, 0.25);   // longe le bord, à peine vers l'intérieur
+      const ox = px, oy = py, oz = pz; px += Math.cos(a) * 0.007; py += Math.sin(a) * 0.007; pz = clamp(pz + rr(-0.004, 0.004), ZMIN, ZMAX);
+      if (Math.abs(py) > Math.abs(edgeY) - 0.002) { py = oy; a = Math.PI - a; continue; }   // rebondit sur le bord
+      if (!inGlass(px, py)) break;
+      link(ox, oy, oz, px, py, pz, 1.0);
+      if (R() < 0.3) put(px, py, pz, rr(0.0018, 0.0045), col(0.5));
+      if (R() < 0.05) { let bx = px, by = py, bz = pz, b = a - sy * rr(0.6, 1.3) * Math.sign(Math.cos(a));   // rameau qui part vers l'intérieur
+        for (let k = 0; k < 25; k++) { b += rr(-0.35, 0.35); const nx = bx + Math.cos(b) * 0.006, ny = by + Math.sin(b) * 0.006; if (!inGlass(nx, ny) || Math.abs(ny) > Math.abs(edgeY)) break; link(bx, by, bz, nx, ny, bz, 0.8); bx = nx; by = ny; } }
+    }
+  }
+  for (let i = 0; i < 14000; i++) { const sy = R() < 0.5 ? 1 : -1, y = (sy > 0 ? 0.598 : -0.629) - sy * Math.abs(gauss()) * 0.05, x = rr(-1.85, 3.65); if (inGlass(x, y)) put(x, y, rr(ZMIN, ZMAX), rr(0.0012, 0.003), col(0.2)); }
   const cloudGeo = new THREE.BufferGeometry();
   cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   cloudGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(S, 1));
