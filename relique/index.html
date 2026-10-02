@@ -279,11 +279,10 @@ const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0],
 // fond sombre du corps et bande du connecteur
 
 // fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
-poly(WINDOW, '#160308');
-// le circuit déborde un peu sous les rails autour des encoches : à travers leurs parois vitrées, il va jusqu'au bord
-const notchZone = (xi, x0, s, yc, dir) => { const { Wo } = NOTCH, p = [[xi, yc - Wo / 2 - 4], [x0, yc - Wo / 2 - 4], ...notchOuter(x0, s, yc, 1), [x0, yc + Wo / 2 + 4], [xi, yc + Wo / 2 + 4]]; return dir > 0 ? p : p.reverse(); };
-const CIRCUIT_CLIP = IMG([...RC_FL, ...RC_FR, ...notchZone(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,
-  [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchZone(526, 488, 1, NY.L2, -1), ...notchZone(526, 488, 1, NY.L1, -1)]);
+// les rails de métal sont creux : le circuit (fond compris) court sous eux jusqu'au bord extérieur, seul le vide des encoches est exclu
+const CIRCUIT_CLIP = IMG([[488, 372], [747, 372], ...notchOuter(747, -1, NY.R, 1), [747, 642], [755, 642], [755, 1130], ...TAIL_PX,
+  [488, 1205], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1)]);
+poly(CIRCUIT_CLIP, '#160308');
 PRIMS.push({ t: 'clip', pts: CIRCUIT_CLIP, bb: [-1e9, -1e9, 1e9, 1e9] });
 { // la route : petites pistes rouges serrées, pastilles, fibres
   const RX0 = -3.78, RX1 = -1.8, RY0 = -0.1, RY1 = 0.2, RB = [RX0, RY0, RX1, RY1];
@@ -299,9 +298,9 @@ PRIMS.push({ t: 'clip', pts: CIRCUIT_CLIP, bb: [-1e9, -1e9, 1e9, 1e9] });
   for (let i = 0; i < 18; i++) { const p = walk(rnd(WB2[0], WB2[2]), rnd(WB2[1], WB2[3]), Math.random() < .5 ? 0 : 4, 4, 0.01, 0.06, WB2); line(p, 0.003, i % 3 ? K_MID : K_HOT, 0.004); const e = p[p.length - 1]; dot(e[0], e[1], 0.006, '#2a0409', 0.004, K_PAD, 0.002); }
   PRIMS.push({ t: 'blob', x: LED[0], y: LED[1], r: 0.32, col: 'rgba(255,40,60,.35)', bb: [LED[0] - .32, LED[1] - .32, LED[0] + .32, LED[1] + .32] });
 }
-for (let i = 0; i < 40; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.6, 0.8); PRIMS.push({ t: 'blob', x, y, r: rnd(0.15, 0.45), col: 'rgba(150,0,22,.35)', bb: [x - .45, y - .45, x + .45, y + .45] }); }
-for (let i = 0; i < 9000; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.65, 0.85), L = rnd(0.01, 0.06); line([[x, y], [x + rnd(-0.003, 0.003), y + L]], rnd(0.002, 0.004), 'rgba(255,40,70,1)', 0, rnd(0.08, 0.3)); }
-const BX = [-1.82, -0.6, 3.6, 0.78], anchors = [];
+for (let i = 0; i < 40; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.9, 0.92); PRIMS.push({ t: 'blob', x, y, r: rnd(0.15, 0.45), col: 'rgba(150,0,22,.35)', bb: [x - .45, y - .45, x + .45, y + .45] }); }
+for (let i = 0; i < 11000; i++) { const x = rnd(-1.9, 3.7), y = rnd(-0.92, 0.92), L = rnd(0.01, 0.06); line([[x, y], [x + rnd(-0.003, 0.003), y + L]], rnd(0.002, 0.004), 'rgba(255,40,70,1)', 0, rnd(0.08, 0.3)); }
+const BX = [-1.82, -0.88, 3.6, 0.9], anchors = [];   // jusque sous les rails
 for (let k = 0; k < 4; k++) { // bus : pistes parallèles, crochets à 45°
   let x = -1.85, y = [-0.35, -0.05, 0.25, 0.55][k]; const p = [[x, y]];
   while (x < 3.65) {
