@@ -909,7 +909,7 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
   // Le cadre avant passe en « transparent » (opacité 1) pour ne pas être capturé dans l'image que le verre réfracte.
   const winMat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', metalness: 0, roughness: 0.04, transmission: 1, thickness: 0.06, ior: 1.45,
     attenuationColor: '#ff6070', attenuationDistance: 0.8, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 0.8, side: THREE.DoubleSide,
-    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -2 });   // décalage fixe seulement : vue de biais, la vitre ne passe plus devant le caoutchouc (fine ligne blanche)
   // retrait d'un polygone convexe (dans le plan de la paroi) : l'arête de métal reste visible en haut et en bas de la fenêtre
   const inset = (pts, m, keep = () => false) => {
     pts = pts.filter((p, i) => { const q = pts[(i + 1) % pts.length]; return Math.hypot(p.x - q.x, p.y - q.y) > 1e-6; });
