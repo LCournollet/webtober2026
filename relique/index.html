@@ -532,8 +532,11 @@ const DMAP = (() => {
   return { clip: (x, y) => look(clip, x, y), glass: (x, y) => look(glass, x, y) };
 })();
 const Z_GLASS = [0.016, TH - 0.03], Z_RAIL = 0.035;          // dans le verre / sous le métal (autour du milieu de l'arête)
+// les deux blocs de métal sur les rails : l'intérieur s'en tient à distance (sinon les points lumineux débordent sur leurs faces et scintillent)
+const PAD_BOX = [[694, 595, 747, 642], [488, 816, 545, 858]].map(([x0, y0, x1, y1]) => { const [a] = IMG([[x0, y0]]), [b] = IMG([[x1, y1]]); return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; });
+const nearPad = (x, y, m) => PAD_BOX.some(([x0, y0, x1, y1]) => x > x0 - m && x < x1 + m && y > y0 - m && y < y1 + m);
 const fitsInside = (x, y, z, m) => {
-  if (DMAP.clip(x, y) < m) return false;
+  if (DMAP.clip(x, y) < m || nearPad(x, y, m + 0.03)) return false;
   if (DMAP.glass(x, y) >= m) return z > Z_GLASS[0] && z < Z_GLASS[1];
   return Math.abs(z - TH / 2) < Z_RAIL;
 };
@@ -796,8 +799,8 @@ knifePiece(GRIP_FRAME, metal);
 }
 // blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
 const PAD_TOP = TH + 0.002;
-pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
-pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
+pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });   // arêtes arrondies
+pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
