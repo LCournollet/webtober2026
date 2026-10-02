@@ -1036,21 +1036,35 @@ function engrave(x0, x1, side, edgeY, c, t0, t1, draw) {
 }
 const MONO = s => `500 ${s}px "JetBrains Mono", ui-monospace, monospace`;
 // derrière l'encoche arrière, sur la pente de la poignée : la plaque de brevet
-engrave(-3.2, -2.5, -1, (620 - 488) * PX, 0.15, 0.1, 0.9, (g, w, h) => {
-  g.font = MONO(104); g.textBaseline = 'alphabetic'; g.fillText('PAT. X1JS/881', 28, 118);
-  g.font = MONO(44); g.fillText('ARASAKA BIOTECH  ·  RLC 2.0.77  ·  MADE IN NIGHT CITY', 30, 214);
+engrave(-3.2, -2.5, -1, (620 - 488) * PX, 0.15, 0.2, 0.8, (g, w, h) => {
+  g.font = MONO(150); g.textBaseline = 'middle'; g.fillText('PAT. X1JS/881', 28, h / 2 + 6);
 });
-// le long du rail, juste à côté du cube avant : repères de montage (carrés, flèches, code)
-engrave(2.26, 2.72, 1, (755 - 620) * PX, KNIFE.c, 0.22, 0.78, (g, w, h) => {
-  g.lineWidth = 7; for (let i = 0; i < 5; i++) g.strokeRect(24 + i * 64, h / 2 - 20, 40, 40);
-  const tri = (x, up) => { g.beginPath(); g.moveTo(x, h / 2 + (up ? 26 : -26)); g.lineTo(x + 30, h / 2 + (up ? 26 : -26)); g.lineTo(x + 15, h / 2 + (up ? -24 : 24)); g.closePath(); g.fill(); };
-  tri(372, false); tri(418, true);
-  g.font = MONO(70); g.textBaseline = 'middle'; g.fillText('SB-07', 484, h / 2 + 4);
+// écriteaux rouges dans le verre, à gauche des deux cubes (lus depuis le dessus, comme une sérigraphie incandescente)
+function glassLabel(x0, x1, yc, h, draw) {
+  const L = x1 - x0, hPx = 128, wPx = Math.round(hPx * L / h), cv = document.createElement('canvas'); cv.width = wPx; cv.height = hPx;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const paint = () => { const g = cv.getContext('2d'); g.clearRect(0, 0, wPx, hPx); g.fillStyle = g.strokeStyle = '#fff'; draw(g, wPx, hPx); tex.needsUpdate = true; };
+  paint(); document.fonts.load('500 64px "JetBrains Mono"').then(paint);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(L, h), new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(4.5, 0.05, 0.1), transparent: true,
+    depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  m.position.set((x0 + x1) / 2, yc, TH - 0.012); m.renderOrder = 15; chip.add(m);
+  // voile sombre adouci derrière l'écriteau : il se détache du circuit sans cadre visible
+  const bc = document.createElement('canvas'); bc.width = 256; bc.height = 64; const bg = bc.getContext('2d');
+  for (let i = 0; i < 8; i++) { bg.fillStyle = 'rgba(0,0,0,.16)'; bg.beginPath(); bg.roundRect(4 + i * 3, 4 + i * 3, 248 - i * 6, 56 - i * 6, 26); bg.fill(); }
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(L * 1.08, h * 1.7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(bc), transparent: true, depthWrite: false, opacity: 0.9 }));
+  back.position.set((x0 + x1) / 2, yc, TH - 0.014); back.renderOrder = 14; chip.add(back);
+}
+// en haut, à gauche du cube avant : repères de montage
+glassLabel(1.02, 1.84, 0.56, 0.12, (g, w, h) => {
+  g.lineWidth = 11; for (let i = 0; i < 5; i++) g.strokeRect(14 + i * 84, h / 2 - 32, 64, 64);
+  const tri = (x, up) => { g.beginPath(); g.moveTo(x, h / 2 + (up ? 36 : -36)); g.lineTo(x + 60, h / 2 + (up ? 36 : -36)); g.lineTo(x + 30, h / 2 + (up ? -36 : 36)); g.closePath(); g.fill(); };
+  tri(446, false); tri(516, true);
+  g.font = MONO(100); g.textBaseline = 'middle'; g.fillText('SB-07', 598, h / 2 + 6);
 });
-// le long du rail, à côté du cube du bas : réglette graduée + numéro de lot
-engrave(0.78, 1.24, -1, (620 - 488) * PX, KNIFE.c, 0.22, 0.78, (g, w, h) => {
-  for (let i = 0; i < 13; i++) g.fillRect(22 + i * 22, h / 2 - (i % 4 ? 18 : 34), 6, i % 4 ? 36 : 68);
-  g.font = MONO(62); g.textBaseline = 'middle'; g.fillText('LOT 0477-R', 330, h / 2 + 4);
+// en bas, à gauche du cube du bas : réglette graduée + numéro de lot
+glassLabel(-0.4, 0.4, -0.55, 0.12, (g, w, h) => {
+  for (let i = 0; i < 13; i++) g.fillRect(12 + i * 22, h / 2 - (i % 4 ? 28 : 50), 8, i % 4 ? 56 : 100);
+  g.font = MONO(92); g.textBaseline = 'middle'; g.fillText('LOT 0477-R', 306, h / 2 + 6);
 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
