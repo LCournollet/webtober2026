@@ -859,11 +859,11 @@ new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
   const u = (LED[0] - bx0) / (bx1 - bx0) * 256, v = (1 - (LED[1] - by0) / (by1 - by0)) * 256;
   const grd = g.createRadialGradient(u, v, 0, u, v, 190);
-  grd.addColorStop(0, 'rgb(255,110,60)'); grd.addColorStop(0.15, 'rgb(240,45,22)'); grd.addColorStop(0.5, 'rgb(120,12,6)'); grd.addColorStop(1, 'rgb(25,2,1)');
+  grd.addColorStop(0, 'rgb(255,70,40)'); grd.addColorStop(0.15, 'rgb(235,25,12)'); grd.addColorStop(0.5, 'rgb(115,6,4)'); grd.addColorStop(1, 'rgb(25,1,1)');
   g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
   const glowTex = new THREE.CanvasTexture(c); glowTex.colorSpace = THREE.SRGBColorSpace;
   glowTex.repeat.set(1 / (bx1 - bx0), 1 / (by1 - by0)); glowTex.offset.set(-bx0 / (bx1 - bx0), -by0 / (by1 - by0));   // UV = coordonnées locales
-  const skin = new THREE.MeshPhysicalMaterial({ color: '#d9c6aa', roughness: 0.55, metalness: 0, sheen: 0.6, sheenColor: '#ffe2c8', sheenRoughness: 0.6,
+  const skin = new THREE.MeshPhysicalMaterial({ color: '#b8a589', roughness: 0.55, metalness: 0, sheen: 0.6, sheenColor: '#ffe2c8', sheenRoughness: 0.6,
     clearcoat: 0.2, clearcoatRoughness: 0.5, emissive: '#ffffff', emissiveMap: glowTex, emissiveIntensity: 1 });
   const capsule = piece(cap, 0, TH - 0.012, skin, { bevel: 0.028, bevelT: 0.05, seg: 10 });
   const ledLight = new THREE.PointLight('#ff3a20', 0.25, 0.9, 1.6); ledLight.position.set(LED[0], LED[1], TH + 0.05); chip.add(ledLight);
@@ -1443,9 +1443,9 @@ function tick(dt) {
   if (mode === 'chip' || mode === 'linking') {
     if (autoDive) zT = clamp(zT + dt * 0.12, 0, 1);
     z += (zT - z) * (1 - Math.exp(-3 * dt));
-    const D0 = d0(), d = D0 * Math.pow(D_END / D0, z), tilt = 1 - smooth(0, 0.45, z);
+    const D0 = d0(), d = D0 * Math.pow(D_END / D0, z), tilt = 1 - smooth(0, 0.3, z);   // à l'approche, vue plongeante : la caméra n'entre que par le dessus du verre
     if (!drag) { spin.yaw += spin.vy; spin.pitch = clamp(spin.pitch + spin.vp, -0.9, 0.9); spin.vy *= Math.exp(-3 * dt); spin.vp *= Math.exp(-3 * dt); }
-    const free = 1 - smooth(0.2, 0.45, z); // la rotation libre s'efface quand on plonge
+    const free = 1 - smooth(0.06, 0.26, z); // la rotation libre s'efface avant que la caméra soit assez près pour traverser le métal
     qa.setFromAxisAngle(X, -0.95 * tilt); qb.setFromAxisAngle(Z, 0.3 * tilt);
     chip.quaternion.copy(qa).multiply(qb);
     qa.setFromAxisAngle(X, spin.pitch * free); qb.setFromAxisAngle(Y_AX, spin.yaw * free);
