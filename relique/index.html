@@ -709,8 +709,12 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
   }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
 }
-[pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber),
- pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
+[pieceI([[493, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [496, 1268]], BAND_BOT, BAND_TOP, wireRubber),
+ pieceI([[747.2, 1132.6], [751, 1204], [751, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
+// liseré de métal qui ceinture la bande sur ses deux flancs, un poil plus épais qu'elle
+const RIM = [BAND_BOT - 0.012, BAND_TOP + 0.012];
+pieceI([[488, 1204], [493, 1204], [496, 1268], [492, 1268]], ...RIM, knifeMat(metal), { bevel: 0.006, seg: 3 });
+pieceI([[751, 1128], [755, 1204], [755, 1268], [751, 1268], [751, 1204], [747.2, 1132.6]], ...RIM, knifeMat(metal), { bevel: 0.006, seg: 3 });
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
