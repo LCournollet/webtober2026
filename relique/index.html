@@ -1043,26 +1043,28 @@ engrave(-3.2, -2.5, -1, (620 - 488) * PX, 0.15, 0.2, 0.8, (g, w, h) => {
 function glassLabel(x0, x1, yc, h, draw) {
   const L = x1 - x0, hPx = 128, wPx = Math.round(hPx * L / h), cv = document.createElement('canvas'); cv.width = wPx; cv.height = hPx;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-  const paint = () => { const g = cv.getContext('2d'); g.clearRect(0, 0, wPx, hPx); g.fillStyle = g.strokeStyle = '#fff'; draw(g, wPx, hPx); tex.needsUpdate = true; };
+  const paint = () => {
+    const M = document.createElement('canvas'); M.width = wPx; M.height = hPx; const m = M.getContext('2d'); m.fillStyle = m.strokeStyle = '#fff'; draw(m, wPx, hPx);
+    const K = document.createElement('canvas'); K.width = wPx; K.height = hPx; const k = K.getContext('2d');
+    k.drawImage(M, 0, 0); k.globalCompositeOperation = 'source-in'; k.fillStyle = '#000'; k.fillRect(0, 0, wPx, hPx);
+    const g = cv.getContext('2d'); g.clearRect(0, 0, wPx, hPx);
+    for (let a = 0; a < 16; a++) g.drawImage(K, Math.cos(a / 16 * 6.283) * 7, Math.sin(a / 16 * 6.283) * 7);   // liseré sombre autour des signes
+    g.drawImage(M, 0, 0); tex.needsUpdate = true;
+  };
   paint(); document.fonts.load('500 64px "JetBrains Mono"').then(paint);
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(L, h), new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(4.5, 0.05, 0.1), transparent: true,
-    depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-  m.position.set((x0 + x1) / 2, yc, TH - 0.012); m.renderOrder = 15; chip.add(m);
-  // voile sombre adouci derrière l'écriteau : il se détache du circuit sans cadre visible
-  const bc = document.createElement('canvas'); bc.width = 256; bc.height = 64; const bg = bc.getContext('2d');
-  for (let i = 0; i < 8; i++) { bg.fillStyle = 'rgba(0,0,0,.16)'; bg.beginPath(); bg.roundRect(4 + i * 3, 4 + i * 3, 248 - i * 6, 56 - i * 6, 26); bg.fill(); }
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(L * 1.08, h * 1.7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(bc), transparent: true, depthWrite: false, opacity: 0.9 }));
-  back.position.set((x0 + x1) / 2, yc, TH - 0.014); back.renderOrder = 14; chip.add(back);
+  // opaque (découpe alpha) : dessiné avant le verre, il passe dans la transmission → reflets et teinte du verre par-dessus
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(L, h), new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(2.2, 0.025, 0.06), alphaTest: 0.5, toneMapped: false }));
+  m.position.set((x0 + x1) / 2, yc, TH - 0.014); chip.add(m);
 }
 // en haut, à gauche du cube avant : repères de montage
-glassLabel(1.02, 1.84, 0.56, 0.12, (g, w, h) => {
+glassLabel(0.84, 1.66, 0.62, 0.1, (g, w, h) => {
   g.lineWidth = 11; for (let i = 0; i < 5; i++) g.strokeRect(14 + i * 84, h / 2 - 32, 64, 64);
   const tri = (x, up) => { g.beginPath(); g.moveTo(x, h / 2 + (up ? 36 : -36)); g.lineTo(x + 60, h / 2 + (up ? 36 : -36)); g.lineTo(x + 30, h / 2 + (up ? -36 : 36)); g.closePath(); g.fill(); };
   tri(446, false); tri(516, true);
   g.font = MONO(100); g.textBaseline = 'middle'; g.fillText('SB-07', 598, h / 2 + 6);
 });
 // en bas, à gauche du cube du bas : réglette graduée + numéro de lot
-glassLabel(-0.4, 0.4, -0.55, 0.12, (g, w, h) => {
+glassLabel(-0.62, 0.18, -0.61, 0.1, (g, w, h) => {
   for (let i = 0; i < 13; i++) g.fillRect(12 + i * 22, h / 2 - (i % 4 ? 28 : 50), 8, i % 4 ? 56 : 100);
   g.font = MONO(92); g.textBaseline = 'middle'; g.fillText('LOT 0477-R', 306, h / 2 + 6);
 });
