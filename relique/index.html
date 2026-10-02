@@ -936,8 +936,19 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
     // le bout de la paroi qui touche le bord extérieur (pointe du triangle) garde son arête ; les jonctions entre vitres non
     const outerV = NOTCH_O.flatMap(o => [o[0], o[3]]), atOuter = V => outerV.some(o => Math.hypot(o[0] - V[0], o[1] - V[1]) < 1e-4);
     const ends = [...(atOuter(A) ? [0] : []), ...(atOuter(B) ? [L] : [])];
-    const flat = inset(ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2])), RIM, x => ends.some(e => Math.abs(x - e) < 1e-4));
+    const raw = ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2]));
+    let flat = inset(raw, RIM, x => ends.some(e => Math.abs(x - e) < 1e-4));
     if (!flat) return;
+    // côté bord extérieur, la paroi suit la pente de l'arête (triangles en haut et en bas) : la vitre s'arrête avant, le métal reste plein
+    for (const e of ends) {
+      const flatPts = raw.filter(v => Math.abs(v.y - TH) < 1e-5 || Math.abs(v.y) < 1e-5).map(v => v.x);
+      const cut = e === 0 ? Math.max(...flatPts.filter(x => x < L / 2), 0) + RIM : Math.min(...flatPts.filter(x => x > L / 2), L) - RIM;
+      const inside = v => e === 0 ? v.x >= cut : v.x <= cut, out = [];
+      flat.forEach((v, i) => { const w = flat[(i + 1) % flat.length];
+        if (inside(v)) out.push(v);
+        if (inside(v) !== inside(w)) { const t = (cut - v.x) / (w.x - v.x); out.push(new THREE.Vector2(cut, v.y + (w.y - v.y) * t)); } });
+      flat = out; if (flat.length < 3) return;
+    }
     const to3 = v => [A[0] + dx / L * v.x + nr[0] * 0.0012, A[1] + dy / L * v.x + nr[1] * 0.0012, v.y];
     for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) P.push(...to3(flat[k]));
   };
@@ -982,10 +993,11 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
           items.push(['seg', P3(d, py), P3(nd, ny), z, wd, col]); d = nd; py = ny; }
       }
       // fond lumineux en paliers : chaque tranche de profondeur prend la hauteur que l'arête laisse libre
-      const cuts = [6, 9, 12, 15, 18, 22, D + 3, dMax];
+      const cuts = [6, 9, 12, 15, 18, 22, D - 0.5, D + 1, dMax];   // pas de dalle contre le fond de l'encoche (sinon pointes rouges)
       for (let k = 0; k < cuts.length - 1; k++) {
         const da = cuts[k] + 0.5, db = cuts[k + 1], h = half(da) - 0.015;   // marge : reste dans le métal même là où il est le plus fin
-        if (da >= D + 3) { slabs.push([[[X(da), y0], [X(db), y0], [X(db), y1], [X(da), y1]], h]); continue; }
+        if (da >= D && da < D + 1) continue;
+        if (da >= D + 1) { slabs.push([[[X(da), y0], [X(db), y0], [X(db), y1], [X(da), y1]], h]); continue; }
         const wa = notchW(da) / 2 + 3.5, wb = notchW(Math.min(db, D)) / 2 + 3.5;
         slabs.push([[[X(da), y0], [X(db), y0], [X(db), yc - wb], [X(da), yc - wa]], h]);
         slabs.push([[[X(da), yc + wa], [X(db), yc + wb], [X(db), y1], [X(da), y1]], h]);
@@ -1048,7 +1060,6 @@ function glassLabel(x0, x1, yc, h, draw) {
     const K = document.createElement('canvas'); K.width = wPx; K.height = hPx; const k = K.getContext('2d');
     k.drawImage(M, 0, 0); k.globalCompositeOperation = 'source-in'; k.fillStyle = '#000'; k.fillRect(0, 0, wPx, hPx);
     const g = cv.getContext('2d'); g.clearRect(0, 0, wPx, hPx);
-    for (let a = 0; a < 16; a++) g.drawImage(K, Math.cos(a / 16 * 6.283) * 7, Math.sin(a / 16 * 6.283) * 7);   // liseré sombre autour des signes
     g.drawImage(M, 0, 0); tex.needsUpdate = true;
   };
   paint(); document.fonts.load('500 64px "JetBrains Mono"').then(paint);
