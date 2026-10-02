@@ -735,13 +735,15 @@ knifePiece(GRIP_FRAME, metal);
   const winMat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', metalness: 0, roughness: 0.04, transmission: 1, thickness: 0.06, ior: 1.45,
     attenuationColor: '#ff6070', attenuationDistance: 0.8, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 0.8, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  // retrait d'un polygone convexe (dans le plan de la paroi) : l'arête de métal reste visible tout autour de la fenêtre
+  // retrait d'un polygone convexe (dans le plan de la paroi) : l'arête de métal reste visible en haut et en bas de la fenêtre
   const inset = (pts, m) => {
     pts = pts.filter((p, i) => { const q = pts[(i + 1) % pts.length]; return Math.hypot(p.x - q.x, p.y - q.y) > 1e-6; });
     const n = pts.length; if (n < 3) return null;
     const ar = pts.reduce((a, p, i) => { const q = pts[(i + 1) % n]; return a + p.x * q.y - q.x * p.y; }, 0), sg = ar > 0 ? 1 : -1;
+    // seules les arêtes du haut et du bas (horizontales ou en biais) sont gardées : les côtés verticaux ne sont pas rognés
     const lines = pts.map((p, i) => { const q = pts[(i + 1) % n], dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy), nx = -dy / L * sg, ny = dx / L * sg;
-      return { p: [p.x + nx * m, p.y + ny * m], d: [dx, dy] }; });
+      const mm = Math.abs(dx) < 0.15 * Math.abs(dy) ? 0 : m;
+      return { p: [p.x + nx * mm, p.y + ny * mm], d: [dx, dy] }; });
     const out = [];
     for (let i = 0; i < n; i++) {
       const A = lines[(i - 1 + n) % n], B = lines[i], den = A.d[0] * B.d[1] - A.d[1] * B.d[0];
