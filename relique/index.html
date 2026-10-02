@@ -173,7 +173,7 @@ composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new Outp
 // repère : X = longueur (broches à droite), Y = largeur (+Y = bord arrière / haut de l'image)
 const chip = new THREE.Group(); chipScene.add(chip);
 const INNER_Z = 0.031;                               // la carte, posée au fond sous le verre
-const CORE = new THREE.Vector3(0.84, 0, INNER_Z);
+const CORE = new THREE.Vector3(0.84, 0, 0.12);        // point de plongée, au cœur de l'épaisseur du verre
 const lineMats = [];
 
 const PRIMS = [];
@@ -462,10 +462,9 @@ function addLevel(size, cv, cx, cy, w, h, order) {
   LEVELS.push({ size, mesh: m });
 }
 await document.fonts.load('500 20px "JetBrains Mono"').catch(() => {});
-addLevel(Infinity, drawRegion(0, 0, 10.4, 2.6, 4096, 1024, false), 0, 0, 10.4, 2.6, 0);
+// (l'ancien intérieur dessiné en 2D n'est plus utilisé : tout l'intérieur est maintenant en 3D, voir plus bas)
 // niveaux de détail autour du noyau, générés au fil de l'eau
 const SIZES = [2.0, 0.5, 0.125, 0.03125, 0.0078];
-SIZES.forEach((s, i) => setTimeout(() => addLevel(s, drawRegion(CORE.x, CORE.y, s, s, 2048, 2048, false), CORE.x, CORE.y, s, s, i + 1), 200 + i * 250));
 function updateLevels(d) {
   const visH = 2 * d * Math.tan(THREE.MathUtils.degToRad(camA.fov / 2));
   for (const L of LEVELS) if (L.size !== Infinity) L.mesh.visible = visH < 2.2 * L.size; // même dessin, en plus net
@@ -901,6 +900,124 @@ CONN.forEach(c => {
   const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.17), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
   const [a] = IMG([[750, 1205]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
+}
+
+/* ============================== intérieur en 3D ==============================
+   Tout est en volume dans l'épaisseur du verre : un circuit imprimé sur plusieurs couches (pistes en relief,
+   pastilles, composants) et un nuage saturé de « neurones » (amas + dendrites + brume de points).
+   Le motif est répété à des échelles de plus en plus petites autour du point de plongée (CORE) :
+   en zoomant on découvre toujours plus fin, jusqu'au microscopique. */
+{
+  let seed = 1337; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const rr = (a, b) => a + (b - a) * R(), gauss = () => { let u = 0; for (let i = 0; i < 4; i++) u += R(); return (u - 2) / 0.58; };
+  const ZMIN = 0.018, ZMAX = TH - 0.03;
+  const LV = [1, 0.3, 0.09, 0.027, 0.008, 0.0024];       // échelles (1 = toute la relique)
+  const inGlass = (x, y) => insidePoly(CIRCUIT_CLIP, x, y);
+  const inRegion = (sc, x, y) => sc === 1 ? inGlass(x, y) : Math.hypot(x - CORE.x, y - CORE.y) < 2.4 * sc && inGlass(x, y);
+  const pick = sc => { for (let k = 0; k < 60; k++) { const x = sc === 1 ? rr(-1.95, 3.75) : CORE.x + rr(-2.4, 2.4) * sc, y = sc === 1 ? rr(-0.9, 0.92) : CORE.y + rr(-2.4, 2.4) * sc; if (inRegion(sc, x, y)) return [x, y]; } return null; };
+  const zAt = (sc, k) => sc === 1 ? ZMIN + (ZMAX - ZMIN) * k : clamp(CORE.z + (k - 0.5) * 0.12 * sc, ZMIN, ZMAX);
+
+  // ---- circuit : segments de pistes (boîtes plates instanciées), pastilles, composants ----
+  const segs = [], pads = [], comps = [];
+  const HOT = new THREE.Color(2.6, 0.05, 0.12), MID = new THREE.Color(0.62, 0.012, 0.045), DIM = new THREE.Color(0.2, 0.004, 0.016);   // rouges francs (HOT dépasse 1 : il bave dans le bloom)
+  const DIR = [[1, 0], [Math.SQRT1_2, Math.SQRT1_2], [0, 1], [-Math.SQRT1_2, Math.SQRT1_2], [-1, 0], [-Math.SQRT1_2, -Math.SQRT1_2], [0, -1], [Math.SQRT1_2, -Math.SQRT1_2]];
+  LV.forEach((sc, li) => {
+    const walks = sc === 1 ? 520 : 260, layers = 5;
+    for (let w = 0; w < walks; w++) {
+      const p0 = pick(sc); if (!p0) continue;
+      const layer = R() * layers | 0, z = zAt(sc, (layer + 0.5) / layers) + rr(-0.004, 0.004) * sc;
+      const width = (R() < 0.15 ? 0.009 : rr(0.0025, 0.005)) * sc, col = R() < 0.18 ? HOT : R() < 0.55 ? MID : DIM;
+      const bus = R() < 0.25 ? 2 + (R() * 4 | 0) : 1;     // parfois une nappe de pistes parallèles
+      let d = (R() * 4 | 0) * 2, [x, y] = p0; const path = [[x, y]];
+      for (let s = 0, n = 3 + (R() * 7 | 0); s < n; s++) {
+        if (R() < 0.45) d = (d + (R() < 0.5 ? 1 : 7)) % 8;
+        const L = rr(0.03, 0.18) * sc, nx = x + DIR[d][0] * L, ny = y + DIR[d][1] * L;
+        if (!inRegion(sc, nx, ny)) break;
+        x = nx; y = ny; path.push([x, y]);
+      }
+      if (path.length < 2) continue;
+      for (let b = 0; b < bus; b++) {
+        const o = (b - (bus - 1) / 2) * width * 3.2;
+        const q = path.map(([px, py], i) => { const a = path[Math.max(0, i - 1)], c = path[Math.min(path.length - 1, i + 1)], tx = c[0] - a[0], ty = c[1] - a[1], tl = Math.hypot(tx, ty) || 1; return [px - ty / tl * o, py + tx / tl * o]; });
+        for (let i = 1; i < q.length; i++) segs.push([q[i - 1], q[i], z, width, col]);
+        pads.push([...q[0], z, width * 1.7, col === DIM ? MID : col], [...q.at(-1), z, width * 1.7, col === DIM ? MID : col]);
+      }
+    }
+    // composants CMS (petits pavés sombres à bouts métalliques) et vias
+    const nc = sc === 1 ? 160 : 70;
+    for (let i = 0; i < nc; i++) { const p = pick(sc); if (!p) continue; comps.push([...p, zAt(sc, R()), sc * rr(0.02, 0.05), sc * rr(0.012, 0.022), R() < 0.5]); }
+  });
+  const box = new THREE.BoxGeometry(1, 1, 1), m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3(), ZA = new THREE.Vector3(0, 0, 1);
+  const segMesh = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ toneMapped: false }), segs.length);
+  segs.forEach(([a, b, z, w, col], i) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+    q4.setFromAxisAngle(ZA, Math.atan2(dy, dx)); v3.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z); s3.set(L + w, w, w * 0.6);
+    segMesh.setMatrixAt(i, m4.compose(v3, q4, s3)); segMesh.setColorAt(i, col);
+  });
+  const padMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 12).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ toneMapped: false }), pads.length);
+  pads.forEach(([x, y, z, r, col], i) => { v3.set(x, y, z); s3.set(r * 2, r * 2, r * 0.8); padMesh.setMatrixAt(i, m4.compose(v3, q4.identity(), s3)); padMesh.setColorAt(i, col); });
+  const compBody = new THREE.InstancedMesh(box, new THREE.MeshStandardMaterial({ color: '#141418', roughness: 0.4, metalness: 0.3 }), comps.length);
+  const compEnd = new THREE.InstancedMesh(box, new THREE.MeshStandardMaterial({ color: '#d8d4d6', roughness: 0.25, metalness: 1 }), comps.length * 2);
+  comps.forEach(([x, y, z, l, w, rot], i) => {
+    q4.setFromAxisAngle(ZA, rot ? Math.PI / 2 : 0);
+    compBody.setMatrixAt(i, m4.compose(v3.set(x, y, z), q4, s3.set(l, w, w * 0.6)));
+    for (const k of [-1, 1]) { const off = new THREE.Vector3(k * l * 0.42, 0, 0).applyQuaternion(q4); compEnd.setMatrixAt(i * 2 + (k > 0), m4.compose(v3.set(x + off.x, y + off.y, z), q4, s3.set(l * 0.18, w * 1.02, w * 0.64))); }
+  });
+  [segMesh, padMesh, compBody, compEnd].forEach(m => { m.frustumCulled = false; chip.add(m); });
+
+  // ---- nuage de neurones : amas (somas), dendrites ramifiées, brume — points additifs, taille réelle dans le monde ----
+  const P = [], S = [], C = [];
+  const col = (k) => { const r = R(), c = r < 0.04 ? [1.5, 1.2, 1.25] : r < 0.3 ? [1.3, 0.12, 0.25] : [0.75, 0.04, 0.1]; return c.map(v => v * k); };
+  const put = (x, y, z, s, c) => { P.push(x, y, clamp(z, ZMIN, ZMAX)); S.push(s); C.push(...c); };
+  LV.forEach(sc => {
+    const somas = sc === 1 ? 70 : 34;
+    for (let n = 0; n < somas; n++) {
+      const p = pick(sc); if (!p) continue;
+      const cz = zAt(sc, rr(0.15, 0.85)), rad = rr(0.012, 0.03) * sc;
+      for (let i = 0; i < 260; i++) put(p[0] + gauss() * rad, p[1] + gauss() * rad, cz + gauss() * rad * 0.7, rr(0.004, 0.009) * sc, col(1.1));
+      // dendrites : marches aléatoires qui se divisent, semées de points
+      const stack = []; for (let b = 0; b < 5 + (R() * 4 | 0); b++) { const a = R() * Math.PI * 2, e = rr(-0.5, 0.5); stack.push([p[0], p[1], cz, Math.cos(a), Math.sin(a), e, 0]); }
+      let budget = 1400;
+      while (stack.length && budget > 0) {
+        let [x, y, z, dx, dy, dz, depth] = stack.pop();
+        for (let st = 0, len = 30 + (R() * 50 | 0); st < len && budget > 0; st++, budget--) {
+          const a = rr(-0.35, 0.35); [dx, dy] = [dx * Math.cos(a) - dy * Math.sin(a), dx * Math.sin(a) + dy * Math.cos(a)]; dz = clamp(dz + rr(-0.2, 0.2), -0.6, 0.6);
+          const stp = 0.006 * sc; x += dx * stp; y += dy * stp; z += dz * stp * 0.5;
+          if (!inRegion(sc, x, y)) break;
+          put(x + gauss() * stp * 0.3, y + gauss() * stp * 0.3, z, rr(0.002, 0.0045) * sc * (1 - depth * 0.15), col(0.85));
+          if (R() < 0.035 && depth < 4) stack.push([x, y, z, -dy, dx, dz, depth + 1]);
+        }
+      }
+    }
+    // brume : poussière très fine dans tout le volume (l'effet « saturation »)
+    for (let i = 0, n = sc === 1 ? 60000 : 22000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.32)); }
+  });
+  const cloudGeo = new THREE.BufferGeometry();
+  cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  cloudGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(S, 1));
+  cloudGeo.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+  const cloudMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    uniforms: { uScale: { value: 1 }, uTime: waveUniforms.uTime },
+    vertexShader: `
+      attribute float aSize; attribute vec3 aCol; uniform float uScale, uTime; varying vec3 vC; varying float vA;
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position, 1.);
+        float px = aSize * uScale / -mv.z;                 // taille réelle → pixels
+        vA = clamp(px / 1.6, 0., 1.);                       // plus petit qu'un pixel : il s'efface au lieu de clignoter
+        float tw = 0.75 + 0.25 * sin(uTime * 2.3 + position.x * 913. + position.y * 577.);
+        vC = aCol * tw;
+        gl_PointSize = clamp(px, 1.6, 64.);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying vec3 vC; varying float vA;
+      void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d) * 4.; if (r > 1.) discard; gl_FragColor = vec4(vC * vA * (1. - r) * (1. - r), 1.); }`,
+  });
+  const cloud = new THREE.Points(cloudGeo, cloudMat); cloud.frustumCulled = false; cloud.renderOrder = 13; chip.add(cloud);
+  const setScale = () => { cloudMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camA.fov / 2))); };
+  setScale(); addEventListener('resize', setScale);
+  glassMat.depthWrite = false;                           // le nuage (transparent) reste visible à travers le dessus du verre
 }
 
 // lumière de studio : environnement + une lumière principale et un contre-jour
