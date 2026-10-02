@@ -614,12 +614,7 @@ const wireTex = (() => {
   };
   const trace = (pts, r = 2.6) => { path(pts, r); g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.lineCap = 'butt'; g.lineJoin = 'round'; g.stroke(); };
   const sideY = { '-1': [], '1': [] };             // fils qui descendent chaque tranche (pour les raccorder au dessin du dos)
-  const wrap = (py, side) => {                       // le fil continue tout droit sur la tranche, puis le dessin du dos prend le relais
-    g.beginPath();
-    if (side < 0) { g.moveTo(...CV(py, BAND_Y0 + 0.004)); g.lineTo(...CV(py, BAND_Y0 - BAND_H - 0.004)); }
-    else { g.moveTo(...CV(py, BAND_Y1 - 0.004)); g.lineTo(...CV(py, BAND_V1)); }
-    g.strokeStyle = '#c4c4c4'; g.lineWidth = LW; g.stroke(); sideY[side].push(py);
-  };
+  const wrap = (py, side) => sideY[side].push(py);   // tranches lisses : on note juste le fil pour que le dos reparte du même endroit
   const G = 1.85;                                    // pas entre deux fils (px photo)
   let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   // nappes de taille variable (3 à 8 fils) séparées par 1 ou 2 pistes vides : chaque côté tire son propre découpage
@@ -642,10 +637,6 @@ const wireTex = (() => {
     for (const [col, w] of [['#000', 2.6], ['#fff', 1.15]]) {
       g.strokeStyle = col; g.lineWidth = LW * w; g.lineCap = 'round'; g.lineJoin = 'round';
       paths.forEach(pts => { path(pts, 3); g.stroke(); });
-      if (wrapSide) paths.forEach(pts => {
-        const y = pts.at(-1)[1]; g.beginPath();
-        g.moveTo(...CV(y, wrapSide < 0 ? BAND_Y0 + 0.004 : BAND_Y1 - 0.004)); g.lineTo(...CV(y, wrapSide < 0 ? BAND_Y0 - BAND_H - 0.06 : BAND_V1)); g.stroke();
-      });
     }
   };
   // gauche : un faisceau de 4 qui descend du verre, coupe en biais et plonge sur la tranche
@@ -709,12 +700,8 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
   }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
 }
-[pieceI([[493, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [496, 1268]], BAND_BOT, BAND_TOP, wireRubber),
- pieceI([[747.2, 1132.6], [751, 1204], [751, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
-// liseré de métal qui ceinture la bande sur ses deux flancs, un poil plus épais qu'elle
-const RIM = [BAND_BOT - 0.012, BAND_TOP + 0.012];
-pieceI([[488, 1204], [493, 1204], [496, 1268], [492, 1268]], ...RIM, knifeMat(metal), { bevel: 0.006, seg: 3 });
-pieceI([[751, 1128], [755, 1204], [755, 1268], [751, 1268], [751, 1204], [747.2, 1132.6]], ...RIM, knifeMat(metal), { bevel: 0.006, seg: 3 });
+[pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 }),
+ pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 })].forEach(unfoldBandUV);   // arêtes arrondies
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
