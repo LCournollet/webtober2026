@@ -217,6 +217,9 @@ const CAP_ARC = (from, to) => Array.from({ length: 13 }, (_, i) => { const t = f
 const TAIL_PX = [[675, 1220], [650, 1220], [650, 1372], [655, 1376], ...CAP_ARC(0, Math.PI), [597, 1376], [604, 1372], [604, 1350], [565, 1290], [565, 1266], [590, 1266], [590, 1205]];   // route de verre élargie à gauche : centrée dans le U du connecteur
 // avant : les rails deviennent un liseré de métal fin (≈12 px) qui suit le contour et ses encoches ; le verre vient jusqu'à lui
 const LED = IMG([[626, 1440]])[0];
+// l'insert arrondi de la LED n'est plus en verre (plastique beige) : le verre s'arrête à son entrée
+const TAIL_GLASS = TAIL_PX.filter(p => p[1] < 1377);
+const CAPSULE_PX = [[597, 1376], [655, 1376], ...CAP_ARC(0, Math.PI)];
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
 // coin arrondi (rayon r) entre les arêtes prev→v et v→next, en points de la photo
 function roundCorner(prev, v, next, r = 10, n = 6) {
@@ -250,7 +253,7 @@ function notchInner(xi, x0, s, yc, dir) {
   return dir > 0 ? p : p.reverse();
 }
 const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y photo)
-const WINDOW = IMG([...RC_FL, ...RC_FR, ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,   // flanc droit du verre aligné sur la bande et la poignée (755) : une arête droite jusqu'à l'arrière
+const WINDOW = IMG([...RC_FL, ...RC_FR, ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_GLASS,   // flanc droit du verre aligné sur la bande et la poignée (755) : une arête droite jusqu'à l'arrière
   [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1)]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
 // fentes rectangulaires entre les broches (même taille), creusées jusqu'au bout de la pente avant
@@ -280,7 +283,7 @@ const rectI = (x0, y0, x1, y1, fill, stroke, w) => poly(IMG([[x0, y0], [x1, y0],
 
 // fenêtre en résine + intérieur (découpé à la forme de la fenêtre)
 // les rails de métal sont creux : le circuit (fond compris) court sous eux jusqu'au bord extérieur, seul le vide des encoches est exclu
-const CIRCUIT_CLIP = IMG([[488, 372], [747, 372], ...notchOuter(747, -1, NY.R, 1), [747, 642], [755, 642], [755, 1130], ...TAIL_PX,
+const CIRCUIT_CLIP = IMG([[488, 372], [747, 372], ...notchOuter(747, -1, NY.R, 1), [747, 642], [755, 642], [755, 1130], ...TAIL_GLASS,
   [488, 1205], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1)]);
 poly(CIRCUIT_CLIP, '#160308');
 PRIMS.push({ t: 'clip', pts: CIRCUIT_CLIP, bb: [-1e9, -1e9, 1e9, 1e9] });
@@ -848,14 +851,30 @@ new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts
     m.position.set(c[0], c[1], TH + 0.002); chip.add(m);
   });
 });
-// LED dans l'insert de verre : faible lueur rouge qui respire
+// LED sous un insert de plastique beige opaque : on la voit briller à travers, comme une lampe collée contre la peau
+// (halo diffus rouge-orangé, plus vif au centre) ; elle scintille et « glitch » brièvement à intervalles irréguliers
 {
-  const led = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.045, 0.02), new THREE.MeshStandardMaterial({ color: '#2a0006', emissive: '#ff2236', emissiveIntensity: 1.2 }));
-  led.position.set(LED[0], LED[1], 0.05); chip.add(led);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.03, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff5060', emissive: '#ff1a30', emissiveIntensity: 1.6, transparent: true, opacity: 0.85 }));
-  dome.rotation.x = Math.PI / 2; dome.position.set(LED[0], LED[1], 0.06); chip.add(dome);
-  const ledLight = new THREE.PointLight('#ff2a3a', 0.3, 0.9, 1.6); ledLight.position.set(LED[0], LED[1], 0.1); chip.add(ledLight);
-  dome.onBeforeRender = () => { const k = 0.8 + 0.2 * Math.sin(performance.now() / 900); ledLight.intensity = 0.3 * k; dome.material.emissiveIntensity = 1.6 * k; };
+  const cap = IMG(CAPSULE_PX), xs = cap.map(p => p[0]), ys = cap.map(p => p[1]);
+  const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys);
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  const u = (LED[0] - bx0) / (bx1 - bx0) * 256, v = (1 - (LED[1] - by0) / (by1 - by0)) * 256;
+  const grd = g.createRadialGradient(u, v, 0, u, v, 190);
+  grd.addColorStop(0, 'rgb(255,110,60)'); grd.addColorStop(0.15, 'rgb(240,45,22)'); grd.addColorStop(0.5, 'rgb(120,12,6)'); grd.addColorStop(1, 'rgb(25,2,1)');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
+  const glowTex = new THREE.CanvasTexture(c); glowTex.colorSpace = THREE.SRGBColorSpace;
+  glowTex.repeat.set(1 / (bx1 - bx0), 1 / (by1 - by0)); glowTex.offset.set(-bx0 / (bx1 - bx0), -by0 / (by1 - by0));   // UV = coordonnées locales
+  const skin = new THREE.MeshPhysicalMaterial({ color: '#d9c6aa', roughness: 0.55, metalness: 0, sheen: 0.6, sheenColor: '#ffe2c8', sheenRoughness: 0.6,
+    clearcoat: 0.2, clearcoatRoughness: 0.5, emissive: '#ffffff', emissiveMap: glowTex, emissiveIntensity: 1 });
+  const capsule = piece(cap, 0, TH - 0.012, skin, { bevel: 0.028, bevelT: 0.05, seg: 10 });
+  const ledLight = new THREE.PointLight('#ff3a20', 0.25, 0.9, 1.6); ledLight.position.set(LED[0], LED[1], TH + 0.05); chip.add(ledLight);
+  let nextGlitch = 2 + Math.random() * 3, glitchEnd = 0;
+  capsule.onBeforeRender = () => {
+    const t = performance.now() / 1000;
+    let k = 0.85 + 0.08 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 23.1);           // scintillement doux
+    if (t > nextGlitch) { glitchEnd = t + 0.12 + Math.random() * 0.18; nextGlitch = t + 2.5 + Math.random() * 3; }
+    if (t < glitchEnd) k *= Math.random() < 0.5 ? 0.15 + Math.random() * 0.3 : 1.25;   // glitch : coupures et sursauts rapides
+    skin.emissiveIntensity = 1.35 * k; ledLight.intensity = 0.25 * k;
+  };
 }
 // bouton latéral : lentille douce en plastique bordeaux translucide, bord extérieur légèrement ondulé, petite inscription blanche
 const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux opaque, finition légèrement dépolie
@@ -976,7 +995,7 @@ CONN.forEach(c => {
     for (let n = 0; n < somas; n++) {
       const p = pick(sc); if (!p) continue;
       const cz = zAt(sc, rr(0.15, 0.85)), rad = rr(0.012, 0.03) * sc;
-      for (let i = 0; i < 260; i++) put(p[0] + gauss() * rad, p[1] + gauss() * rad, cz + gauss() * rad * 0.7, rr(0.004, 0.009) * sc, col(1.1));
+      for (let i = 0; i < 260; i++) put(p[0] + gauss() * rad, p[1] + gauss() * rad, cz + gauss() * rad * 0.7, rr(0.004, 0.009) * sc, col(0.6));
       // dendrites : marches aléatoires qui se divisent, semées de points
       const stack = []; for (let b = 0; b < 5 + (R() * 4 | 0); b++) { const a = R() * Math.PI * 2, e = rr(-0.5, 0.5); stack.push([p[0], p[1], cz, Math.cos(a), Math.sin(a), e, 0]); }
       let budget = 1400;
@@ -986,16 +1005,16 @@ CONN.forEach(c => {
           const a = rr(-0.35, 0.35); [dx, dy] = [dx * Math.cos(a) - dy * Math.sin(a), dx * Math.sin(a) + dy * Math.cos(a)]; dz = clamp(dz + rr(-0.2, 0.2), -0.6, 0.6);
           const stp = 0.006 * sc; x += dx * stp; y += dy * stp; z += dz * stp * 0.5;
           if (!inRegion(sc, x, y)) break;
-          put(x + gauss() * stp * 0.3, y + gauss() * stp * 0.3, z, rr(0.002, 0.0045) * sc * (1 - depth * 0.15), col(0.85));
+          put(x + gauss() * stp * 0.3, y + gauss() * stp * 0.3, z, rr(0.002, 0.0045) * sc * (1 - depth * 0.15), col(0.45));
           if (R() < 0.035 && depth < 4) stack.push([x, y, z, -dy, dx, dz, depth + 1]);
         }
       }
     }
     // brume : poussière très fine dans tout le volume (l'effet « saturation »)
-    for (let i = 0, n = sc === 1 ? 60000 : 22000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.32)); }
+    for (let i = 0, n = sc === 1 ? 40000 : 16000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.14)); }
   });
   // réseaux qui naissent sur les bords du verre et poussent vers le centre en se ramifiant (amas de points aux embranchements)
-  for (let n = 0; n < 140; n++) {
+  for (let n = 0; n < 95; n++) {
     const fromSide = R() < 0.8, sy = R() < 0.5 ? 1 : -1;
     let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? sy * rr(0.5, 0.62) : rr(-0.5, 0.5);
     if (!inGlass(x, y)) continue;
@@ -1009,10 +1028,10 @@ CONN.forEach(c => {
         dx = Math.cos(a); dy = Math.sin(a);
         const stp = 0.007; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
         if (!inGlass(px, py) || Math.abs(py) < 0.02 * R()) break;
-        put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.9 - depth * 0.12));
+        put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.5 - depth * 0.06));
         if (R() < 0.03 && depth < 5) {
           stack.push([px, py, pz, -dy * Math.sign(R() - 0.5), dx, depth + 1]);
-          for (let i = 0; i < 70; i++) put(px + gauss() * 0.008, py + gauss() * 0.008, pz + gauss() * 0.005, rr(0.002, 0.006), col(1));   // amas à l'embranchement
+          for (let i = 0; i < 50; i++) put(px + gauss() * 0.008, py + gauss() * 0.008, pz + gauss() * 0.005, rr(0.002, 0.006), col(0.6));   // amas à l'embranchement
         }
       }
     }
@@ -1056,8 +1075,8 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
   // tracé : paliers horizontaux reliés par des pans à 45°, ils s'écartent autour du logo
   // le logo est centré sur le point de plongée : l'interstice entre deux lettres (u ≈ 0,0101) est pile dans l'axe → en zoomant on passe entre elles
   const LOGO_L = 0.8, LOGO_C = [CORE.x - 0.0101 * LOGO_L, CORE.y], LOGO_HALF = 0.45;   // l'artère s'ouvre pour l'encadrer
-  const route = (y0, ymax, side) => {
-    const p = [[-1.82, 0]]; let x = -1.82, y = 0;
+  const route = (y0, ymax, side, yr) => {
+    const p = [[LED[0] + 0.02, yr], [-1.82, yr]]; let x = -1.82, y = yr;   // part de la LED et remonte la route de verre
     const step = (tx, ty) => { const dy = ty - y; if (Math.abs(dy) > 1e-6) { x += Math.abs(dy); y = ty; p.push([x, y]); } if (tx > x) { x = tx; p.push([x, y]); } };
     step(-1.6, y0);
     while (x < 3.45) {
@@ -1067,7 +1086,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     }
     return p;
   };
-  const A = route(0.18, 0.42, 1), B = route(-0.16, 0.38, -1);
+  const A = route(0.18, 0.42, 1, LED[1] + 0.05), B = route(-0.16, 0.38, -1, LED[1] - 0.05);
   // décalage d'une polyligne (onglets aux coins)
   const offset = (p, d) => p.map((v, i) => {
     const a = p[Math.max(0, i - 1)], c = p[Math.min(p.length - 1, i + 1)];
