@@ -1595,9 +1595,15 @@ jobs.push(() => {
       bput(q[0] + Math.cos(a) * r, q[1] + bg3() * spread * 0.5, q[2] + Math.sin(a) * r, col.map(v => v * k), brr(0.0035, 0.007), -1, 1 - t, ph);
     }
   }
-  for (let i = 0; i < 26000; i++) {                                                         // le nuage où les câbles se perdent
-    const g = [bg3(), bg3(), bg3()], d = Math.hypot(...g), k = brr(0.25, 0.9) * Math.exp(-d * d * 0.18);
-    bput(CLOUD.x + g[0] * 0.6, CLOUD.y + g[1] * 0.32 - 0.1, CLOUD.z + g[2] * 0.55, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
+  // le nuage où les câbles se perdent : un long panache qui continue sous les câbles, s'élargit et s'éteint en descendant
+  for (let i = 0; i < 70000; i++) {
+    const t = Math.pow(bR(), 0.8), y = -1.25 - t * 3.6, w = 0.45 + t * 1.1;                // t : 0 en haut → 1 tout en bas
+    const g = [bg3(), bg3()], k = brr(0.25, 0.9) * (1 - t) * (1 - t) * smooth(0, 0.12, t + 0.02) * Math.exp(-(g[0] * g[0] + g[1] * g[1]) * 0.15);
+    bput(CLOUD.x + g[0] * w * 0.6, y + bg3() * 0.08, CLOUD.z + g[1] * w * 0.55, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
+  }
+  for (let i = 0; i < 40; i++) {                                                            // quelques traînées qui prolongent les câbles dans le nuage
+    let x = CLOUD.x + bg3() * 0.35, z = CLOUD.z + bg3() * 0.3, y = -1.5 - bR() * 0.6; const L = brr(1.2, 2.6), dx = bg3() * 0.15, dz = bg3() * 0.15;
+    for (let j = 0; j < 900; j++) { const t = bR(), sp = 0.01 + 0.12 * t, k = (1 - t) * 0.8; bput(x + dx * t + bg3() * sp, y - t * L, z + dz * t + bg3() * sp, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.006)); }
   }
 });
 // pendant l'écran de chargement (rien ne bouge) on construit par grosses tranches ; ensuite, par petites tranches pour rester fluide
