@@ -921,7 +921,7 @@ CONN.forEach(c => {
 
   // ---- circuit : segments de pistes (boîtes plates instanciées), pastilles, composants ----
   const segs = [], pads = [], comps = [];
-  const HOT = new THREE.Color(2.6, 0.05, 0.12), MID = new THREE.Color(0.62, 0.012, 0.045), DIM = new THREE.Color(0.2, 0.004, 0.016);   // rouges francs (HOT dépasse 1 : il bave dans le bloom)
+  const HOT = new THREE.Color(2.0, 0.003, 0.03), MID = new THREE.Color(0.45, 0.0008, 0.009), DIM = new THREE.Color(0.14, 0.0002, 0.003);   // pourpre (valeurs linéaires : g/b très bas, sinon l'écran les rosit)   // rouges francs (HOT dépasse 1 : il bave dans le bloom)
   const DIR = [[1, 0], [Math.SQRT1_2, Math.SQRT1_2], [0, 1], [-Math.SQRT1_2, Math.SQRT1_2], [-1, 0], [-Math.SQRT1_2, -Math.SQRT1_2], [0, -1], [Math.SQRT1_2, -Math.SQRT1_2]];
   LV.forEach((sc, li) => {
     const walks = sc === 1 ? 520 : 260, layers = 5;
@@ -969,7 +969,7 @@ CONN.forEach(c => {
 
   // ---- nuage de neurones : amas (somas), dendrites ramifiées, brume — points additifs, taille réelle dans le monde ----
   const P = [], S = [], C = [];
-  const col = (k) => { const r = R(), c = r < 0.04 ? [1.5, 1.2, 1.25] : r < 0.3 ? [1.3, 0.12, 0.25] : [0.75, 0.04, 0.1]; return c.map(v => v * k); };
+  const col = (k) => { const r = R(), c = r < 0.04 ? [1.2, 0.05, 0.13] : r < 0.3 ? [1.0, 0.004, 0.035] : [0.55, 0.001, 0.015]; return c.map(v => v * k); };   // pourpre, quelques étincelles plus claires
   const put = (x, y, z, s, c) => { P.push(x, y, zFit(x, y, clamp(z, ZMIN, ZMAX))); S.push(s); C.push(...c); };
   LV.forEach(sc => {
     const somas = sc === 1 ? 70 : 34;
@@ -994,6 +994,29 @@ CONN.forEach(c => {
     // brume : poussière très fine dans tout le volume (l'effet « saturation »)
     for (let i = 0, n = sc === 1 ? 60000 : 22000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.32)); }
   });
+  // réseaux qui naissent sur les bords du verre et poussent vers le centre en se ramifiant (amas de points aux embranchements)
+  for (let n = 0; n < 140; n++) {
+    const fromSide = R() < 0.8, sy = R() < 0.5 ? 1 : -1;
+    let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? sy * rr(0.5, 0.62) : rr(-0.5, 0.5);
+    if (!inGlass(x, y)) continue;
+    const stack = [[x, y, rr(ZMIN + 0.02, ZMAX - 0.02), fromSide ? rr(-0.5, 0.5) : (x < 0 ? 1 : -1), fromSide ? -sy : rr(-0.4, 0.4), 0]];
+    let budget = 2600;
+    while (stack.length && budget > 0) {
+      let [px, py, pz, dx, dy, depth] = stack.pop();
+      for (let st = 0, len = 40 + (R() * 90 | 0); st < len && budget > 0; st++, budget--) {
+        // dérive vers l'axe central, avec du jeu
+        const toC = -py * 0.08 + rr(-0.35, 0.35); const a = Math.atan2(dy, dx) + toC * 0.5 * Math.sign(dx || 1);
+        dx = Math.cos(a); dy = Math.sin(a);
+        const stp = 0.007; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
+        if (!inGlass(px, py) || Math.abs(py) < 0.02 * R()) break;
+        put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.9 - depth * 0.12));
+        if (R() < 0.03 && depth < 5) {
+          stack.push([px, py, pz, -dy * Math.sign(R() - 0.5), dx, depth + 1]);
+          for (let i = 0; i < 70; i++) put(px + gauss() * 0.008, py + gauss() * 0.008, pz + gauss() * 0.005, rr(0.002, 0.006), col(1));   // amas à l'embranchement
+        }
+      }
+    }
+  }
   const cloudGeo = new THREE.BufferGeometry();
   cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   cloudGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(S, 1));
@@ -1029,20 +1052,22 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
 {
   let seed = 4242; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647, rr = (a, b) => a + (b - a) * R();
   const ZA = CORE.z, W = 0.034;                      // profondeur et largeur du tube
-  const EDGE = new THREE.Color(3.4, 0.55, 0.62), CORE_C = new THREE.Color(0.55, 0.03, 0.07), FIB = [new THREE.Color(0.9, 0.06, 0.12), new THREE.Color(0.38, 0.015, 0.04), new THREE.Color(1.8, 0.3, 0.38)];
-  // tracé : paliers horizontaux reliés par des pans à 45°, passage obligé par le point de plongée
-  const route = (y0, ymax) => {
+  const EDGE = new THREE.Color(2.4, 0.02, 0.08), CORE_C = new THREE.Color(0.36, 0.0008, 0.01), FIB = [new THREE.Color(0.65, 0.002, 0.02), new THREE.Color(0.25, 0.0005, 0.006), new THREE.Color(1.3, 0.012, 0.05)];
+  // tracé : paliers horizontaux reliés par des pans à 45°, ils s'écartent autour du logo
+  // le logo est centré sur le point de plongée : l'interstice entre deux lettres (u ≈ 0,0101) est pile dans l'axe → en zoomant on passe entre elles
+  const LOGO_L = 0.8, LOGO_C = [CORE.x - 0.0101 * LOGO_L, CORE.y], LOGO_HALF = 0.45;   // l'artère s'ouvre pour l'encadrer
+  const route = (y0, ymax, side) => {
     const p = [[-1.82, 0]]; let x = -1.82, y = 0;
     const step = (tx, ty) => { const dy = ty - y; if (Math.abs(dy) > 1e-6) { x += Math.abs(dy); y = ty; p.push([x, y]); } if (tx > x) { x = tx; p.push([x, y]); } };
     step(-1.6, y0);
     while (x < 3.45) {
-      const nx = Math.min(3.5, x + rr(0.12, 0.42)), ny = Math.abs(nx - CORE.x) < 0.3 ? CORE.y : clamp(y + rr(-0.22, 0.22), -ymax, ymax);
-      if (x < CORE.x && nx + Math.abs(ny - y) > CORE.x - 0.05) { step(CORE.x - 0.1 - Math.abs(CORE.y - y), y); step(CORE.x + 0.16, CORE.y); continue; }
+      const nx = Math.min(3.5, x + rr(0.12, 0.42)), around = Math.abs(nx - LOGO_C[0]) < LOGO_HALF + 0.15;
+      const ny = around ? side * rr(0.15, 0.22) : clamp(y + rr(-0.22, 0.22), -ymax, ymax);
       step(nx, ny);
     }
     return p;
   };
-  const A = route(0.18, 0.42), B = route(-0.16, 0.38);
+  const A = route(0.18, 0.42, 1), B = route(-0.16, 0.38, -1);
   // décalage d'une polyligne (onglets aux coins)
   const offset = (p, d) => p.map((v, i) => {
     const a = p[Math.max(0, i - 1)], c = p[Math.min(p.length - 1, i + 1)];
@@ -1061,6 +1086,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     // boucles hexagonales accrochées au tracé
     for (let k = 0; k < 4; k++) {
       const i = 1 + (R() * (P.length - 2) | 0), [cx, cy] = P[i], hw = rr(0.07, 0.11), hh = rr(0.045, 0.07), c = hh * 0.6;
+      if (Math.abs(cx - LOGO_C[0]) < LOGO_HALF + 0.12) continue;
       const hex = [[cx - hw, cy], [cx - hw + c, cy + hh], [cx + hw - c, cy + hh], [cx + hw, cy], [cx + hw - c, cy - hh], [cx - hw + c, cy - hh], [cx - hw, cy]];
       strip(hex, z + 0.003, 0.005, 0.005, EDGE); strip(offset(hex, 0.012), z + 0.003, 0.0025, 0.003, FIB[0]);
     }
@@ -1093,14 +1119,14 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
   mesh.count = k; mesh.frustumCulled = false; chip.add(mesh);
   // « @arasaka » : texte en relief, incandescent, posé dans la puce le long de l'artère
   {
-    const L = 0.78, base = new THREE.Vector2(1.75, -0.33), shapes = [];
+    const L = LOGO_L, base = new THREE.Vector2(...LOGO_C), shapes = [];
     for (const { o, h } of ARASAKA_LOGO) {
       const sh = new THREE.Shape(o.map(([u, v]) => new THREE.Vector2(base.x + u * L, base.y + v * L)));
       h.forEach(hh => sh.holes.push(new THREE.Path(hh.map(([u, v]) => new THREE.Vector2(base.x + u * L, base.y + v * L)))));
       shapes.push(sh);
     }
     const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.004, bevelEnabled: false });
-    const txt = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.4, 0.48), toneMapped: false }));
+    const txt = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 0.004, 0.035), toneMapped: false }));
     txt.position.z = ZA + 0.02; chip.add(txt);
   }
 }
