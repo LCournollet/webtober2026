@@ -250,7 +250,7 @@ function notchInner(xi, x0, s, yc, dir) {
   return dir > 0 ? p : p.reverse();
 }
 const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y photo)
-const WINDOW = IMG([...RC_FL, ...RC_FR, ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [751, 642], [751, 1130], ...TAIL_PX,
+const WINDOW = IMG([...RC_FL, ...RC_FR, ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,   // flanc droit du verre aligné sur la bande et la poignée (755) : une arête droite jusqu'à l'arrière
   [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1)]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
 // fentes rectangulaires entre les broches (même taille), creusées jusqu'au bout de la pente avant
@@ -711,11 +711,11 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
 }
 [pieceI([[488, 1204], [590, 1204], [590, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 }),
- pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 })].forEach(unfoldBandUV);   // arêtes arrondies
+ pieceI([[755, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 })].forEach(unfoldBandUV);   // arêtes arrondies
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
-CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[751, 1128], [755, 1204], [650, 1272], [650, 1220]]));
+CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[755, 1128], [755, 1204], [650, 1272], [650, 1220]]));
 [FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
 // blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
 const PAD_TOP = TH + 0.002;
