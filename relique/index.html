@@ -738,8 +738,14 @@ const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.0
   for (let i = 0; i < 900; i++) { const a = r(); g.fillStyle = `rgba(255,${90 + a * 120 | 0},${150 + a * 80 | 0},${0.25 + r() * 0.75})`; g.fillRect(r() * 256, r() * 96, 1 + (r() < 0.15), 1 + (r() < 0.15)); }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  const LIP = 0.028;                                 // fines arêtes de métal gardées en haut et en bas du fond de l'encoche
+  for (const [x0, s, yc, xi] of [[747, -1, NY.R, 709], [488, 1, NY.L1, 526], [488, 1, NY.L2, 526]]) {
+    const lining = [...glassNotch(xi, x0, s, yc, 1), ...notchInner(xi, x0, s, yc, 1).reverse()];   // l'ancienne paroi, réduite à deux lamelles
+    pieceI(lining, 0, LIP, knifeMat(metal), { bevel: 0.004, seg: 2 });
+    pieceI(lining, TH - LIP, TH, knifeMat(metal), { bevel: 0.004, seg: 2 });
+  }
   for (const [x0, s, yc] of [[747, -1, NY.R], [488, 1, NY.L1], [488, 1, NY.L2]]) {
-    const H = TH - 0.04, m = new THREE.Mesh(new THREE.PlaneGeometry(NOTCH.Wf * PX, H), mat);
+    const H = TH - 2 * LIP - 0.01, m = new THREE.Mesh(new THREE.PlaneGeometry(NOTCH.Wf * PX, H), mat);
     m.geometry.rotateX(s > 0 ? Math.PI / 2 : -Math.PI / 2);
     const [p] = IMG([[x0 + s * (NOTCH.D - 0.6), yc]]); m.position.set(p[0], p[1], (TH - 0.012) / 2); m.renderOrder = 11; chip.add(m);   // juste devant la paroi du verre (sinon masquée par sa profondeur)
   }
