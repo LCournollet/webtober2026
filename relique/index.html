@@ -748,7 +748,7 @@ function insidePlate(x, y, margin) {
 { // empreintes "pointe de stylo" : la plaque est percée, une cuvette sphérique ferme chaque trou
   const pts = [], back = [];                         // back : empreintes du dos seulement, là où le dessus porte le logo
   const DX = 30, DY = DX * Math.sqrt(3) / 2;          // grille hexagonale, moins dense
-  for (let row = -1, y = 1302 - DY; y <= 1632; row++, y += DY) for (let x = 540 + (row & 1) * DX / 2; x <= 712; x += DX) {   // rangée -1 : la nouvelle zone de caoutchouc à l'avant
+  for (let row = -1, y = 1302 - DY; y <= 1632; row++, y += DY) for (let x = 625 - 4 * DX + (row & 1) * DX / 2; x <= 712; x += DX) {   // grille centrée sur l'axe de la plaque (x 625) ; rangée -1 : la zone de caoutchouc à l'avant
     if (x > 586 && x < 666 && y > 1290 && y < 1497) continue;
     if (x > 556 && x < 660 && y < 1300) continue;    // route de verre entre la bande et la capsule
     if (!insidePlate(x, y, 10)) continue;
