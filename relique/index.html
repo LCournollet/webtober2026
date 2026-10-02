@@ -533,12 +533,15 @@ const DMAP = (() => {
     return (g[k] * (1 - u) + g[k + 1] * u) * (1 - v) + (g[k + NX + 1] * (1 - u) + g[k + NX + 2] * u) * v; };
   return { clip: (x, y) => look(clip, x, y), glass: (x, y) => look(glass, x, y) };
 })();
-const Z_GLASS = [0.016, TH - 0.03], Z_RAIL = 0.035;          // dans le verre / sous le métal (autour du milieu de l'arête)
+const Z_GLASS = [0.016, TH - 0.03], Z_RAIL = 0.035;
+// logo Arasaka au premier plan : posé juste sous la surface du verre, rien de l'intérieur ne passe au-dessus de lui
+const LOGO_Z = TH - 0.042, LOGO_BOX = [CORE.x - 0.0101 * 0.8 - 0.44, CORE.x - 0.0101 * 0.8 + 0.44, CORE.y - 0.075, CORE.y + 0.075];          // dans le verre / sous le métal (autour du milieu de l'arête)
 // les deux blocs de métal sur les rails : l'intérieur s'en tient à distance (sinon les points lumineux débordent sur leurs faces et scintillent)
 const PAD_BOX = [[694, 595, 747, 642], [488, 816, 545, 858]].map(([x0, y0, x1, y1]) => { const [a] = IMG([[x0, y0]]), [b] = IMG([[x1, y1]]); return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; });
 const nearPad = (x, y, m) => PAD_BOX.some(([x0, y0, x1, y1]) => x > x0 - m && x < x1 + m && y > y0 - m && y < y1 + m);
 const fitsInside = (x, y, z, m) => {
   if (DMAP.clip(x, y) < m || nearPad(x, y, m + 0.03)) return false;
+  if (z > LOGO_Z - 0.012 && x > LOGO_BOX[0] && x < LOGO_BOX[1] && y > LOGO_BOX[2] && y < LOGO_BOX[3]) return false;
   if (DMAP.glass(x, y) >= m) return z > Z_GLASS[0] && z < Z_GLASS[1];
   return Math.abs(z - TH / 2) < Z_RAIL;
 };
@@ -838,8 +841,8 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
 }
 // blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
 const PAD_TOP = TH + 0.002;
-pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });   // arêtes arrondies
-pieceI(rectP(488, 816, 545, 858), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });
+pieceI(rectP(694, 595.7, 747, 641.3), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });   // arêtes arrondies
+pieceI(rectP(488, 816.7, 545, 857.3), 0, PAD_TOP, knifeMat(metal), { bevel: 0.014, bevelT: 0.014, seg: 5 });
 /* plaque en caoutchouc : posée plus bas (après le calcul des empreintes) */
 // broches : elles sortent de l'arête avant, centrées à mi-épaisseur
 [548, 598, 648, 698].forEach(xc => {
@@ -1059,7 +1062,7 @@ const INTERIOR_FX = [];
   const col = (k) => { const r = R(), c = r < 0.04 ? [1.2, 0.05, 0.13] : r < 0.3 ? [1.0, 0.004, 0.035] : [0.55, 0.001, 0.015]; return c.map(v => v * k); };   // pourpre, quelques étincelles plus claires
   const put = (x, y, z, s, c) => { z = zFit(x, y, clamp(z, ZMIN, ZMAX)); if (!fitsInside(x, y, z, s * 0.6)) return; P.push(x, y, z); S.push(s); C.push(...c); };
   LV.forEach(sc => {
-    const somas = sc === 1 ? 70 : 34;
+    const somas = sc === 1 ? 24 : sc > 0.2 ? 6 : sc > 0.05 ? 16 : 34;   // peu d'amas aux échelles visibles de loin : le centre reste aéré
     for (let n = 0; n < somas; n++) {
       const p = pick(sc); if (!p) continue;
       const cz = zAt(sc, rr(0.15, 0.85)), rad = rr(0.012, 0.03) * sc;
@@ -1083,23 +1086,27 @@ const INTERIOR_FX = [];
     for (let i = 0, n = sc === 1 ? 40000 : 16000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.14)); }
   });
   // réseaux qui naissent sur les bords du verre et poussent vers le centre en se ramifiant (amas de points aux embranchements)
-  for (let n = 0; n < 150; n++) {
-    const fromSide = R() < 0.8, sy = R() < 0.5 ? 1 : -1;
+  for (let n = 0; n < 280; n++) {
+    const fromSide = true, sy = R() < 0.5 ? 1 : -1;   // uniquement depuis les deux grands bords (ceux des extrémités traçaient des traînées dans la longueur)
     let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? sy * rr(0.5, 0.62) : rr(-0.5, 0.5);
     if (!inGlass(x, y)) continue;
-    const stack = [[x, y, rr(ZMIN + 0.02, ZMAX - 0.02), fromSide ? rr(-0.5, 0.5) : (x < 0 ? 1 : -1), fromSide ? -sy : rr(-0.4, 0.4), 0]];
-    let budget = 2600;
+    const stack = [[x, y, rr(ZMIN + 0.02, ZMAX - 0.02), R() < 0.5 ? 1 : -1, -sy * 0.2, 0]];   // départ le long du bord
+    let budget = 1900;                               // dense et ramifié sur les bords, il s'éclaircit en avançant vers l'axe
     while (stack.length && budget > 0) {
       let [px, py, pz, dx, dy, depth] = stack.pop();
       for (let st = 0, len = 40 + (R() * 90 | 0); st < len && budget > 0; st++, budget--) {
         // dérive vers l'axe central, avec du jeu
-        const toC = -py * 0.08 + rr(-0.35, 0.35); const a = Math.atan2(dy, dx) + toC * 0.5 * Math.sign(dx || 1);
-        dx = Math.cos(a); dy = Math.sin(a);
+        // cap vers le centre : on oriente la direction vers l'axe (y = 0) avec du jeu, comme une pousse qui cherche la lumière
+        // près du bord la pousse longe la relique, puis plonge de plus en plus franchement vers l'axe
+        const e0 = clamp((Math.abs(py) - 0.05) / 0.55, 0, 1), slope = 0.18 + 0.9 * (1 - e0);
+        const tgt = Math.atan2(-Math.sign(py) * slope, Math.sign(dx) || 1), cur = Math.atan2(dy, dx), diff = Math.atan2(Math.sin(tgt - cur), Math.cos(tgt - cur));
+        const a = cur + diff * 0.1 + rr(-0.3, 0.3); dx = Math.cos(a); dy = Math.sin(a);
         const stp = 0.007, ox = px, oy = py, oz = pz; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
-        if (!inGlass(px, py) || Math.abs(py) < 0.02 * R()) break;
+        const edge = clamp((Math.abs(py) - 0.05) / 0.55, 0, 1);   // 1 au bord, 0 au centre
+        if (!inGlass(px, py) || Math.abs(py) < 0.05 || R() < 0.02 * (1 - edge) ** 2) break;
         link(ox, oy, oz, px, py, pz, 1.1 - depth * 0.15);                                 // le filament
         if (R() < 0.3) put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.5 - depth * 0.06));
-        if (R() < 0.03 && depth < 5) {
+        if (R() < 0.07 * edge * edge && depth < 6) {
           stack.push([px, py, pz, -dy * Math.sign(R() - 0.5), dx, depth + 1]);
           for (let i = 0; i < 50; i++) put(px + gauss() * 0.008, py + gauss() * 0.008, pz + gauss() * 0.005, rr(0.002, 0.006), col(0.6));   // amas à l'embranchement
         }
@@ -1241,7 +1248,7 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     }
     const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.004, bevelEnabled: false });
     const txt = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 0.004, 0.035), toneMapped: false }));
-    txt.position.z = ZA + 0.02; chip.add(txt);
+    txt.position.z = LOGO_Z; txt.renderOrder = 14; chip.add(txt);
   }
 }
 
@@ -1543,7 +1550,11 @@ function tick(dt) {
     // la rotation libre dépend de la distance réelle : en tournant, les bouts de la relique balaient une sphère autour du point visé —
     // on efface la rotation avant que la caméra n'y entre (sinon elle traverse le métal)
     const fx = CENTER.x + (CORE.x - CENTER.x) * smooth(0, 0.28, z), reach = Math.max(5.1 - fx, fx + 5.0) + 0.6;   // bouts : broches x≈5,1 / arrière x≈−5,0
-    const free = smooth(reach + 0.2, reach + 2.6, d);
+    // angle sûr : en tournant de θ, un bout à la distance « reach » s'avance de reach·sin θ vers la caméra — on garde une marge
+    const thMax = d > reach + 0.6 ? Infinity : Math.asin(clamp((d - 0.05 - Math.min(d * 0.5, 0.12)) / reach, 0, 1)) * 0.85;
+    spin.yaw = Math.atan2(Math.sin(spin.yaw), Math.cos(spin.yaw));   // tours complets ramenés à ±π (pas de saut)
+    spin.yaw = clamp(spin.yaw, -thMax, thMax); spin.pitch = clamp(spin.pitch, -Math.min(0.9, thMax), Math.min(0.9, thMax));
+    const free = 1;
     qa.setFromAxisAngle(X, -0.95 * tilt); qb.setFromAxisAngle(Z, 0.3 * tilt);
     chip.quaternion.copy(qa).multiply(qb);
     qa.setFromAxisAngle(X, spin.pitch * free); qb.setFromAxisAngle(Y_AX, spin.yaw * free);
