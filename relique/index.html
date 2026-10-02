@@ -791,15 +791,18 @@ new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts
   const ledLight = new THREE.PointLight('#ff2a3a', 0.3, 0.9, 1.6); ledLight.position.set(LED[0], LED[1], 0.1); chip.add(ledLight);
   dome.onBeforeRender = () => { const k = 0.8 + 0.2 * Math.sin(performance.now() / 900); ledLight.intensity = 0.3 * k; dome.material.emissiveIntensity = 1.6 * k; };
 }
-// connecteur en E, de part et d'autre de la route de verre
-pieceI(rectP(565, 1220, 604, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 }); pieceI(rectP(650, 1220, 675, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 });
-pieceI(rectP(578, 1230, 600, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 }); pieceI(rectP(654, 1230, 670, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 });
 // bouton latéral : lentille douce en plastique bordeaux translucide, bord extérieur légèrement ondulé, petite inscription blanche
 const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux opaque, finition légèrement dépolie
   color: '#6e0b1d', metalness: 0, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.12,
   sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.8,
   emissive: '#2a0309', emissiveIntensity: 0.6,
 });
+// connecteur en E : un cadre en plastique bordeaux qui enjambe la route de verre (barres épaisses, arêtes arrondies),
+// avec une languette au milieu et deux retours crochus de l'autre côté ; le même au dos, en miroir
+const E_CONN = [[568, 1222], [672, 1222], [672, 1237], [665, 1237], [665, 1229], [575, 1229], [575, 1239.5], [623, 1239.5], [623, 1234], [630, 1234],
+  [630, 1252], [623, 1252], [623, 1246.5], [575, 1246.5], [575, 1257], [665, 1257], [665, 1249], [672, 1249], [672, 1264], [568, 1264]];   // barres de 7 px
+pieceI(E_CONN, BAND_TOP - 0.01, TH + 0.016, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
+pieceI(E_CONN, -0.016, BAND_BOT + 0.01, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
 {
   const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 6, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé : petit plat qui monte droit au pied de la première bosse
