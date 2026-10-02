@@ -250,16 +250,31 @@ function notchInner(xi, x0, s, yc, dir) {
   return dir > 0 ? p : p.reverse();
 }
 const NY = { R: 478, L1: 562, L2: 700, G: 1500 };    // centres des encoches (y photo)
-const WINDOW = IMG([...RC_FL, ...RC_FR, ...notchInner(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,   // flanc droit du verre aligné sur la bande et la poignée (755) : une arête droite jusqu'à l'arrière
-  [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...notchInner(526, 488, 1, NY.L2, -1), ...notchInner(526, 488, 1, NY.L1, -1)]);
+// encoche « ouverte » : elle traverse tout le rail (plus de paroi de métal au fond) et mord de quelques px dans le verre.
+// c(…) : points où ses pans coupent le bord intérieur du rail ; glassNotch : contour du verre au fond de l'encoche
+const notchCut = (xi, x0, yc) => { const { Wo, Wf, D } = NOTCH, w = Wo - (Wo - Wf) * Math.abs(xi - x0) / D; return [[xi, yc - w / 2], [xi, yc + w / 2]]; };
+function glassNotch(xi, x0, s, yc, dir) {
+  const { Wf, D } = NOTCH, [c1, c2] = notchCut(xi, x0, yc), p = [c1, [x0 + s * D, yc - Wf / 2], [x0 + s * D, yc + Wf / 2], c2];
+  return dir > 0 ? p : p.reverse();
+}
+const WINDOW = IMG([...RC_FL, ...RC_FR, ...glassNotch(709, 747, -1, NY.R, 1), [713, 595], [693, 595], [693, 642], [755, 642], [755, 1130], ...TAIL_PX,   // flanc droit du verre aligné sur la bande et la poignée (755) : une arête droite jusqu'à l'arrière
+  [488, 1205], [488, 858], [546, 858], [546, 816], [526, 816], ...glassNotch(526, 488, 1, NY.L2, -1), ...glassNotch(526, 488, 1, NY.L1, -1)]);
 // tête + deux rails en une seule pièce de métal (pas de jointure)
 // fentes rectangulaires entre les broches (même taille), creusées jusqu'au bout de la pente avant
 const SLOT = { w: 12, d: 51 }, SLOT_X = [573, 623, 673];   // jusqu à la moitié du plat de la tête
 const SLOTS_PX = SLOT_X.flatMap(x => [[x - SLOT.w / 2, 300], [x - SLOT.w / 2, 300 + SLOT.d], [x + SLOT.w / 2, 300 + SLOT.d], [x + SLOT.w / 2, 300]]);
-const FRONT = IMG([[522, 300], ...SLOTS_PX, [722, 300], [747, 345],   // tête raccourcie de 25 px (broches plus près du verre)
-  ...notchOuter(747, -1, NY.R, 1), [747, 595], [747, 642], [693, 642], [693, 595], [713, 595], ...notchInner(709, 747, -1, NY.R, -1), ...rev(RC_FR),
-  ...rev(RC_FL), ...notchInner(526, 488, 1, NY.L1, 1), ...notchInner(526, 488, 1, NY.L2, 1), [526, 816], [546, 816], [546, 858],
-  [488, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 347]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
+const [cR1, cR2] = notchCut(709, 747, NY.R), [cL1a, cL1b] = notchCut(526, 488, NY.L1), [cL2a, cL2b] = notchCut(526, 488, NY.L2);
+const NO = NOTCH.Wo / 2;
+const FRONT_PIECES = [
+  // tête + départ des deux rails, jusqu'aux premières encoches
+  IMG([[522, 300], ...SLOTS_PX, [722, 300], [747, 345], [747, NY.R - NO], cR1, ...rev(RC_FR), ...rev(RC_FL), cL1a, [488, NY.L1 - NO], [488, 347]]),
+  // rail droit après l'encoche, avec le bloc du carré
+  IMG([[747, NY.R + NO], [747, 595], [747, 642], [693, 642], [693, 595], [713, 595], cR2]),
+  // rail gauche entre les deux encoches
+  IMG([[488, NY.L1 + NO], cL1b, cL2a, [488, NY.L2 - NO]]),
+  // rail gauche après la seconde encoche, avec le bloc du carré
+  IMG([[488, NY.L2 + NO], cL2b, [526, 816], [546, 816], [546, 858], [488, 858]]),
+];   // bord extérieur droit d'un bout à l'autre (plus de décroché)
 const GRIP_O = IMG([[488, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [508, 1668], [488, 1640], ...notchOuter(488, 1, NY.G, -1)]);
 // le caoutchouc arrière descend jusqu'à la bande noire : le métal ne garde que le bord (deux flancs + l'arrière)
 // + deux petites languettes de métal en trapèze qui avancent des flancs dans le caoutchouc, près de l'arrière (visibles dessus et dessous)
@@ -714,9 +729,24 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
  pieceI([[755, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber, { bevel: 0.014, bevelT: 0.03, seg: 6 })].forEach(unfoldBandUV);   // arêtes arrondies
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
+// au fond des encoches ouvertes, on voit l'intérieur à travers la tranche du verre : lueur rouge pailletée
+{
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const g = c.getContext('2d');
+  const grd = g.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, '#3a0010'); grd.addColorStop(0.5, '#8a0a2c'); grd.addColorStop(1, '#3a0010');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 96);
+  let sd = 5; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 900; i++) { const a = r(); g.fillStyle = `rgba(255,${90 + a * 120 | 0},${150 + a * 80 | 0},${0.25 + r() * 0.75})`; g.fillRect(r() * 256, r() * 96, 1 + (r() < 0.15), 1 + (r() < 0.15)); }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  for (const [x0, s, yc] of [[747, -1, NY.R], [488, 1, NY.L1], [488, 1, NY.L2]]) {
+    const H = TH - 0.04, m = new THREE.Mesh(new THREE.PlaneGeometry(NOTCH.Wf * PX, H), mat);
+    m.geometry.rotateX(s > 0 ? Math.PI / 2 : -Math.PI / 2);
+    const [p] = IMG([[x0 + s * (NOTCH.D - 0.6), yc]]); m.position.set(p[0], p[1], (TH - 0.012) / 2); m.renderOrder = 11; chip.add(m);   // juste devant la paroi du verre (sinon masquée par sa profondeur)
+  }
+}
 // tête, rails, poignée
-CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[755, 1128], [755, 1204], [650, 1272], [650, 1220]]));
-[FRONT, GRIP_FRAME].forEach(p => knifePiece(p, metal));
+CHIP_PARTS.push(WINDOW, ...FRONT_PIECES, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[755, 1128], [755, 1204], [650, 1272], [650, 1220]]));
+[...FRONT_PIECES, GRIP_FRAME].forEach(p => knifePiece(p, metal));
 // blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
 const PAD_TOP = TH + 0.002;
 pieceI(rectP(694, 595, 747, 642), 0, PAD_TOP, knifeMat(metal), { bevel: 0.004, seg: 2 });
