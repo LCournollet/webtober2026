@@ -730,28 +730,41 @@ knifePiece(GRIP_FRAME, metal);
       return Math.hypot(m[0] - p[0] - dx * t, m[1] - p[1] - dy * t) < 0.004;
     }));
   };
-  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const g = c.getContext('2d');
-  const grd = g.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, '#3a0010'); grd.addColorStop(0.5, '#8a0a2c'); grd.addColorStop(1, '#3a0010');
-  g.fillStyle = grd; g.fillRect(0, 0, 256, 96);
-  let sd = 5; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 900; i++) { const a = r(); g.fillStyle = `rgba(255,${90 + a * 120 | 0},${150 + a * 80 | 0},${0.25 + r() * 0.75})`; g.fillRect(r() * 256, r() * 96, 1 + (r() < 0.15), 1 + (r() < 0.15)); }
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  const glowMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  const sheenMat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', metalness: 0, roughness: 0.05, transparent: true, opacity: 0.18, clearcoat: 1, clearcoatRoughness: 0.03,
-    side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-  const LIP = 0.026, P = [], UV = [];
+  // vraie fenêtre : verre transmissif → on voit réellement ce qu'il y a derrière (l'intérieur de la relique).
+  // Le cadre avant passe en « transparent » (opacité 1) pour ne pas être capturé dans l'image que le verre réfracte.
+  const winMat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', metalness: 0, roughness: 0.04, transmission: 1, thickness: 0.06, ior: 1.45,
+    attenuationColor: '#ff6070', attenuationDistance: 0.8, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 0.8, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  // retrait d'un polygone convexe (dans le plan de la paroi) : l'arête de métal reste visible tout autour de la fenêtre
+  const inset = (pts, m) => {
+    pts = pts.filter((p, i) => { const q = pts[(i + 1) % pts.length]; return Math.hypot(p.x - q.x, p.y - q.y) > 1e-6; });
+    const n = pts.length; if (n < 3) return null;
+    const ar = pts.reduce((a, p, i) => { const q = pts[(i + 1) % n]; return a + p.x * q.y - q.x * p.y; }, 0), sg = ar > 0 ? 1 : -1;
+    const lines = pts.map((p, i) => { const q = pts[(i + 1) % n], dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy), nx = -dy / L * sg, ny = dx / L * sg;
+      return { p: [p.x + nx * m, p.y + ny * m], d: [dx, dy] }; });
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const A = lines[(i - 1 + n) % n], B = lines[i], den = A.d[0] * B.d[1] - A.d[1] * B.d[0];
+      if (Math.abs(den) < 1e-12) { out.push(new THREE.Vector2(...B.p)); continue; }
+      const t = ((B.p[0] - A.p[0]) * B.d[1] - (B.p[1] - A.p[1]) * B.d[0]) / den;
+      out.push(new THREE.Vector2(A.p[0] + A.d[0] * t, A.p[1] + A.d[1] * t));
+    }
+    const ar2 = out.reduce((a, p, i) => { const q = out[(i + 1) % n]; return a + p.x * q.y - q.x * p.y; }, 0);
+    return ar2 * ar > 0 ? out : null;                // trop petit : pas de fenêtre
+  };
+  const RIM = 0.022, P = [];
   const onWall = (ring, nr, A, B) => {
     if (!onNotch(A, B)) return;
     const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
-    // façade = la paroi rognée d'une lamelle en haut et en bas, posée à fleur (décalée d'un cheveu vers l'encoche)
-    const f = ring.map(p => [p[0] + nr[0] * 0.0012, p[1] + nr[1] * 0.0012, p[2] > TH / 2 ? p[2] - LIP : p[2] + LIP]);
-    const flat = f.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2]));
-    for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) { P.push(...f[k]); UV.push(flat[k].x * 4, flat[k].y * 3.2); }
+    const flat = inset(ring.map(p => new THREE.Vector2(((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L, p[2])), RIM);
+    if (!flat) return;
+    const to3 = v => [A[0] + dx / L * v.x + nr[0] * 0.0012, A[1] + dy / L * v.x + nr[1] * 0.0012, v.y];
+    for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) P.push(...to3(flat[k]));
   };
-  knifePiece(FRONT, metal, onWall);
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2));
-  chip.add(new THREE.Mesh(geo, glowMat));
-  const sheen = new THREE.Mesh(geo, sheenMat); sheen.renderOrder = 12; chip.add(sheen);
+  const front = knifePiece(FRONT, metal, onWall);
+  front.material = front.material.clone(); front.material.transparent = true; front.material.opacity = 1;
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.computeVertexNormals();
+  const win = new THREE.Mesh(geo, winMat); win.renderOrder = 11; chip.add(win);
 }
 // blocs des carrés rouges : de vrais cubes à faces droites, posés sur le bord (les pentes voisines viennent buter dessus)
 const PAD_TOP = TH + 0.002;
