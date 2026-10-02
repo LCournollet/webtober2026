@@ -799,41 +799,52 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
   const front = knifePiece(FRONT, metal, onWall);
   // cadre arrière plus fin : pentes ajustées pour garder le même petit plat ; ses encoches ont aussi leurs fenêtres
   const grip = knifePiece(GRIP_FRAME, metal, onWall, { c: 0.15, cBack: 0.09 });
-  // encoches arrière : petit compartiment « truqué » derrière chacune — quelques pistes et points incandescents enfermés
-  // dans le métal et le caoutchouc, qu'on ne voit qu'à travers les fenêtres
+  // encoches arrière : petit compartiment « truqué » derrière chacune — fond lumineux, nuage de points, amas de neurones,
+  // filaments et pistes enfermés dans le métal et le caoutchouc, qu'on ne voit qu'à travers les fenêtres.
+  // Tout suit le profil de l'arête (mince près du bord, pleine hauteur au-delà) pour couvrir la fenêtre sans percer les pentes.
   {
     let sd = 99; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, rr = (a, b) => a + (b - a) * R();
-    const cols = [new THREE.Color(1.6, 0.003, 0.03), new THREE.Color(0.45, 0.0008, 0.009), new THREE.Color(0.9, 0.002, 0.02)];
-    const items = [], fills = [];
+    const cols = [new THREE.Color(1.6, 0.003, 0.03), new THREE.Color(0.45, 0.0008, 0.009), new THREE.Color(0.9, 0.002, 0.02), new THREE.Color(1.2, 0.05, 0.13)];
+    const SLOPE = 22, half = d => Math.min(TH / 2 - 0.01, 0.046 + 0.085 * Math.min(d, SLOPE) / SLOPE);   // demi-hauteur dispo à la profondeur d (px) depuis le bord
+    const { Wo, Wf, D } = NOTCH, notchW = d => d >= D ? 0 : Wo - (Wo - Wf) * d / D;                    // largeur de l'encoche à la profondeur d
+    const items = [], slabs = [];
     for (const [x0, s, xIn] of [[755, -1, GRR - 45], [488, 1, GRL + 45]]) {
-      const notch = IMG(notchOuter(x0, s, NY.G, 1)), y0 = NY.G - 60, y1 = NY.G + 60;
-      const ok = (px, py) => { const [c] = IMG([[px, py]]); if (insidePoly(notch, ...c)) return false; const [lo, hi] = [Math.min(x0, xIn), Math.max(x0, xIn)];
-        return px > lo + 2 && px < hi - 2 && py > y0 && py < y1; };
-      for (let w = 0; w < 70; w++) {                 // pistes : petits tracés droits / 45°
-        let px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (!ok(px, py)) continue;
-        const z = TH / 2 + rr(-0.025, 0.025), wd = rr(0.005, 0.01), col = cols[R() * 3 | 0];
-        let d = (R() * 4 | 0) * 2; const D8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
-        for (let st = 0; st < 4; st++) {
-          if (R() < 0.4) d = (d + (R() < 0.5 ? 1 : 7)) % 8;
-          const L = rr(6, 18), nx = px + D8[d][0] * L, ny = py + D8[d][1] * L; if (!ok(nx, ny)) break;
-          items.push(['seg', IMG([[px, py]])[0], IMG([[nx, ny]])[0], z, wd, col]); px = nx; py = ny;
-        }
+      const yc = NY.G, y0 = yc - 62, y1 = yc + 62, dMax = Math.abs(xIn - x0);
+      const X = d => x0 + s * d;
+      // position libre ? (hors du vide de l'encoche, marge 2 px derrière ses parois) ; z dans la hauteur dispo
+      const ok = (d, py) => d > 1 && d < dMax - 1 && py > y0 && py < y1 && (d >= D + 2 || Math.abs(py - yc) > notchW(d) / 2 + 2);
+      const zr = (d, k = 1) => TH / 2 + rr(-1, 1) * half(d) * 0.88 * k;
+      const P3 = (d, py) => IMG([[X(d), py]])[0];
+      // nuage de points
+      for (let i = 0; i < 4200; i++) { const d = rr(0, dMax), py = rr(y0, y1); if (ok(d, py)) items.push(['dot', P3(d, py), null, zr(d), rr(0.0014, 0.0045), cols[R() < 0.12 ? 3 : R() * 3 | 0]]); }
+      // amas de neurones
+      for (let k = 0; k < 16; k++) { const cd = rr(4, dMax - 4), cy = rr(y0, y1), cz = zr(cd, 0.6);
+        for (let i = 0; i < 120; i++) { const d = cd + (R() + R() + R() - 1.5) * 5, py = cy + (R() + R() + R() - 1.5) * 5; if (ok(d, py)) items.push(['dot', P3(d, py), null, clamp(cz + rr(-0.012, 0.012), TH / 2 - half(d), TH / 2 + half(d)), rr(0.0012, 0.0035), cols[0]]); } }
+      // filaments neuronaux ramifiés
+      for (let f = 0; f < 90; f++) {
+        const st = [[rr(2, dMax - 2), rr(y0, y1), null, R() * Math.PI * 2, 0]];
+        while (st.length) { let [d, py, pz, a, dep] = st.pop(); if (pz === null) pz = zr(d, 0.8);
+          for (let k = 0; k < 30; k++) { a += rr(-0.5, 0.5); const nd = d + Math.cos(a) * 2, ny = py + Math.sin(a) * 2, nz = clamp(pz + rr(-0.005, 0.005), TH / 2 - half(nd) * 0.9, TH / 2 + half(nd) * 0.9);
+            if (!ok(d, py) || !ok(nd, ny)) break; items.push(['seg', P3(d, py), P3(nd, ny), nz, 0.0014, cols[R() < 0.3 ? 2 : 1]]); d = nd; py = ny; pz = nz;
+            if (R() < 0.09 && dep < 3) st.push([d, py, pz, a + rr(0.6, 1.2) * (R() < 0.5 ? 1 : -1), dep + 1]); } } }
+      // pistes : petits tracés droits / 45°
+      const D8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+      for (let w = 0; w < 70; w++) {
+        let d = rr(0, dMax), py = rr(y0, y1); if (!ok(d, py)) continue;
+        const z = zr(d, 0.5), wd = rr(0.004, 0.008), col = cols[R() * 3 | 0]; let dir = (R() * 4 | 0) * 2;
+        for (let st = 0; st < 4; st++) { if (R() < 0.4) dir = (dir + (R() < 0.5 ? 1 : 7)) % 8;
+          const L = rr(6, 16), nd = d + D8[dir][0] * L, ny = py + D8[dir][1] * L; if (!ok(nd, ny) || Math.abs(z - TH / 2) > half(Math.min(d, nd)) * 0.9) break;
+          items.push(['seg', P3(d, py), P3(nd, ny), z, wd, col]); d = nd; py = ny; }
       }
-      for (let i = 0; i < 1500; i++) { const px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, TH / 2 + rr(-0.035, 0.035), rr(0.0018, 0.006), cols[R() * 3 | 0]]); }
-      // amas de « neurones » : points serrés autour de quelques noyaux
-      for (let k = 0; k < 7; k++) { const cx = rr(Math.min(x0, xIn), Math.max(x0, xIn)), cy = rr(y0, y1), cz = TH / 2 + rr(-0.02, 0.02);
-        for (let i = 0; i < 90; i++) { const px = cx + (R() + R() + R() - 1.5) * 6, py = cy + (R() + R() + R() - 1.5) * 6; if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, cz + rr(-0.012, 0.012), rr(0.0015, 0.004), cols[0]]); } }
-      // filaments neuronaux : fines pousses ramifiées
-      for (let f = 0; f < 40; f++) {
-        const st = [[rr(Math.min(x0, xIn), Math.max(x0, xIn)), rr(y0, y1), TH / 2 + rr(-0.03, 0.03), R() * Math.PI * 2, 0]];
-        while (st.length) { let [px, py, pz, a, dep] = st.pop();
-          for (let k = 0; k < 28; k++) { a += rr(-0.5, 0.5); const nx = px + Math.cos(a) * 2.2, ny = py + Math.sin(a) * 2.2, nz = clamp(pz + rr(-0.004, 0.004), TH / 2 - 0.035, TH / 2 + 0.035);
-            if (!ok(px, py) || !ok(nx, ny)) break; items.push(['seg', IMG([[px, py]])[0], IMG([[nx, ny]])[0], nz, 0.0016, cols[R() < 0.3 ? 2 : 1]]); px = nx; py = ny; pz = nz;
-            if (R() < 0.08 && dep < 3) st.push([px, py, pz, a + rr(0.6, 1.2) * (R() < 0.5 ? 1 : -1), dep + 1]); } } }
-      // fond du compartiment : une lame de « verre » rouge sombre lumineux, entre le caoutchouc du dessus et du dessous
-      const lo = Math.min(x0, xIn) + 1, hi = Math.max(x0, xIn) - 1, nO = notchOuter(x0, s, NY.G, 1).map(([px, py]) => [px + s * 1.5, py]);   // juste derrière les parois de l'encoche
-      const fill = s < 0 ? [[hi, y0], ...nO, [hi, y1], [lo, y1], [lo, y0]] : [[lo, y0], ...nO, [lo, y1], [hi, y1], [hi, y0]];
-      fills.push(fill);
+      // fond lumineux en paliers : chaque tranche de profondeur prend la hauteur que l'arête laisse libre
+      const cuts = [0, 3, 6, 9, 12, 15, 18, 22, D + 1.5, dMax];
+      for (let k = 0; k < cuts.length - 1; k++) {
+        const da = cuts[k] + 0.5, db = cuts[k + 1], h = half(da) - 0.004;
+        if (da >= D + 1.5) { slabs.push([[[X(da), y0], [X(db), y0], [X(db), y1], [X(da), y1]], h]); continue; }
+        const wa = notchW(da) / 2 + 1.5, wb = notchW(Math.min(db, D)) / 2 + 1.5;
+        slabs.push([[[X(da), y0], [X(db), y0], [X(db), yc - wb], [X(da), yc - wa]], h]);
+        slabs.push([[[X(da), yc + wa], [X(db), yc + wb], [X(db), y1], [X(da), y1]], h]);
+      }
     }
     const box = new THREE.BoxGeometry(1, 1, 1), sph = new THREE.SphereGeometry(1, 8, 6), mat = new THREE.MeshBasicMaterial({ toneMapped: false });
     const segs = items.filter(i => i[0] === 'seg'), dots = items.filter(i => i[0] === 'dot');
@@ -841,8 +852,9 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
     segs.forEach(([, a, b, z, w, c], i) => { const dx = b[0] - a[0], dy = b[1] - a[1]; q.setFromAxisAngle(ZA, Math.atan2(dy, dx)); ms.setMatrixAt(i, m4.compose(new THREE.Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z), q, new THREE.Vector3(Math.hypot(dx, dy) + w, w, w * 0.6))); ms.setColorAt(i, c); });
     dots.forEach(([, a, , z, r, c], i) => { md.setMatrixAt(i, m4.compose(new THREE.Vector3(a[0], a[1], z), q.identity(), new THREE.Vector3(r, r, r))); md.setColorAt(i, c); });
     chip.add(ms, md);
-    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.0002, 0.008), toneMapped: false });   // fond sombre : le contenu ressort
-    fills.forEach(f => piece(IMG(f), TH / 2 - 0.045, TH / 2 + 0.045, fillMat, { bevel: 0 }));
+    // enveloppe vue de l'intérieur (faces arrière) : fond, plafond et sol du compartiment, derrière le contenu
+    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 0.0004, 0.016), toneMapped: false, side: THREE.BackSide });
+    slabs.forEach(([poly, h]) => piece(IMG(poly), TH / 2 - h, TH / 2 + h, fillMat, { bevel: 0 }));
   }
   front.material = front.material.clone(); front.material.transparent = true; front.material.opacity = 1;
   grip.material = front.material;                    // même exclusion pour le cadre arrière
