@@ -795,11 +795,10 @@ new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts
 pieceI(rectP(565, 1220, 604, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 }); pieceI(rectP(650, 1220, 675, 1266), BAND_TOP - 0.005, TH + 0.012, plum, { bevel: 0.006 });
 pieceI(rectP(578, 1230, 600, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 }); pieceI(rectP(654, 1230, 670, 1256), TH + 0.008, TH + 0.02, darkMetal, { bevel: 0.003, seg: 1 });
 // bouton latéral : lentille douce en plastique bordeaux translucide, bord extérieur légèrement ondulé, petite inscription blanche
-const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux translucide dépoli (effet brume), assez foncé
-  color: '#d0283f', metalness: 0, roughness: 0.38, transmission: 1, thickness: 0.18, ior: 1.49,
-  attenuationColor: '#7a0a1e', attenuationDistance: 0.3, clearcoat: 1, clearcoatRoughness: 0.08, sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.7,
-  emissive: '#5e0718', emissiveIntensity: 0.7,
-  transparent: true, opacity: 0.88,
+const burgundy = new THREE.MeshPhysicalMaterial({            // plastique bordeaux opaque, finition légèrement dépolie
+  color: '#6e0b1d', metalness: 0, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.12,
+  sheen: 0.5, sheenRoughness: 0.5, sheenColor: '#ff8095', specularIntensity: 0.7, envMapIntensity: 0.8,
+  emissive: '#2a0309', emissiveIntensity: 0.6,
 });
 {
   const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 6, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
