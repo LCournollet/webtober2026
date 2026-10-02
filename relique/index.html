@@ -137,7 +137,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 
-const chipScene = new THREE.Scene(); chipScene.background = new THREE.Color('#030102');
+const chipScene = new THREE.Scene(); chipScene.background = new THREE.Color('#010001');
 // studio photo produit : fond sombre, softboxes et bandes lumineuses → le chrome a de vrais contrastes
 chipScene.environment = (() => {
   const env = new THREE.Scene(); env.background = new THREE.Color('#202024');
@@ -155,6 +155,8 @@ chipScene.environment = (() => {
   panel(10, 3, 0, -8, -10, 0.5);              // rebond neutre (un rebond rouge teintait les parois des encoches)
   panel(6, 6, -8, 8, -10, 0.9);
   panel(30, 30, 0, 0, -16, 0.25);             // fond légèrement éclairé               // fill arrière
+  // néons rouges de la pièce (reflétés par le chrome) : bandes verticales fines tout autour
+  for (const [x, z, k] of [[-14, -6, 4.5], [-9, -12, 3.2], [9, -12, 3.6], [14, -5, 4.2], [-15, 6, 2.6], [15, 7, 2.4], [-4, -15, 2.2], [4, -15, 2.2]]) panel(0.35, 22, x, 0, z, k, '#ff1638');
   return new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
 })();
 chipScene.environmentIntensity = 1.0;
@@ -1312,6 +1314,45 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
   }
 }
 
+/* ---- décor « red room », façon pub de luxe : halo pourpre diffus, tubes néon verticaux à différentes profondeurs,
+   contre-jours rouges sur le métal. Placé loin derrière (la caméra est fixe, c'est la relique qui bouge). ---- */
+const BG_ROOM = new THREE.Group(), BG_FADE = { value: 1 };   // BG_FADE : le décor s'efface quand on plonge
+{
+  const bg = BG_ROOM; chipScene.add(bg);
+  // halo de fond : pourpre profond au centre, vignette noire, très légère respiration
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(140, 80), new THREE.ShaderMaterial({
+    depthWrite: false, toneMapped: false, uniforms: { uTime: waveUniforms.uTime },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `varying vec2 vUv; uniform float uTime;
+      void main(){ vec2 p = (vUv - .5) * vec2(1.75, 1.); float r = length(p);
+        float g = exp(-r * r * 9.) * (0.92 + 0.08 * sin(uTime * 0.6)) + 0.35 * exp(-pow(p.y + .42, 2.) * 40.) * exp(-p.x * p.x * 3.);   // halo + reflet au sol
+        gl_FragColor = vec4(vec3(0.075, 0.0015, 0.011) * g, 1.); }`,
+  }));
+  halo.position.set(0, 0, -70); bg.add(halo);
+  // tubes néon : un quad par tube, profil horizontal = cœur incandescent + halo doux (additif, le cœur passe dans le bloom)
+  // dessinés avec les objets opaques (avant le verre) : ils restent derrière la relique et se voient réfractés à travers le verre
+  const tubeMat = (k, flick) => new THREE.ShaderMaterial({
+    transparent: false, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    uniforms: { uK: { value: k }, uTime: waveUniforms.uTime, uFlick: { value: flick }, uFade: BG_FADE },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `varying vec2 vUv; uniform float uK, uTime, uFlick, uFade;
+      float h(float x){ return fract(sin(x * 91.7) * 43758.5); }
+      void main(){ float x = abs(vUv.x - .5) * 2.;
+        float core = exp(-x * x * 900.), glow = exp(-x * x * 14.) * 0.16 + exp(-x * 4.) * 0.035;
+        float ends = smoothstep(0., .06, vUv.y) * smoothstep(1., .94, vUv.y);
+        float fl = 1. - uFlick * step(.93, h(floor(uTime * 11.))) * .7;                 // de rares micro-coupures, comme un vrai néon
+        vec3 c = vec3(1., 0.035, 0.11) * glow + vec3(1., 0.32, 0.4) * core * 1.6;
+        gl_FragColor = vec4(c * uK * ends * fl * uFade, 1.); }`,
+  });
+  // peu de tubes, longueurs et profondeurs différentes, disposition irrégulière (x, y, z, hauteur, intensité, micro-coupures)
+  for (const [x, y, z, h, k, fl] of [[-15.5, 3, -44, 30, 2.4, 0], [-9.8, -6, -58, 24, 1.1, 0], [8.6, 5, -40, 26, 2.1, 1], [14.2, -4, -52, 34, 1.6, 0],
+                                     [22, 7, -62, 22, 0.8, 0], [-24, -2, -64, 28, 0.7, 0]]) {
+    const sc = -z / 40, t = new THREE.Mesh(new THREE.PlaneGeometry(1.3 * sc, h * sc), tubeMat(k, fl)); t.position.set(x * sc, y * sc, z); bg.add(t);
+  }
+  // contre-jours rouges : liserés pourpres sur les arêtes du métal, comme les néons de la pièce
+  const r1 = new THREE.DirectionalLight('#ff1030', 1.1); r1.position.set(-6, 2, -4); chipScene.add(r1);
+  const r2 = new THREE.DirectionalLight('#ff1a3a', 0.9); r2.position.set(6, -1, -3); chipScene.add(r2);
+}
 // lumière de studio : environnement + une lumière principale et un contre-jour
 const key = new THREE.DirectionalLight('#ffffff', 0.6); key.position.set(-3, 5, 6); chipScene.add(key);
 const rim = new THREE.DirectionalLight('#ffd6d6', 0.4); rim.position.set(4, -3, 2); chipScene.add(rim);
@@ -1623,6 +1664,8 @@ function tick(dt) {
     focus.copy(CENTER).lerp(CORE, smooth(0, 0.28, z)).applyQuaternion(chip.quaternion);
     chip.position.set(-focus.x, -focus.y, -d - focus.z);
     camA.near = Math.max(1e-5, d * 0.02); camA.far = d * 6 + 30; camA.updateProjectionMatrix();
+    BG_ROOM.scale.setScalar(Math.min(1, camA.far * 0.85 / 72));
+    BG_FADE.value = 1 - smooth(0.04, 0.2, z);                         // les néons s'éteignent en douceur quand on plonge   // décor ramené vers la caméra (même image) pour rester dans le champ
     updateLevels(d);
     $('mag').textContent = 'Mag ' + (D0 / d).toFixed(D0 / d < 100 ? 1 : 0) + '×';
     $('intro').classList.toggle('gone', z > 0.04);
