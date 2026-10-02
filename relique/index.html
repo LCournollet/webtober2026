@@ -819,7 +819,7 @@ CONN.forEach(c => {
   pieceI(c, -0.016, BAND_BOT + 0.01, burgundy, { bevel: 0.007, bevelT: 0.012, seg: 5 });
 });
 {
-  const Y0 = 1154, Y1 = 1256, XO = 768, DEPTH = 37, END = 6, pts = [];   // centré sur y 1205 ; rentré vers le centre : le V vient se poser sur le corps
+  const Y0 = 1185, Y1 = 1287, XO = 768, DEPTH = 48, END = 6, pts = [];   // centré sur y 1236 (milieu de la bande noire), plus profond ; rentré vers le centre : le V vient se poser sur le corps
   pts.push([XO - END, Y0]);                          // bout gauche écrasé : petit plat qui monte droit au pied de la première bosse
   for (let i = 0; i <= 280; i++) {                   // bord extérieur : 7 petites bosses rondes et des creux ronds entre elles ; commence et finit pile au pied d'une bosse
     const t = i / 280, y = Y0 + (Y1 - Y0) * t, c = Math.abs(((0.2 + t * 6.6) % 1) - 0.5);
@@ -842,7 +842,7 @@ CONN.forEach(c => {
   g.beginPath(); g.moveTo(cx - q, cy - q); g.lineTo(cx + q, cy + q); g.moveTo(cx + q, cy - q); g.lineTo(cx - q, cy + q); g.stroke();
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
   const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.17), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
-  const [a] = IMG([[755, 1205]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
+  const [a] = IMG([[750, 1236]]); lab.position.set(a[0], a[1], BTN_TOP + 0.0006); lab.renderOrder = 12;
   chip.add(lab);
 }
 
