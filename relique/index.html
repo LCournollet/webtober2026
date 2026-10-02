@@ -262,7 +262,13 @@ const FRONT = IMG([[522, 300], ...SLOTS_PX, [722, 300], [747, 345],   // tête r
   [488, 858], [488, 816], ...notchOuter(488, 1, NY.L2, -1), ...notchOuter(488, 1, NY.L1, -1), [488, 347]]);   // bord extérieur droit d'un bout à l'autre (plus de décroché)
 const GRIP_O = IMG([[492, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1)]);
 // le caoutchouc arrière descend jusqu'à la bande noire : le métal ne garde que le bord (deux flancs + l'arrière)
-const PLATE_RING = [[720, 1268], ...notchInner(720, 755, -1, NY.G, 1), ...RC_BR, ...RC_BL, ...notchInner(530, 492, 1, NY.G, -1), [530, 1268]];
+// + deux petites languettes de métal en trapèze qui avancent des flancs dans le caoutchouc, près de l'arrière (visibles dessus et dessous)
+const TAB = { y0: 1567, y1: 1617, d: 18, c: 11 };   // base le long du flanc, profondeur, retrait des pans
+const PLATE_RING = [[720, 1268], ...notchInner(720, 755, -1, NY.G, 1),
+  [720, TAB.y0], [720 - TAB.d, TAB.y0 + TAB.c], [720 - TAB.d, TAB.y1 - TAB.c], [720, TAB.y1],
+  ...RC_BR, ...RC_BL,
+  [530, TAB.y1], [530 + TAB.d, TAB.y1 - TAB.c], [530 + TAB.d, TAB.y0 + TAB.c], [530, TAB.y0],
+  ...notchInner(530, 492, 1, NY.G, -1), [530, 1268]];
 const PLATE = IMG([[530, 1268], [565, 1268], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1268], ...PLATE_RING.slice(0, -1)]);
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
 const GRIP_FRAME = IMG([[755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [512, 1668], [492, 1640], ...notchOuter(492, 1, NY.G, -1),
