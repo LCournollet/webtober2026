@@ -233,7 +233,9 @@ function roundCorner(prev, v, next, r = 10, n = 6) {
   return Array.from({ length: n + 1 }, (_, i) => [c[0] + Math.cos(s0 + da * i / n) * r, c[1] + Math.sin(s0 + da * i / n) * r]);
 }
 const RC_FL = roundCorner([526, 450], [526, 372], [709, 372]), RC_FR = roundCorner([526, 372], [709, 372], [709, 450]);    // verre / tête
-const RC_BR = roundCorner([720, 1560], [720, 1640], [530, 1640]), RC_BL = roundCorner([720, 1640], [530, 1640], [530, 1560]); // caoutchouc / cadre
+// cadre arrière aminci (flancs 27 px, arrière 18 px) : la taille extérieure ne bouge pas, le caoutchouc s'agrandit
+const GRL = 515, GRR = 728, GRB = 1650;
+const RC_BR = roundCorner([GRR, 1560], [GRR, GRB], [GRL, GRB]), RC_BL = roundCorner([GRR, GRB], [GRL, GRB], [GRL, 1560]); // caoutchouc / cadre
 const rev = a => a.slice().reverse();
 // encoches : une seule définition pour toutes (avant et arrière) — ouverture Wo le long de la puce, fond plat Wf, profondeur D,
 // liseré de métal L au fond ; le verre (ou la plaque) épouse l'encoche et la laisse dépasser un peu dans la matière
@@ -267,12 +269,12 @@ const GRIP_O = IMG([[488, 1268], [755, 1268], ...notchOuter(755, -1, NY.G, 1), [
 // le caoutchouc arrière descend jusqu'à la bande noire : le métal ne garde que le bord (deux flancs + l'arrière)
 // + deux petites languettes de métal en trapèze qui avancent des flancs dans le caoutchouc, près de l'arrière (visibles dessus et dessous)
 const TAB = { y0: 1567, y1: 1617, d: 12, c: 8 };   // base le long du flanc, profondeur, retrait des pans
-const PLATE_RING = [[720, 1268], ...notchInner(720, 755, -1, NY.G, 1),
-  [720, TAB.y0], [720 - TAB.d, TAB.y0 + TAB.c], [720 - TAB.d, TAB.y1 - TAB.c], [720, TAB.y1],
+const PLATE_RING = [[GRR, 1268], ...notchInner(GRR, 755, -1, NY.G, 1),
+  [GRR, TAB.y0], [GRR - TAB.d, TAB.y0 + TAB.c], [GRR - TAB.d, TAB.y1 - TAB.c], [GRR, TAB.y1],
   ...RC_BR, ...RC_BL,
-  [530, TAB.y1], [530 + TAB.d, TAB.y1 - TAB.c], [530 + TAB.d, TAB.y0 + TAB.c], [530, TAB.y0],
-  ...notchInner(530, 488, 1, NY.G, -1), [530, 1268]];
-const PLATE = IMG([[530, 1268], [565, 1268], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1268], ...PLATE_RING.slice(0, -1)]);
+  [GRL, TAB.y1], [GRL + TAB.d, TAB.y1 - TAB.c], [GRL + TAB.d, TAB.y0 + TAB.c], [GRL, TAB.y0],
+  ...notchInner(GRL, 488, 1, NY.G, -1), [GRL, 1268]];
+const PLATE = IMG([[GRL, 1268], [565, 1268], [565, 1290], [604, 1350], [604, 1372], [597, 1376], ...CAP_ARC(Math.PI, 0), [655, 1376], [650, 1372], [650, 1268], ...PLATE_RING.slice(0, -1)]);
 // cadre : contour extérieur puis bord de la plaque parcouru à l'envers, ouvert là où passe la route
 const GRIP_FRAME = IMG([[755, 1268], ...notchOuter(755, -1, NY.G, 1), [755, 1640], [735, 1668], [508, 1668], [488, 1640], ...notchOuter(488, 1, NY.G, -1),
   [488, 1268], ...PLATE_RING.slice().reverse()]);
@@ -542,7 +544,7 @@ const fitsInside = (x, y, z, m) => {
 };
 const segFits = (a, b, z, m) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(2, Math.ceil(L / 0.005)); for (let i = 0; i <= n; i++) { const t = i / n; if (!fitsInside(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, z, m)) return false; } return true; };
 const knifeMats = new Map(), knifeMat = mat => { if (!knifeMats.has(mat)) { const k = mat.clone(); k.side = THREE.DoubleSide; k.anisotropy = 0; k.roughnessMap = null; k.roughness = 0.34; k.color.set('#c2bec0'); knifeMats.set(mat, k); } return knifeMats.get(mat); };
-function knifePiece(pts0, mat, onWall) {
+function knifePiece(pts0, mat, onWall, opts = {}) {
   let pts = pts0.slice(); const area = pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
   if (area < 0) pts.reverse();                        // sens trigonométrique : extérieur à droite des arêtes
   const n = pts.length, outer = [], nrm = [], cE = [], rE = [], corner = [];
@@ -556,7 +558,7 @@ function knifePiece(pts0, mat, onWall) {
     if (inSlot) { outer.push(false); cE.push(0); rE.push(KNIFE.ridge); corner.push(false); continue; }   // parois des fentes : droites
     const side = Math.abs(o[1]) > 0.5 && Math.abs(my) > 0.7,  /* flancs + petits décrochés ; les encoches (pentes à 0.43, fond plus rentré) restent plates */ back = mx < -4.5, front = mx > 3.9, tip = front && o[0] > 0.9;
     outer.push(outside && (side || back || front));
-    cE.push(front ? KNIFE.cFront : back ? KNIFE.cBack : KNIFE.c); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
+    cE.push(front ? KNIFE.cFront : back ? (opts.cBack ?? KNIFE.cBack) : (opts.c ?? KNIFE.c)); rE.push(front ? KNIFE.ridgeFront : KNIFE.ridge); // coins avant = même pente que le bout des broches
     corner.push(outside && front && !tip);
   }
   // épaisseur de l'arête à chaque sommet (la plus forte des arêtes voisines en pente) : pas de fente aux jonctions
@@ -743,11 +745,10 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
 CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204], [755, 1272], [488, 1272]]), IMG([[755, 1128], [755, 1204], [650, 1272], [650, 1220]]));
-knifePiece(GRIP_FRAME, metal);
 // encoches du verre : leurs parois de métal sont évidées — une façade de verre (avec la lueur de l'intérieur) remplace le métal,
 // qui ne garde qu'une fine lamelle en haut et en bas, calée sur le profil de l'arête (l'arête elle-même ne change pas)
 {
-  const NOTCH_O = [notchOuter(747, -1, NY.R, 1), notchOuter(488, 1, NY.L1, 1), notchOuter(488, 1, NY.L2, 1)].map(IMG);
+  const NOTCH_O = [notchOuter(747, -1, NY.R, 1), notchOuter(488, 1, NY.L1, 1), notchOuter(488, 1, NY.L2, 1), notchOuter(755, -1, NY.G, 1), notchOuter(488, 1, NY.G, 1)].map(IMG);   // + les deux encoches arrière
   const onNotch = (A, B) => {
     const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
     return NOTCH_O.some(o => o.some((p, i) => {
@@ -793,7 +794,45 @@ knifePiece(GRIP_FRAME, metal);
     for (const t of THREE.ShapeUtils.triangulateShape(flat, [])) for (const k of t) P.push(...to3(flat[k]));
   };
   const front = knifePiece(FRONT, metal, onWall);
+  // cadre arrière plus fin : pentes ajustées pour garder le même petit plat ; ses encoches ont aussi leurs fenêtres
+  const grip = knifePiece(GRIP_FRAME, metal, onWall, { c: 0.15, cBack: 0.09 });
+  // encoches arrière : petit compartiment « truqué » derrière chacune — quelques pistes et points incandescents enfermés
+  // dans le métal et le caoutchouc, qu'on ne voit qu'à travers les fenêtres
+  {
+    let sd = 99; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, rr = (a, b) => a + (b - a) * R();
+    const cols = [new THREE.Color(1.6, 0.003, 0.03), new THREE.Color(0.45, 0.0008, 0.009), new THREE.Color(0.9, 0.002, 0.02)];
+    const items = [], fills = [];
+    for (const [x0, s, xIn] of [[755, -1, GRR - 45], [488, 1, GRL + 45]]) {
+      const notch = IMG(notchOuter(x0, s, NY.G, 1)), y0 = NY.G - 60, y1 = NY.G + 60;
+      const ok = (px, py) => { const [c] = IMG([[px, py]]); if (insidePoly(notch, ...c)) return false; const [lo, hi] = [Math.min(x0, xIn), Math.max(x0, xIn)];
+        return px > lo + 2 && px < hi - 2 && py > y0 && py < y1; };
+      for (let w = 0; w < 70; w++) {                 // pistes : petits tracés droits / 45°
+        let px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (!ok(px, py)) continue;
+        const z = TH / 2 + rr(-0.025, 0.025), wd = rr(0.005, 0.01), col = cols[R() * 3 | 0];
+        let d = (R() * 4 | 0) * 2; const D8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+        for (let st = 0; st < 4; st++) {
+          if (R() < 0.4) d = (d + (R() < 0.5 ? 1 : 7)) % 8;
+          const L = rr(6, 18), nx = px + D8[d][0] * L, ny = py + D8[d][1] * L; if (!ok(nx, ny)) break;
+          items.push(['seg', IMG([[px, py]])[0], IMG([[nx, ny]])[0], z, wd, col]); px = nx; py = ny;
+        }
+      }
+      for (let i = 0; i < 260; i++) { const px = rr(Math.min(x0, xIn), Math.max(x0, xIn)), py = rr(y0, y1); if (ok(px, py)) items.push(['dot', IMG([[px, py]])[0], null, TH / 2 + rr(-0.03, 0.03), rr(0.004, 0.009), cols[R() * 3 | 0]]); }
+      // fond du compartiment : une lame de « verre » rouge sombre lumineux, entre le caoutchouc du dessus et du dessous
+      const lo = Math.min(x0, xIn) + 1, hi = Math.max(x0, xIn) - 1, nO = notchOuter(x0, s, NY.G, 1).map(([px, py]) => [px + s * 1.5, py]);   // juste derrière les parois de l'encoche
+      const fill = s < 0 ? [[hi, y0], ...nO, [hi, y1], [lo, y1], [lo, y0]] : [[lo, y0], ...nO, [lo, y1], [hi, y1], [hi, y0]];
+      fills.push(fill);
+    }
+    const box = new THREE.BoxGeometry(1, 1, 1), sph = new THREE.SphereGeometry(1, 8, 6), mat = new THREE.MeshBasicMaterial({ toneMapped: false });
+    const segs = items.filter(i => i[0] === 'seg'), dots = items.filter(i => i[0] === 'dot');
+    const ms = new THREE.InstancedMesh(box, mat, segs.length), md = new THREE.InstancedMesh(sph, mat, dots.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), ZA = new THREE.Vector3(0, 0, 1);
+    segs.forEach(([, a, b, z, w, c], i) => { const dx = b[0] - a[0], dy = b[1] - a[1]; q.setFromAxisAngle(ZA, Math.atan2(dy, dx)); ms.setMatrixAt(i, m4.compose(new THREE.Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z), q, new THREE.Vector3(Math.hypot(dx, dy) + w, w, w * 0.6))); ms.setColorAt(i, c); });
+    dots.forEach(([, a, , z, r, c], i) => { md.setMatrixAt(i, m4.compose(new THREE.Vector3(a[0], a[1], z), q.identity(), new THREE.Vector3(r, r, r))); md.setColorAt(i, c); });
+    chip.add(ms, md);
+    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 0.0012, 0.03), toneMapped: false });
+    fills.forEach(f => piece(IMG(f), TH / 2 - 0.045, TH / 2 + 0.045, fillMat, { bevel: 0 }));
+  }
   front.material = front.material.clone(); front.material.transparent = true; front.material.opacity = 1;
+  grip.material = front.material;                    // même exclusion pour le cadre arrière
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.computeVertexNormals();
   const win = new THREE.Mesh(geo, winMat); win.renderOrder = 11; chip.add(win);
 }
@@ -839,8 +878,10 @@ function insidePlate(x, y, margin) {
   const r = 0.024, h = 0.005, Rs = (r * r + h * h) / (2 * h), th = Math.asin(r / Rs);   // creux léger : la hauteur du logo, en négatif
   const hole = ([x, y]) => Array.from({ length: 32 }, (_, i) => { const a = -i / 32 * Math.PI * 2; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; });
   const SKIN = 0.006;                                // peau du dos : seule percée aussi sous le logo
-  piece(PLATE, SKIN, TH, blackPlate, { holes: pts.map(hole), bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
-  piece(PLATE, 0, SKIN, blackPlate, { holes: [...pts, ...back].map(hole), bevel: 0 });
+  // caoutchouc marqué « transparent » (opacité 1) : comme le métal, il n'est pas capturé par les fenêtres → on voit le compartiment derrière
+  const plateMat = blackPlate.clone(); plateMat.transparent = true;
+  piece(PLATE, SKIN, TH, plateMat, { holes: pts.map(hole), bevel: 0 });          // pas de biseau : le bord du trou colle à la cuvette
+  piece(PLATE, 0, SKIN, plateMat, { holes: [...pts, ...back].map(hole), bevel: 0 });
   const cup = new THREE.SphereGeometry(Rs, 32, 6, 0, Math.PI * 2, Math.PI - th, th).rotateX(Math.PI / 2); // calotte tournée vers le bas (axe Z)
   const bowls = new THREE.InstancedMesh(cup, dimpleMat, pts.length), m = new THREE.Matrix4();
   pts.forEach(([x, y], i) => { m.compose(new THREE.Vector3(x, y, TH - h + Rs - 0.0002), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)); bowls.setMatrixAt(i, m); });
@@ -942,6 +983,7 @@ CONN.forEach(c => {
   chip.add(lab);
 }
 
+const INTERIOR_FX = [];
 /* ============================== intérieur en 3D ==============================
    Tout est en volume dans l'épaisseur du verre : un circuit imprimé sur plusieurs couches (pistes en relief,
    pastilles, composants) et un nuage saturé de « neurones » (amas + dendrites + brume de points).
@@ -1011,7 +1053,9 @@ CONN.forEach(c => {
   [segMesh, padMesh, compBody, compEnd].forEach(m => { m.frustumCulled = false; chip.add(m); });
 
   // ---- nuage de neurones : amas (somas), dendrites ramifiées, brume — points additifs, taille réelle dans le monde ----
-  const P = [], S = [], C = [];
+  const P = [], S = [], C = [], LP = [], LCOL = [];   // LP/LCOL : filaments (segments de lignes lumineuses)
+  const link = (x1, y1, z1, x2, y2, z2, k) => { z1 = zFit(x1, y1, z1); z2 = zFit(x2, y2, z2); if (!fitsInside(x1, y1, z1, 0.001) || !fitsInside(x2, y2, z2, 0.001)) return;
+    LP.push(x1, y1, z1, x2, y2, z2); const c = [0.32 * k, 0.0006 * k, 0.022 * k]; LCOL.push(...c, ...c); };
   const col = (k) => { const r = R(), c = r < 0.04 ? [1.2, 0.05, 0.13] : r < 0.3 ? [1.0, 0.004, 0.035] : [0.55, 0.001, 0.015]; return c.map(v => v * k); };   // pourpre, quelques étincelles plus claires
   const put = (x, y, z, s, c) => { z = zFit(x, y, clamp(z, ZMIN, ZMAX)); if (!fitsInside(x, y, z, s * 0.6)) return; P.push(x, y, z); S.push(s); C.push(...c); };
   LV.forEach(sc => {
@@ -1027,9 +1071,10 @@ CONN.forEach(c => {
         let [x, y, z, dx, dy, dz, depth] = stack.pop();
         for (let st = 0, len = 30 + (R() * 50 | 0); st < len && budget > 0; st++, budget--) {
           const a = rr(-0.35, 0.35); [dx, dy] = [dx * Math.cos(a) - dy * Math.sin(a), dx * Math.sin(a) + dy * Math.cos(a)]; dz = clamp(dz + rr(-0.2, 0.2), -0.6, 0.6);
-          const stp = 0.006 * sc; x += dx * stp; y += dy * stp; z += dz * stp * 0.5;
+          const stp = 0.006 * sc, ox = x, oy = y, oz = z; x += dx * stp; y += dy * stp; z += dz * stp * 0.5;
           if (!inRegion(sc, x, y)) break;
-          put(x + gauss() * stp * 0.3, y + gauss() * stp * 0.3, z, rr(0.002, 0.0045) * sc * (1 - depth * 0.15), col(0.45));
+          link(ox, oy, oz, x, y, z, 1 - depth * 0.15);                                     // le filament
+          if (R() < 0.35) put(x + gauss() * stp * 0.3, y + gauss() * stp * 0.3, z, rr(0.002, 0.0045) * sc * (1 - depth * 0.15), col(0.45));
           if (R() < 0.035 && depth < 4) stack.push([x, y, z, -dy, dx, dz, depth + 1]);
         }
       }
@@ -1038,7 +1083,7 @@ CONN.forEach(c => {
     for (let i = 0, n = sc === 1 ? 40000 : 16000; i < n; i++) { const p = pick(sc); if (p) put(p[0], p[1], zAt(sc, R()), rr(0.0012, 0.003) * sc, col(0.14)); }
   });
   // réseaux qui naissent sur les bords du verre et poussent vers le centre en se ramifiant (amas de points aux embranchements)
-  for (let n = 0; n < 95; n++) {
+  for (let n = 0; n < 150; n++) {
     const fromSide = R() < 0.8, sy = R() < 0.5 ? 1 : -1;
     let x = fromSide ? rr(-1.8, 3.6) : (R() < 0.5 ? rr(-1.85, -1.6) : rr(3.4, 3.65)), y = fromSide ? sy * rr(0.5, 0.62) : rr(-0.5, 0.5);
     if (!inGlass(x, y)) continue;
@@ -1050,9 +1095,10 @@ CONN.forEach(c => {
         // dérive vers l'axe central, avec du jeu
         const toC = -py * 0.08 + rr(-0.35, 0.35); const a = Math.atan2(dy, dx) + toC * 0.5 * Math.sign(dx || 1);
         dx = Math.cos(a); dy = Math.sin(a);
-        const stp = 0.007; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
+        const stp = 0.007, ox = px, oy = py, oz = pz; px += dx * stp; py += dy * stp; pz = clamp(pz + rr(-0.003, 0.003), ZMIN, ZMAX);
         if (!inGlass(px, py) || Math.abs(py) < 0.02 * R()) break;
-        put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.5 - depth * 0.06));
+        link(ox, oy, oz, px, py, pz, 1.1 - depth * 0.15);                                 // le filament
+        if (R() < 0.3) put(px + gauss() * 0.0015, py + gauss() * 0.0015, pz, rr(0.002, 0.005) * (1 - depth * 0.12), col(0.5 - depth * 0.06));
         if (R() < 0.03 && depth < 5) {
           stack.push([px, py, pz, -dy * Math.sign(R() - 0.5), dx, depth + 1]);
           for (let i = 0; i < 50; i++) put(px + gauss() * 0.008, py + gauss() * 0.008, pz + gauss() * 0.005, rr(0.002, 0.006), col(0.6));   // amas à l'embranchement
@@ -1083,6 +1129,11 @@ CONN.forEach(c => {
       void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d) * 4.; if (r > 1.) discard; gl_FragColor = vec4(vC * vA * (1. - r) * (1. - r), 1.); }`,
   });
   const cloud = new THREE.Points(cloudGeo, cloudMat); cloud.frustumCulled = false; cloud.renderOrder = 13; chip.add(cloud);
+  const fibGeo = new THREE.BufferGeometry();
+  fibGeo.setAttribute('position', new THREE.Float32BufferAttribute(LP, 3)); fibGeo.setAttribute('color', new THREE.Float32BufferAttribute(LCOL, 3));
+  const fib = new THREE.LineSegments(fibGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  fib.frustumCulled = false; fib.renderOrder = 13; chip.add(fib);
+  INTERIOR_FX.push({ geo: cloudGeo, stride: 1 }, { geo: fibGeo, stride: 2 });   // l'artère et le logo dégagent ensuite leur voisinage
   const setScale = () => { cloudMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camA.fov / 2))); };
   setScale(); addEventListener('resize', setScale);
   glassMat.depthWrite = false;                           // le nuage (transparent) reste visible à travers le dessus du verre
@@ -1112,6 +1163,25 @@ const ARASAKA_LOGO = [{"o":[[-0.44697,0.03662],[-0.4537,0.03325],[-0.45707,0.029
     return p;
   };
   const A = route(0.18, 0.42, 1, LED[1] + 0.05), B = route(-0.16, 0.38, -1, LED[1] - 0.05);
+  // on éclaircit le nuage et les filaments autour de l'artère et du logo pour qu'ils ressortent
+  {
+    const near = (x, y) => {
+      if (Math.abs(x - LOGO_C[0]) < LOGO_L / 2 + 0.06 && Math.abs(y - LOGO_C[1]) < 0.11) return true;
+      for (const P of [A, B]) for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i], ex = b[0] - a[0], ey = b[1] - a[1], t = clamp(((x - a[0]) * ex + (y - a[1]) * ey) / (ex * ex + ey * ey || 1), 0, 1); if (Math.hypot(x - a[0] - ex * t, y - a[1] - ey * t) < 0.07) return true; }
+      return false;
+    };
+    for (const { geo, stride } of INTERIOR_FX) {
+      const keep = [], n = geo.attributes.position.count / stride;
+      const pos = geo.attributes.position, big = i => stride === 1 ? geo.attributes.aSize.getX(i) > 0.0012 : Math.hypot(pos.getX(i * 2 + 1) - pos.getX(i * 2), pos.getY(i * 2 + 1) - pos.getY(i * 2)) > 0.003;
+      // seuls les éléments à l'échelle de la relique sont éclaircis : les détails microscopiques de la plongée restent intacts
+      for (let i = 0; i < n; i++) { const k = i * stride; if (!big(i) || !near(pos.getX(k), pos.getY(k)) || R() < 0.12) keep.push(i); }
+      for (const name of Object.keys(geo.attributes)) {
+        const at = geo.attributes[name], is = at.itemSize, out = new Float32Array(keep.length * stride * is);
+        keep.forEach((i, j) => { for (let k = 0; k < stride * is; k++) out[j * stride * is + k] = at.array[i * stride * is + k]; });
+        geo.setAttribute(name, new THREE.BufferAttribute(out, is));
+      }
+    }
+  }
   // décalage d'une polyligne (onglets aux coins)
   const offset = (p, d) => p.map((v, i) => {
     const a = p[Math.max(0, i - 1)], c = p[Math.min(p.length - 1, i + 1)];
