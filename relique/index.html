@@ -710,7 +710,7 @@ function unfoldBandUV(mesh) {                        // UV « dépliées » (voi
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); mesh.geometry = g;
 }
 [pieceI([[488, 1204], [604, 1204], [604, 1266], [565, 1266], [565, 1268], [492, 1268]], BAND_BOT, BAND_TOP, wireRubber),
- pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1266], [675, 1266], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
+ pieceI([[751, 1128], [755, 1204], [755, 1268], [650, 1268], [650, 1220], [675, 1220]], BAND_BOT, BAND_TOP, wireRubber)].forEach(unfoldBandUV);
 // verre
 const glass = piece(WINDOW, 0, TH - 0.012, glassMat, { bevel: 0.028, bevelT: 0.05, seg: 10 }); glass.renderOrder = 10; // un peu en retrait sous le métal, arêtes bien arrondies
 // tête, rails, poignée
