@@ -132,9 +132,10 @@
 // puis il recule et vient se poser à sa place, au-dessus de « Secure your soul »
 window.startLoader = () => {
   const p = document.getElementById('snake'), logo = document.getElementById('ldLogo'), L = p.getTotalLength();
-  p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; logo.style.visibility = 'visible';
+  const L0 = L + 0.2;   // départ un peu avant le tracé : l'embout arrondi ne laisse aucun point visible
+  p.style.strokeDasharray = L + ' ' + (L + 1); p.style.strokeDashoffset = L0; logo.style.visibility = 'visible';
   const t0 = performance.now(), T = 2400, ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  const step = now => { const k = Math.min(1, (now - t0) / T); p.style.strokeDashoffset = L * (1 - ease(k)); if (k < 1) requestAnimationFrame(step); else setTimeout(land, 250); };
+  const step = now => { const k = Math.min(1, (now - t0) / T); p.style.strokeDashoffset = L0 * (1 - ease(k)); if (k < 1) requestAnimationFrame(step); else setTimeout(land, 250); };
   requestAnimationFrame(step);
   function land() {
     const r = document.querySelector('#intro .logo svg').getBoundingClientRect(), e = ' 1.1s cubic-bezier(.7,0,.2,1)';
@@ -1595,11 +1596,25 @@ jobs.push(() => {
       bput(q[0] + Math.cos(a) * r, q[1] + bg3() * spread * 0.5, q[2] + Math.sin(a) * r, col.map(v => v * k), brr(0.0035, 0.007), -1, 1 - t, ph);
     }
   }
-  // le nuage où les câbles se perdent : un long panache qui continue sous les câbles, s'élargit et s'éteint en descendant
-  for (let i = 0; i < 70000; i++) {
-    const t = Math.pow(bR(), 0.8), y = -1.25 - t * 3.6, w = 0.45 + t * 1.1;                // t : 0 en haut → 1 tout en bas
-    const g = [bg3(), bg3()], k = brr(0.25, 0.9) * (1 - t) * (1 - t) * smooth(0, 0.12, t + 0.02) * Math.exp(-(g[0] * g[0] + g[1] * g[1]) * 0.15);
-    bput(CLOUD.x + g[0] * w * 0.6, y + bg3() * 0.08, CLOUD.z + g[1] * w * 0.55, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
+  // le voile : sous les câbles, un drapé de points qui s'évase comme une montagne (plis verticaux), touche le sol
+  // et s'étale en nappe qui se dissout vers l'horizon
+  const FLOOR = -2.9, top = -1.2, Rt = t => 0.35 + 3.3 * Math.pow(t, 1.8), folds = (a, t) => Math.sin(a * 9 + t * 3.1 + Math.sin(a * 4) * 1.7);
+  for (let i = 0; i < 95000; i++) {
+    const t = Math.pow(bR(), 0.85), a = bR() * 6.2832, f = folds(a, t);
+    if (bR() > 0.3 + 0.7 * Math.pow(0.5 + 0.5 * f, 2)) continue;                              // les points se massent sur les crêtes des plis
+    const r = Rt(t) * (1 + 0.07 * f) + bg3() * (0.03 + 0.08 * t), y = top + (FLOOR - top) * t + bg3() * 0.03;
+    const k = brr(0.25, 0.85) * (0.45 + 0.55 * (0.5 + 0.5 * f)) * (1 - 0.45 * t) * smooth(0, 0.08, t + 0.01);
+    bput(CLOUD.x + Math.cos(a) * r, y, CLOUD.z + Math.sin(a) * r * 0.85, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
+  }
+  for (let i = 0; i < 70000; i++) {                                                           // la nappe au sol, jusqu'à l'horizon
+    const a = bR() * 6.2832, x = -Math.log(1 - bR() * 0.995), r = Rt(1) + x * 2.6, f = folds(a, 1 + x * 0.4);
+    if (bR() > 0.35 + 0.65 * Math.pow(0.5 + 0.5 * f, 2)) continue;
+    const k = brr(0.2, 0.75) * Math.exp(-x * 0.9) * 0.55;
+    bput(CLOUD.x + Math.cos(a) * r, FLOOR + bg3() * 0.02 + Math.exp(-x * 2) * 0.05 * f, CLOUD.z + Math.sin(a) * r * 0.85, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.004, 0.009));
+  }
+  for (let i = 0; i < 30000; i++) {                                                           // brume intérieure, plus diffuse
+    const t = Math.pow(bR(), 0.8), a = bR() * 6.2832, r = Rt(t) * Math.sqrt(bR()) * 0.9, k = brr(0.1, 0.4) * (1 - t);
+    bput(CLOUD.x + Math.cos(a) * r, top + (FLOOR - top) * t, CLOUD.z + Math.sin(a) * r * 0.85, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.006));
   }
   for (let i = 0; i < 40; i++) {                                                            // quelques traînées qui prolongent les câbles dans le nuage
     let x = CLOUD.x + bg3() * 0.35, z = CLOUD.z + bg3() * 0.3, y = -1.5 - bR() * 0.6; const L = brr(1.2, 2.6), dx = bg3() * 0.15, dz = bg3() * 0.15;
@@ -1704,10 +1719,10 @@ function buildBrain() {
   });
   const stars = new THREE.Points(g, m); stars.frustumCulled = false; stars.renderOrder = -3; brainScene.add(stars);
 }
-camB.position.set(4.4, 0.45, 1.4);
+camB.position.set(5.6, 0.7, 1.8);
 const controls = new OrbitControls(camB, canvas);
-controls.target.set(0, -0.35, 0); controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = 1.72;
-controls.minDistance = 2.4; controls.maxDistance = 8; controls.autoRotateSpeed = 0.5; controls.enabled = false;
+controls.target.set(0, -0.95, 0); controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = 1.72;
+controls.minDistance = 2.4; controls.maxDistance = 10; controls.autoRotateSpeed = 0.5; controls.enabled = false;
 
 /* ============================== contenu ============================== */
 // Only quotes we're certain of. null = corrupted fragment, to be filled in.
@@ -1783,7 +1798,7 @@ function enterBrain() {   // l'écran est noyé dans le pourpre du neurone : on 
   mode = 'linking'; $('flood').style.opacity = 1;
   setTimeout(() => {
     mode = 'brain'; revealT = 0; document.body.classList.add('brain');
-    camB.position.set(4.4, 0.45, 1.4); controls.target.set(0, -0.35, 0); controls.update();
+    camB.position.set(5.6, 0.7, 1.8); controls.target.set(0, -0.95, 0); controls.update();
     renderPass.scene = brainScene; renderPass.camera = camB;
     bloom.strength = 0.35; bloom.threshold = 0.4; bloom.radius = 0.35;
     $('hint').textContent = 'Drag to rotate · click a region';
@@ -1834,7 +1849,7 @@ function tick(dt) {
   if (mode === 'chip' || mode === 'linking') {
     if (autoDive) zT = clamp(zT + dt * 0.12, 0, 1);
     z += (zT - z) * (1 - Math.exp(-3 * dt));
-    const D0 = d0(), d = D0 * Math.pow(D_END / D0, z), tilt = 1 - smooth(0, 0.3, z);   // à l'approche, vue plongeante : la caméra n'entre que par le dessus du verre
+    const D0 = d0(), d = D0 * Math.pow(D_END / D0, z) * (1 - 0.88 * smooth(0.95, 0.997, z)), tilt = 1 - smooth(0, 0.3, z);   // tout au bout : on fonce dans le neurone   // à l'approche, vue plongeante : la caméra n'entre que par le dessus du verre
     if (!drag) { spin.yaw += spin.vy; spin.pitch = clamp(spin.pitch + spin.vp, -0.9, 0.9); spin.vy *= Math.exp(-3 * dt); spin.vp *= Math.exp(-3 * dt); }
     // la rotation libre dépend de la distance réelle : en tournant, les bouts de la relique balaient une sphère autour du point visé —
     // on efface la rotation avant que la caméra n'y entre (sinon elle traverse le métal)
@@ -1860,8 +1875,8 @@ function tick(dt) {
     // le neurone final : un point flou qui grossit au bout de la plongée, puis noie l'écran dans le pourpre
     NEURON.material.uniforms.uA.value = smooth(0.45, 0.65, z); NEURON.quaternion.copy(chip.quaternion).invert();
     if (mode === 'chip') {
-      $('flood').style.opacity = smooth(0.968, 0.995, z);   // le pourpre n'envahit l'écran qu'au tout dernier moment
-      if (z > 0.994 && brainData.ready) enterBrain();   // (le cerveau se construit en tâche de fond ; on reste dans le pourpre s'il n'est pas prêt)
+      $('flood').style.opacity = smooth(0.985, 0.998, z);   // le pourpre n'envahit l'écran qu'au tout dernier moment
+      if (z > 0.9975 && brainData.ready) enterBrain();   // (le cerveau se construit en tâche de fond ; on reste dans le pourpre s'il n'est pas prêt)
     }
     const io = 1 - smooth(0.004, 0.045, z); $('intro').style.opacity = io; $('intro').style.pointerEvents = io < 0.5 ? 'none' : '';   // « Secure your soul » s'efface dès qu'on zoome
     const mag = D0 / d; $('mag').textContent = 'Mag ' + (mag < 10 ? mag.toFixed(1) : Math.round(mag).toLocaleString('en-US')) + '×';
