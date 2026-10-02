@@ -47,7 +47,7 @@
   body.pre #intro h1, body.pre #intro p, body.pre #dive, body.pre .logo span { opacity: 0; }
   body.pre .logo svg { visibility: hidden; }
   #intro h1, #intro p, .logo span { transition: opacity .9s ease .15s; }
-  #flood { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #ffd6e4 0%, #ff3d7a 14%, #b00a45 42%, #4a0420 78%, #22010e 100%); }
+  #flood { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #ff5a68 0%, #ef1032 16%, #9a061f 44%, #3e020b 78%, #1a0105 100%); }
   #flash.on { animation: flash .9s steps(10) forwards; }
   @keyframes flash { 0% { opacity: 0 } 10% { opacity: 1 } 25% { opacity: .3 } 35% { opacity: 1 } 70% { opacity: 1 } 100% { opacity: 0 } }
 
@@ -1420,10 +1420,10 @@ const NEURON = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMat
   vertexShader: `varying vec2 vU; void main(){ vU = uv * 2. - 1.; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
   fragmentShader: `uniform float uA, uTime; varying vec2 vU;
     void main(){ float r2 = dot(vU, vU), br = .85 + .15 * sin(uTime * 2.);
-      vec3 c = vec3(3., 1.1, 1.6) * exp(-r2 * 60.) * br + vec3(1.2, .03, .3) * exp(-r2 * 7.) * (1. - smoothstep(.6, 1., r2));
+      vec3 c = vec3(3.2, .1, .26) * exp(-r2 * 60.) * br + vec3(1.3, .004, .045) * exp(-r2 * 7.) * (1. - smoothstep(.6, 1., r2));
       gl_FragColor = vec4(c * uA, 1.); }`,
 }));
-NEURON.position.copy(CORE); NEURON.scale.setScalar(0.006); NEURON.renderOrder = 50; NEURON.frustumCulled = false; chip.add(NEURON);
+NEURON.position.copy(CORE); NEURON.scale.setScalar(0.0024); NEURON.renderOrder = 50; NEURON.frustumCulled = false; chip.add(NEURON);   // petit : il ne remplit l'écran qu'au tout dernier zoom
 // lumière de studio : environnement + une lumière principale et un contre-jour
 const key = new THREE.DirectionalLight('#ffffff', 0.6); key.position.set(-3, 5, 6); chipScene.add(key);
 const rim = new THREE.DirectionalLight('#ffd6d6', 0.4); rim.position.set(4, -3, 2); chipScene.add(rim);
@@ -1463,8 +1463,7 @@ function cerebrum(x, y, z) {
   return d;
 }
 const cerebellum = (x, y, z) => sdEll(x, y, z, 0, -0.42, -0.74, 0.5, 0.24, 0.32) + 0.006 * Math.sin(y * 90 + z * 30) + 0.03 * Math.exp(-(((x / 0.05)) ** 2));
-const stem = (x, y, z) => sdCap(x, y, z, 0, -0.18, -0.3, 0, -1.04, -0.44, 0.1);
-const outer = (x, y, z) => Math.min(cerebrum(x, y, z), smin(cerebellum(x, y, z), stem(x, y, z), 0.06));
+const outer = (x, y, z) => Math.min(cerebrum(x, y, z), cerebellum(x, y, z));   // sans tronc cérébral
 function callosum(x, y, z) {
   const qz = z / 0.42, qy = (y - 0.06) / 0.2, r = Math.hypot(qz, qy);
   const arc = qy > -0.25 ? Math.abs(r - 1) * 0.2 : 1;
@@ -1489,8 +1488,7 @@ const innerN = (x, y, z) => inner(x, y, z) + 0.04 * (fbm3(x * 7 + 5, y * 7 + 1, 
 const REG = { FRONTAL: 0, PARIETAL: 1, TEMPORAL: 2, OCCIPITAL: 3, CEREBELLUM: 4, STEM: 5, LIMBIC: 6, CALLOSUM: 7 };
 function regionOf(x, y, z, isInner) {
   if (isInner) return callosum(x, y, z) < limbic(x, y, z) ? REG.CALLOSUM : REG.LIMBIC;
-  const c = Math.abs(cerebrum(x, y, z)), b = Math.abs(cerebellum(x, y, z)), s = Math.abs(stem(x, y, z));
-  if (s < c && s < b) return REG.STEM;
+  const c = Math.abs(cerebrum(x, y, z)), b = Math.abs(cerebellum(x, y, z));
   if (b < c) return REG.CEREBELLUM;
   const w = (vnoise(x * 7 + 3, y * 7, z * 7) - 0.5) * 0.08;
   if (z < -0.72 + 0.12 * (y - 0.2) + w) return REG.OCCIPITAL;
@@ -1567,54 +1565,28 @@ jobs.push(() => {
     for (let j = 0; j < 70; j++) bput(x + bg3() * rad, y + bg3() * rad, z + bg3() * rad, [0.8, 0.06, 0.16], brr(0.002, 0.005), reg);
   }
 });
-// 2. la borne : un socle plein en nuage de points (fût légèrement évasé, gorge, embase), ombré par l'orientation — faces cachées masquées
-const PED = { y: -1.18, r: 0.62, h: 1.9 };
-const pedR = y => { const t = (PED.y - y) / PED.h; return PED.r + 0.05 * t + (t > 0.9 ? 0.06 : 0) - (Math.abs(t - 0.12) < 0.02 ? 0.025 : 0); };   // profil
+// 2. câbles : ils sortent du dessous du cerveau, descendent et se défont peu à peu dans un nuage de points
+const underside = (x, z) => { for (let y = -0.75; y < 0.4; y += 0.008) if (outer(x, y, z) < 0) return y; return null; };
+const CLOUD = { x: 0, y: -1.75, z: -0.15 };
 jobs.push(() => {
-  const { y: y0, r: R0, h } = PED;
-  for (let i = 0; i < 46000; i++) {                       // fût
-    const a = bR() * 6.2832, t = Math.pow(bR(), 1.25), y = y0 - t * h, r = pedR(y), k = (1 - t * 0.85) * brr(0.6, 1);
-    bput(Math.cos(a) * r, y, Math.sin(a) * r, [0.42 * k, 0.0015 * k, 0.014 * k], brr(0.003, 0.006), -1, -1, 0, [Math.cos(a), 0, Math.sin(a)]);
-  }
-  for (let i = 0; i < 16000; i++) {                       // plateau
-    const a = bR() * 6.2832, r = Math.sqrt(bR()) * R0, k = brr(0.4, 1) * (0.5 + 0.5 * r / R0);
-    bput(Math.cos(a) * r, y0, Math.sin(a) * r, [0.3 * k, 0.001 * k, 0.01 * k], brr(0.003, 0.005), -1, -1, 0, [0, 1, 0]);
-  }
-  for (let i = 0; i < 5000; i++) {                        // arête du plateau, à peine plus nette
-    const a = bR() * 6.2832, j = bg3() * 0.004;
-    bput(Math.cos(a) * (R0 + j), y0 + j, Math.sin(a) * (R0 + j), [0.6, 0.002, 0.02], 0.004, -1, -1, 0, [Math.cos(a) * 0.7, 0.7, Math.sin(a) * 0.7]);
-  }
-});
-// 3. câbles : des prises du plateau jusqu'au dessous du cerveau, et d'autres qui tombent de la borne et rampent au sol
-const underside = (x, z) => { for (let y = -1.15; y < 0.4; y += 0.008) if (outer(x, y, z) < 0) return y; return null; };
-const cable = (p0, p1, p2, p3, rad, n, col, flow) => {
-  const ph = bR();
-  for (let i = 0; i < n; i++) {
-    const t = bR(), u = 1 - t, b = [0, 1, 2].map(k => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
-    const a = bR() * 6.2832, rr = rad * Math.sqrt(bR());
-    bput(b[0] + Math.cos(a) * rr, b[1] + bg3() * rad * 0.5, b[2] + Math.sin(a) * rr, col, brr(0.0035, 0.007), -1, flow ? t : -1, ph);
-  }
-  for (let k = 0; k < 2; k++) { const t = k ? 0.002 : 0.998, u = 1 - t, b = [0, 1, 2].map(j => u * u * u * p0[j] + 3 * u * u * t * p1[j] + 3 * u * t * t * p2[j] + t * t * t * p3[j]); for (let i = 0; i < 14; i++) bput(b[0] + bg3() * rad * 1.4, b[1] + bg3() * rad * 0.8, b[2] + bg3() * rad * 1.4, [0.75, 0.003, 0.02], 0.005); }   // prises
-};
-jobs.push(() => {
-  const { y: y0, r: R0 } = PED;
-  for (let c = 0; c < 46; c++) {
+  for (let c = 0; c < 52; c++) {
     let tx, tz, ty = null;
-    for (let k = 0; k < 30 && ty === null; k++) { tx = bg3() * 0.22; tz = brr(-0.85, 0.35); ty = underside(tx, tz); }
+    for (let k = 0; k < 30 && ty === null; k++) { tx = bg3() * 0.24; tz = brr(-0.9, 0.35); ty = underside(tx, tz); }
     if (ty === null) continue;
-    const a = bR() * 6.2832, sr = Math.sqrt(bR()) * (R0 - 0.08), s = [Math.cos(a) * sr, y0, Math.sin(a) * sr];
-    const L = ty - y0, sway = [bg3() * 0.14, 0, bg3() * 0.14];
-    const thick = bR() < 0.25;
-    cable(s, [s[0] + sway[0], y0 + L * 0.45, s[2] + sway[2]], [tx - sway[0] * 0.6, ty - L * 0.35, tz - sway[2] * 0.6], [tx, ty + 0.01, tz],
-      thick ? 0.016 : brr(0.005, 0.01), Math.round((thick ? 2600 : 1300) * Math.max(0.4, L)), thick ? [0.34, 0.0012, 0.009] : [0.46, 0.0016, 0.013], true);
+    const p0 = [tx, ty + 0.01, tz], drop = brr(0.9, 1.7);                                   // du cerveau vers le nuage
+    const p3 = [CLOUD.x + bg3() * 0.45, ty - drop, CLOUD.z + tz * 0.4 + bg3() * 0.35];
+    const p1 = [tx + bg3() * 0.08, ty - drop * 0.35, tz + bg3() * 0.08], p2 = [p3[0] + bg3() * 0.25, p3[1] + drop * 0.3, p3[2] + bg3() * 0.25];
+    const thick = bR() < 0.25, rad = thick ? 0.015 : brr(0.005, 0.01), col = thick ? [0.34, 0.0012, 0.009] : [0.46, 0.0016, 0.013], ph = bR();
+    for (let i = 0, n = Math.round((thick ? 2600 : 1400) * drop); i < n; i++) {
+      const t = bR(), u = 1 - t, q = [0, 1, 2].map(k => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
+      if (bR() < t * t * 0.75) continue;                                                     // vers le bas : de moins en moins de points…
+      const spread = rad * (1 + 9 * t * t * t), a = bR() * 6.2832, r = spread * Math.sqrt(bR()), k = 1 - 0.55 * t;   // …de plus en plus épars
+      bput(q[0] + Math.cos(a) * r, q[1] + bg3() * spread * 0.5, q[2] + Math.sin(a) * r, col.map(v => v * k), brr(0.0035, 0.007), -1, 1 - t, ph);
+    }
   }
-  // câbles qui sortent du fût, tombent et s'étalent au sol en s'éteignant
-  const FLOOR = PED.y - PED.h;
-  for (let c = 0; c < 26; c++) {
-    const a = bR() * 6.2832, y = PED.y - brr(0.15, 1.2), s = [Math.cos(a) * R0, y, Math.sin(a) * R0];
-    const out = brr(1.4, 3.6), e = [Math.cos(a + bg3() * 0.3) * out, FLOOR, Math.sin(a + bg3() * 0.3) * out];
-    const n = 1800, k = brr(0.35, 0.8);
-    cable(s, [Math.cos(a) * (R0 + 0.35), y - 0.1, Math.sin(a) * (R0 + 0.35)], [e[0] * 0.55, FLOOR, e[2] * 0.55], e, brr(0.006, 0.014), n, [0.32 * k, 0.001 * k, 0.009 * k], false);
+  for (let i = 0; i < 26000; i++) {                                                         // le nuage où les câbles se perdent
+    const g = [bg3(), bg3(), bg3()], d = Math.hypot(...g), k = brr(0.25, 0.9) * Math.exp(-d * d * 0.18);
+    bput(CLOUD.x + g[0] * 0.6, CLOUD.y + g[1] * 0.32 - 0.1, CLOUD.z + g[2] * 0.55, [0.42 * k, 0.0015 * k, 0.012 * k], brr(0.003, 0.007));
   }
 });
 function pump() {
@@ -1687,11 +1659,6 @@ function buildBrain() {
     fragmentShader: `varying vec3 vC; varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d) * 4.; if (r > 1.) discard; gl_FragColor = vec4(vC * vA * (1. - r), 1.); }`,
   });
   brainPts = new THREE.Points(pg, pm); brainPts.frustumCulled = false; brainScene.add(brainPts);
-  // volume invisible du socle (profondeur seule) : les câbles qui passent derrière disparaissent, le socle se lit plein
-  const prof = []; for (let i = 0; i <= 40; i++) { const y = PED.y - PED.h * i / 40; prof.push(new THREE.Vector2(pedR(y) - 0.012, y)); }
-  const occ = new THREE.Mesh(new THREE.LatheGeometry(prof.reverse(), 64), new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide }));
-  occ.add(new THREE.Mesh(new THREE.CircleGeometry(PED.r - 0.012, 64).rotateX(-Math.PI / 2).translate(0, PED.y - 0.004, 0), occ.material));
-  occ.renderOrder = -1; brainScene.add(occ);
   const setScale = () => { uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camB.fov / 2))); };
   setScale(); addEventListener('resize', setScale);
   brainData.ready = true;
@@ -1719,7 +1686,7 @@ function buildBrain() {
 }
 camB.position.set(4.4, 0.45, 1.4);
 const controls = new OrbitControls(camB, canvas);
-controls.target.set(0, -0.45, 0); controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = 1.72;
+controls.target.set(0, -0.35, 0); controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = 1.72;
 controls.minDistance = 2.4; controls.maxDistance = 8; controls.autoRotateSpeed = 0.5; controls.enabled = false;
 
 /* ============================== contenu ============================== */
@@ -1796,7 +1763,7 @@ function enterBrain() {   // l'écran est noyé dans le pourpre du neurone : on 
   mode = 'linking'; $('flood').style.opacity = 1;
   setTimeout(() => {
     mode = 'brain'; revealT = 0; document.body.classList.add('brain');
-    camB.position.set(4.4, 0.45, 1.4); controls.target.set(0, -0.45, 0); controls.update();
+    camB.position.set(4.4, 0.45, 1.4); controls.target.set(0, -0.35, 0); controls.update();
     renderPass.scene = brainScene; renderPass.camera = camB;
     bloom.strength = 0.35; bloom.threshold = 0.4; bloom.radius = 0.35;
     $('hint').textContent = 'Drag to rotate · click a region';
@@ -1873,8 +1840,8 @@ function tick(dt) {
     // le neurone final : un point flou qui grossit au bout de la plongée, puis noie l'écran dans le pourpre
     NEURON.material.uniforms.uA.value = smooth(0.45, 0.65, z); NEURON.quaternion.copy(chip.quaternion).invert();
     if (mode === 'chip') {
-      $('flood').style.opacity = smooth(0.9, 0.992, z);
-      if (z > 0.991 && brainData.ready) enterBrain();   // (le cerveau se construit en tâche de fond ; on reste dans le pourpre s'il n'est pas prêt)
+      $('flood').style.opacity = smooth(0.968, 0.995, z);   // le pourpre n'envahit l'écran qu'au tout dernier moment
+      if (z > 0.994 && brainData.ready) enterBrain();   // (le cerveau se construit en tâche de fond ; on reste dans le pourpre s'il n'est pas prêt)
     }
     const io = 1 - smooth(0.004, 0.045, z); $('intro').style.opacity = io; $('intro').style.pointerEvents = io < 0.5 ? 'none' : '';   // « Secure your soul » s'efface dès qu'on zoome
     const mag = D0 / d; $('mag').textContent = 'Mag ' + (mag < 10 ? mag.toFixed(1) : Math.round(mag).toLocaleString('en-US')) + '×';
