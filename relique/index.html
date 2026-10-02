@@ -1012,12 +1012,13 @@ CHIP_PARTS.push(WINDOW, FRONT, GRIP_FRAME, PLATE, IMG([[488, 1204], [755, 1204],
     // enveloppe vue de l'intérieur (faces arrière) : fond, plafond et sol du compartiment, derrière le contenu
     const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 0.0004, 0.016), toneMapped: false, side: THREE.BackSide });
     slabs.forEach(([poly, h]) => piece(IMG(poly), TH / 2 - h, TH / 2 + h, fillMat, { bevel: 0 }));
-    // joints sous la jointure caoutchouc / cadre (au-dessus et au-dessous du compartiment) : rien ne transparaît par la fente
-    const sealMat = new THREE.MeshBasicMaterial({ color: '#050505' });
-    for (const [x0, s] of [[755, -1], [488, 1]]) {
-      const xs = x0 + s * 27, w = notchW(27) / 2 + 1, yc = NY.G;
-      for (const [ya, yb] of [[yc - 66, yc - w], [yc + w, yc + 66]]) for (const [za, zb] of [[TH - 0.019, TH - 0.0006], [0.0006, 0.019]]   /* plus fins que le liseré des vitres : invisibles par la fenêtre */)
-        piece(IMG(rectP(xs - 2.5, ya, xs + 2.5, yb)), za, zb, sealMat, { bevel: 0 });
+    // couvercles opaques sous toute la surface du compartiment (dessus et dessous), contournant l'encoche : les jointures
+    // caoutchouc / cadre qui suivent le bord des encoches ne laissent plus rien voir ; plus fins que le liseré des vitres
+    const sealMat = new THREE.MeshBasicMaterial({ color: '#050505' }), m = 0.6;
+    for (const [x0, s, xIn] of [[755, -1, GRR - 45], [488, 1, GRL + 45]]) {
+      const X = d => x0 + s * d, yc = NY.G, d0 = 24, d1 = Math.abs(xIn - x0) + 4;   // d0 : après la pente de l'arête (22 px), sinon le couvercle la perce
+      const cap = [[X(d0), yc - 70], [X(d1), yc - 70], [X(d1), yc + 70], [X(d0), yc + 70], [X(d0), yc + notchW(d0) / 2 + m], [X(D + m), yc + Wf / 2 + m], [X(D + m), yc - Wf / 2 - m], [X(d0), yc - notchW(d0) / 2 - m]];
+      for (const [za, zb] of [[TH - 0.019, TH - 0.006], [0.006, 0.019]]) piece(IMG(cap), za, zb, sealMat, { bevel: 0 });
     }
   }
   front.material = front.material.clone(); front.material.transparent = true; front.material.opacity = 1;
