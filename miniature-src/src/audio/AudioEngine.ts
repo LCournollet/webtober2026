@@ -39,8 +39,8 @@ export class AudioEngine {
     const mix: Record<string, number> = { rain: 0, wind: 0, city: 0, water: 0, bubbles: 0, drone: 0, shimmer: 0, piano: 0.5 };
     let lp = 18000;
     switch (level) {
-      case Level.Street: case Level.Return: Object.assign(mix, { rain: 0.6, wind: 0.2, city: 0.16, piano: 0.55 }); break;
-      case Level.Droplet: Object.assign(mix, { rain: 0.32, wind: 0.12, city: 0.1, drone: 0.04 }); lp = 700; break;   // le monde s'étouffe
+      case Level.Street: case Level.Return: Object.assign(mix, { rain: 0.35, wind: 0.14, city: 0.14, piano: 0.55 }); break;
+      case Level.Droplet: Object.assign(mix, { rain: 0.2, wind: 0.08, city: 0.08, drone: 0.04 }); lp = 700; break;   // le monde s'étouffe
       case Level.Micro: Object.assign(mix, { rain: 0.06, water: 0.42, bubbles: 0.5, drone: 0.05 }); lp = 220; break;
       case Level.Molecule: Object.assign(mix, { water: 0.08, drone: 0.32, shimmer: 0.05 }); lp = 160; break;
       case Level.Atom: Object.assign(mix, { drone: 0.26, shimmer: 0.22, piano: 0.42 }); lp = 120; break;
@@ -140,14 +140,9 @@ export class AudioEngine {
     // --- dehors, derrière le filtre d'étouffement
     this.outsideLP = this.filter('lowpass', 18000, 0.5); this.outsideLP.connect(out);
     this.bus.rain = this.gain(0, this.outsideLP);
-    const rain = this.noise('white'), rh = this.filter('highpass', 900), rl = this.filter('lowpass', 7000), rainShimmer = this.gain(0.55);
-    rain.connect(rh); rh.connect(rl); rl.connect(rainShimmer); rainShimmer.connect(this.bus.rain);
-    this.lfo(0.13, 0.12, rainShimmer.gain);
-    // gouttes sur le trottoir (fines, nombreuses) et sur le parapluie (plus rondes, plus graves)
-    const street = this.patter(7.3, 260, 1.2), sh = this.filter('highpass', 2200), sg = this.gain(0.5);
-    street.connect(sh); sh.connect(sg); sg.connect(this.bus.rain);
-    const umb = this.patter(5.1, 38, 6), ub = this.filter('bandpass', 950, 1.4), ug = this.gain(0.9);
-    umb.connect(ub); ub.connect(ug); ug.connect(this.bus.rain);
+    // seulement des gouttes éparses sur le bitume : petits impacts doux, pas de souffle de pluie battante
+    const drops = this.patter(9.7, 55, 2.2), db = this.filter('bandpass', 1500, 0.7), dl = this.filter('lowpass', 4200, 0.5), dg = this.gain(0.6);
+    drops.connect(db); db.connect(dl); dl.connect(dg); dg.connect(this.bus.rain);
     this.bus.wind = this.gain(0, this.outsideLP);
     const wind = this.noise('brown'), wl = this.filter('lowpass', 380, 1.2), windG = this.gain(0.7);
     wind.connect(wl); wl.connect(windG); windG.connect(this.bus.wind);
