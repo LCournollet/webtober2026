@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Miniature · Devtober 03</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Michroma&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #f3e9df; --muted: #9b8f86; --accent: #ff4f8b; --cyan: #4ff3ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0a09; color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
+  #gl { position: fixed; inset: 0; display: block; touch-action: none; cursor: grab; }
+  #gl:active { cursor: grabbing; }
+  .ui { position: fixed; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); user-select: none; }
+  a.ui, button.ui { text-decoration: none; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; letter-spacing: .22em; color: var(--muted); }
+  a.ui:hover, button.ui:hover { color: #fff; }
+  #home { top: 18px; left: 18px; }
+  #home b { color: var(--accent); font-weight: 500; }
+  #title { top: 46px; left: 18px; }
+  #title h1 { margin: 0; font-family: Michroma, sans-serif; font-weight: 400; font-size: clamp(22px, 3vw, 40px); letter-spacing: .5em; color: #fff; text-transform: uppercase; }
+  #title p { margin: 8px 0 0; font-size: 10px; letter-spacing: .3em; color: var(--muted); }
+  #hint { left: 50%; bottom: 16px; transform: translateX(-50%); white-space: nowrap; }
+  #stop { right: 18px; bottom: 16px; }
+  #stop i { font-style: normal; color: var(--accent); }
+  #stop.off i { color: var(--muted); }
+  #fps { right: 18px; top: 18px; }
+  #veil { position: fixed; inset: 0; background: #0d0a09; transition: opacity 1.2s ease; pointer-events: none; }
+  #veil.gone { opacity: 0; }
+  @media (max-width: 640px) { #hint { display: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<a class="ui" id="home" href="/">← Devtober · <b>03 / Miniature</b></a>
+<div class="ui" id="title"><h1>Miniature</h1><p>Night City · Watson · scale 1:1000</p></div>
+<div class="ui" id="hint">Drag to orbit · scroll to zoom · click to move the focus</div>
+<button class="ui" id="stop">Stop-motion <i>● on</i> · S</button>
+<div class="ui" id="fps">12 fps</div>
+<div id="veil"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = id => document.getElementById(id);
+let seed = 77; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647, rr = (a, b) => a + (b - a) * R(), pick = a => a[(R() * a.length) | 0];
+
+/* ============================== rendu ============================== */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0d0a09');
+scene.fog = new THREE.Fog('#0d0a09', 30, 60);
+// longue focale, vue plongeante : c'est elle qui donne l'impression de maquette
+const camera = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 0.5, 120);
+camera.position.set(17, 15.5, 17);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.1, 0); controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+controls.minDistance = 11; controls.maxDistance = 34; controls.minPolarAngle = 0.35; controls.maxPolarAngle = 1.22;
+controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
+
+/* ============================== lumières ============================== */
+scene.add(new THREE.HemisphereLight('#5a6aa0', '#2a1a14', 1.1));
+// lampe de bureau chaude au-dessus de la maquette : ombres nettes de jouet
+const lamp = new THREE.SpotLight('#ffd9a8', 900, 60, 0.7, 0.6, 1.6);
+lamp.position.set(-7, 19, 5); lamp.target.position.set(0, 0, 0);
+lamp.castShadow = true; lamp.shadow.mapSize.set(2048, 2048); lamp.shadow.bias = -0.0004; lamp.shadow.normalBias = 0.02;
+lamp.shadow.camera.near = 8; lamp.shadow.camera.far = 40;
+scene.add(lamp, lamp.target);
+// quelques flaques de couleur néon dans les rues
+const NEON = ['#ff3d8b', '#3df2ff', '#b36bff', '#ffb13d', '#ff4a3d', '#5dff9e'];
+const pools = [];
+for (let i = 0; i < 7; i++) { const p = new THREE.PointLight(pick(NEON), 2.2, 3.2, 1.6); p.position.set(rr(-4.6, 4.6), 0.9, rr(-4.6, 4.6)); scene.add(p); pools.push(p); }
+
+/* ============================== textures ============================== */
+const tex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+// table en bois sombre
+const woodTex = tex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#3b2418'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++) { const y = R() * h, a = rr(0.03, 0.12); g.strokeStyle = `rgba(${R() < 0.5 ? '20,10,6' : '110,70,45'},${a})`; g.lineWidth = rr(1, 5);
+    g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.01 + i) * rr(2, 9)); g.stroke(); }
+});
+woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping; woodTex.repeat.set(3, 3);
+// façades : une texture de couleur (béton + vitres) et une texture d'émission (seulement les fenêtres allumées)
+const facades = Array.from({ length: 5 }, (_, v) => {
+  const W = 256, H = 512, cols = [4, 5, 6, 8, 5][v], rows = cols * 2, cw = W / cols, ch = H / rows, lit = rr(0.14, 0.32);
+  const cells = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells.push([r, c, R() < lit, pick(['#ffd79a', '#ffe9c7', '#ffd79a', '#ffcf8a', '#9ef3ff', '#ff9ccb', '#c9a6ff'])]);
+  const win = (g, r, c) => g.fillRect(c * cw + cw * 0.18, r * ch + ch * 0.22, cw * 0.64, ch * 0.52);
+  const map = tex(W, H, g => {
+    g.fillStyle = ['#3b3742', '#4a4039', '#2f3943', '#54454a', '#3d4038'][v]; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '0,0,0' : '255,255,255'},${R() * 0.06})`; g.fillRect(R() * W, R() * H, 3, 3); }
+    for (const [r, c, on, col] of cells) { g.fillStyle = on ? col : pick(['#14151b', '#191a22', '#16191f']); win(g, r, c); }
+    g.fillStyle = 'rgba(0,0,0,.35)'; for (let r = 0; r < rows; r += 4) g.fillRect(0, r * ch, W, 2);
+  });
+  const emit = tex(W, H, g => { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); for (const [r, c, on, col] of cells) if (on) { g.fillStyle = col; win(g, r, c); } });
+  for (const t of [map, emit]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return { map, emit };
+});
+// asphalte avec marquage
+const roadTex = tex(256, 256, (g, w, h) => {
+  g.fillStyle = '#1a1a1e'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(255,255,255,${R() * 0.05})`; g.fillRect(R() * w, R() * h, 2, 2); }
+  g.fillStyle = 'rgba(240,210,120,.7)'; for (let y = 0; y < h; y += 48) g.fillRect(w / 2 - 3, y, 6, 26);
+});
+roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
+// enseignes néon (texte lumineux)
+const SIGNS = ['RAMEN', 'HOTEL', 'BAR', '24H', 'ネオン', 'ラーメン', 'NOODLE', 'CLINIC', 'ホテル', 'BRAINDANCE', 'CHROME', 'SUSHI', 'カラオケ', 'ARCADE', 'DOLL'];
+const signTex = (txt, col, vertical) => tex(vertical ? 128 : 512, vertical ? 512 : 128, (g, w, h) => {
+  g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, w, h);
+  g.strokeStyle = col; g.lineWidth = 6; g.strokeRect(6, 6, w - 12, h - 12);
+  g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (vertical) { const chars = [...txt].slice(0, 6), step = (h - 40) / chars.length; g.font = `bold ${Math.min(90, step * 0.85)}px sans-serif`; chars.forEach((c, i) => g.fillText(c, w / 2, 20 + step * (i + 0.5))); }
+  else { g.font = `bold ${Math.min(84, (w - 40) / txt.length * 1.5)}px sans-serif`; g.fillText(txt, w / 2, h / 2 + 4); }
+});
+
+/* ============================== la table et le socle ============================== */
+const table = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.55, metalness: 0.05 }));
+table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table);
+const SIZE = 12, BASE_H = 0.6, TOP = BASE_H;
+const plinth = new THREE.Mesh(new THREE.BoxGeometry(SIZE + 0.5, BASE_H, SIZE + 0.5), new THREE.MeshPhysicalMaterial({ color: '#0f0d0e', roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08 }));
+plinth.position.y = BASE_H / 2; plinth.castShadow = plinth.receiveShadow = true; scene.add(plinth);
+// plaque de laiton gravée, devant le socle
+const plateTex = tex(1024, 160, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#b8914a'); gr.addColorStop(0.5, '#e6c47a'); gr.addColorStop(1, '#9c7638');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(60,40,10,.6)'; g.lineWidth = 4; g.strokeRect(10, 10, w - 20, h - 20);
+  g.fillStyle = 'rgba(50,32,8,.88)'; g.textAlign = 'center'; g.font = '600 46px Michroma, sans-serif'; g.fillText('NIGHT CITY  ·  WATSON', w / 2, 72);
+  g.font = '500 26px "JetBrains Mono", monospace'; g.fillText('SCALE MODEL 1:1000  —  DEVTOBER 2026', w / 2, 122);
+});
+const plate = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.66), new THREE.MeshStandardMaterial({ map: plateTex, metalness: 0.85, roughness: 0.32 }));
+plate.position.set(0, BASE_H / 2, (SIZE + 0.5) / 2 + 0.006); scene.add(plate);
+document.fonts.ready.then(() => { const p = plateTex.image.getContext('2d'); plateTex.needsUpdate = true; });
+
+/* ============================== la ville ============================== */
+const city = new THREE.Group(); scene.add(city);
+const N = 5, ROAD = 0.52, MARGIN = 0.3, BLOCK = (SIZE - 2 * MARGIN - (N + 1) * ROAD) / N;
+const start = -SIZE / 2 + MARGIN;
+const roadC = Array.from({ length: N + 1 }, (_, i) => start + ROAD / 2 + i * (BLOCK + ROAD));   // axes des rues
+const blockC = Array.from({ length: N }, (_, i) => start + ROAD + BLOCK / 2 + i * (BLOCK + ROAD));
+// sol des rues
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(SIZE - 2 * MARGIN, SIZE - 2 * MARGIN), new THREE.MeshStandardMaterial({ color: '#141418', roughness: 0.6, metalness: 0.2 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = TOP + 0.001; ground.receiveShadow = true; city.add(ground);
+for (const c of roadC) for (const along of [0, 1]) {
+  const t = roadTex.clone(); t.needsUpdate = true; t.repeat.set(1, (SIZE - 2 * MARGIN) / ROAD);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, SIZE - 2 * MARGIN), new THREE.MeshStandardMaterial({ map: t, roughness: 0.35, metalness: 0.3 }));   // asphalte mouillé
+  m.rotation.x = -Math.PI / 2; if (along) m.rotation.z = Math.PI / 2;
+  m.position.set(along ? 0 : c, TOP + 0.004 + along * 0.001, along ? c : 0); m.receiveShadow = true; city.add(m);
+}
+// trottoirs + immeubles
+const sidewalkMat = new THREE.MeshStandardMaterial({ color: '#4a4648', roughness: 0.8 });
+const roofMat = new THREE.MeshStandardMaterial({ color: '#2a272b', roughness: 0.85 });
+const buildings = [];
+const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; city.add(m); return m; };
+function building(x, z, w, d, h) {
+  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv, U = 0.11;   // une fenêtre ≈ U d'unité
+  // échelle des UV par face : les fenêtres gardent la même taille quel que soit l'immeuble
+  const faceW = [d, d, w, w, w, w], ou = R(), ov = R();
+  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * faceW[f] / (U * 4) + ou, uv.getY(i) * (f === 2 || f === 3 ? d / (U * 4) : h / (U * 8)) + ov); }
+  const fx = pick(facades), side = new THREE.MeshStandardMaterial({ map: fx.map, emissiveMap: fx.emit, emissive: '#ffffff', emissiveIntensity: 0.75, roughness: 0.75, metalness: 0.1 });
+  const m = new THREE.Mesh(g, [side, side, roofMat, roofMat, side, side]);
+  m.position.set(x, TOP + h / 2, z); m.castShadow = m.receiveShadow = true; city.add(m); buildings.push({ x, z, w, d, h, m });
+  if (h > 1.4 && R() < 0.55) {                                                 // retrait en étage : une tour plus fine posée dessus
+    const k = rr(0.55, 0.8), h2 = h * rr(0.25, 0.5), g2 = new THREE.BoxGeometry(w * k, h2, d * k), uv2 = g2.attributes.uv, fw2 = [d * k, d * k, w * k, w * k, w * k, w * k];
+    for (let f = 0; f < 6; f++) for (let kk = 0; kk < 4; kk++) { const i = f * 4 + kk; uv2.setXY(i, uv2.getX(i) * fw2[f] / (U * 4) + ou, uv2.getY(i) * h2 / (U * 8) + ov); }
+    const m2 = new THREE.Mesh(g2, [side, side, roofMat, roofMat, side, side]); m2.position.set(x, TOP + h + h2 / 2, z); m2.castShadow = m2.receiveShadow = true; city.add(m2);
+    h += h2; buildings[buildings.length - 1].h = h; w *= k; d *= k;
+  }
+  // toit : clims, réservoirs, antennes
+  for (let i = 0, n = 1 + (R() * 3 | 0); i < n; i++) box(rr(0.08, 0.2), rr(0.05, 0.12), rr(0.08, 0.2), roofMat, x + rr(-w, w) * 0.3, TOP + h + 0.05, z + rr(-d, d) * 0.3);
+  if (h > 2 && R() < 0.6) { const ant = box(0.02, rr(0.4, 1.0), 0.02, roofMat, x + rr(-w, w) * 0.2, 0, z + rr(-d, d) * 0.2); ant.position.y = TOP + h + ant.geometry.parameters.height / 2; blinkers.push(ant.position.clone().setY(TOP + h + ant.geometry.parameters.height)); }
+  return m;
+}
+const blinkers = [];
+for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+  const cx = blockC[i], cz = blockC[j], dc = Math.hypot(i - 2, j - 2);
+  box(BLOCK, 0.04, BLOCK, sidewalkMat, cx, TOP + 0.02, cz).castShadow = false;
+  if (i === 1 && j === 3) { park(cx, cz); continue; }                         // un petit parc
+  const lots = R() < 0.3 ? 1 : R() < 0.5 ? 2 : 4, inner = BLOCK - 0.16;
+  const tall = (1 - dc / 3) * 3.8;                                             // le centre monte plus haut
+  if (lots === 1) building(cx, cz, inner, inner, Math.max(0.6, rr(1, 1.6) + tall * rr(0.7, 1.1)));
+  else if (lots === 2) { const v = R() < 0.5; for (const s of [-1, 1]) building(cx + (v ? s * inner / 4 : 0), cz + (v ? 0 : s * inner / 4), v ? inner / 2 - 0.05 : inner, v ? inner : inner / 2 - 0.05, Math.max(0.5, rr(0.6, 1.4) + tall * rr(0.4, 1.1))); }
+  else for (const sx of [-1, 1]) for (const sz of [-1, 1]) building(cx + sx * inner / 4, cz + sz * inner / 4, inner / 2 - 0.05, inner / 2 - 0.05, Math.max(0.4, rr(0.5, 1.2) + tall * rr(0.3, 1)));
+}
+function park(cx, cz) {
+  const grass = box(BLOCK - 0.12, 0.05, BLOCK - 0.12, new THREE.MeshStandardMaterial({ color: '#1f3b2a', roughness: 0.9 }), cx, TOP + 0.045, cz);
+  const leaf = new THREE.MeshStandardMaterial({ color: '#2d5a3c', roughness: 0.9 }), trunk = new THREE.MeshStandardMaterial({ color: '#3b2a20' });
+  for (let k = 0; k < 9; k++) { const x = cx + rr(-0.6, 0.6), z = cz + rr(-0.6, 0.6), s = rr(0.1, 0.17);
+    box(0.025, 0.12, 0.025, trunk, x, TOP + 0.13, z); const t = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), leaf); t.position.set(x, TOP + 0.2 + s, z); t.castShadow = true; city.add(t); }
+  // un banc et un petit kiosque néon
+  box(0.18, 0.04, 0.05, trunk, cx, TOP + 0.09, cz + 0.55);
+}
+// tour centrale : la plus haute, avec un holo-panneau qui tourne
+const towers = buildings.slice().sort((a, b) => b.h - a.h);
+const top1 = towers[0];
+const holoTex = tex(512, 256, () => {});
+const holoMat = new THREE.MeshBasicMaterial({ map: holoTex, transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+const holo = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.8), holoMat); holo.position.set(top1.x, TOP + top1.h + 0.85, top1.z); city.add(holo);
+const HOLO_TXT = ['SECURE YOUR SOUL', 'ARASAKA', 'NIGHT CITY', 'WAKE UP'];
+function drawHolo(k) {
+  const g = holoTex.image.getContext('2d'), w = 512, h = 256; g.clearRect(0, 0, w, h);
+  g.fillStyle = 'rgba(255,40,90,.18)'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 6) { g.fillStyle = `rgba(255,80,140,${0.06 + 0.06 * Math.sin(y * 0.3 + k)})`; g.fillRect(0, y, w, 2); }
+  g.fillStyle = '#ff3d8b'; g.font = 'bold 58px Michroma, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(HOLO_TXT[(k / 18 | 0) % HOLO_TXT.length], w / 2 + (R() < 0.08 ? rr(-10, 10) : 0), h / 2);
+  g.strokeStyle = '#ff3d8b'; g.lineWidth = 6; g.strokeRect(8, 8, w - 16, h - 16);
+  holoTex.needsUpdate = true;
+}
+// enseignes sur les façades
+const signs = [];
+for (const b of buildings) {
+  if (b.h < 0.7 || R() < 0.15) continue;
+  const vertical = R() < 0.55, col = pick(NEON), txt = pick(SIGNS);
+  const sw = vertical ? 0.2 : Math.min(b.w, 1.0) * 0.85, sh = vertical ? 0.8 : 0.24;
+  const mat = new THREE.MeshBasicMaterial({ map: signTex(txt, col, vertical), transparent: true, side: THREE.DoubleSide, toneMapped: false, color: new THREE.Color(col).multiplyScalar(1.6) });
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), mat);
+  const face = (R() * 4) | 0, off = 0.025, y = TOP + rr(0.35, Math.max(0.4, b.h - sh / 2 - 0.05));
+  if (face === 0) { s.position.set(b.x + b.w / 2 + off, y, b.z + rr(-b.d, b.d) * 0.25); s.rotation.y = Math.PI / 2; }
+  if (face === 1) { s.position.set(b.x - b.w / 2 - off, y, b.z + rr(-b.d, b.d) * 0.25); s.rotation.y = -Math.PI / 2; }
+  if (face === 2) { s.position.set(b.x + rr(-b.w, b.w) * 0.25, y, b.z + b.d / 2 + off); }
+  if (face === 3) { s.position.set(b.x + rr(-b.w, b.w) * 0.25, y, b.z - b.d / 2 - off); s.rotation.y = Math.PI; }
+  if (vertical) { // une enseigne verticale dépasse de la façade, perpendiculaire
+    s.rotation.y += Math.PI / 2; const n = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(0, s.rotation.y - Math.PI / 2, 0)); s.position.addScaledVector(n, sw * 0.6);
+  }
+  city.add(s); signs.push({ mat, base: mat.color.clone(), flick: R() < 0.25 });
+}
+// lampadaires
+const poleMat = new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.5, metalness: 0.6 });
+const lampHeads = [];
+for (const c of roadC) for (let k = 0; k < N; k++) { const a = blockC[k] + rr(-0.3, 0.3);
+  if (R() < 0.5) { box(0.018, 0.32, 0.018, poleMat, c + ROAD / 2 + 0.03, TOP + 0.16, a); lampHeads.push([c + ROAD / 2 + 0.03, TOP + 0.33, a]); }
+  if (R() < 0.5) { box(0.018, 0.32, 0.018, poleMat, a, TOP + 0.16, c - ROAD / 2 - 0.03); lampHeads.push([a, TOP + 0.33, c - ROAD / 2 - 0.03]); } }
+const glowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 2.3, 1.4), toneMapped: false });
+const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.03, 8, 6), glowMat, lampHeads.length);
+lampHeads.forEach((p, i) => heads.setMatrixAt(i, new THREE.Matrix4().makeTranslation(...p))); city.add(heads);
+// voyants rouges en haut des antennes
+const blinkMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.5, 0.15, 0.15), toneMapped: false });
+const blinks = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 8, 6), blinkMat, Math.max(1, blinkers.length));
+blinkers.forEach((p, i) => blinks.setMatrixAt(i, new THREE.Matrix4().makeTranslation(p.x, p.y, p.z))); city.add(blinks);
+
+/* ============================== ce qui bouge ============================== */
+// voitures : sur chaque rue, deux voies, elles bouclent d'un bord à l'autre
+const cars = [], L = SIZE - 2 * MARGIN - 0.2;
+for (const c of roadC) for (const along of [0, 1]) for (const lane of [-1, 1]) for (let k = 0, n = 2 + (R() * 3 | 0); k < n; k++)
+  cars.push({ along, c: c + lane * ROAD * 0.22, dir: lane, s: rr(-L / 2, L / 2), v: rr(0.5, 1.1), col: pick(['#c9c3bd', '#d8443c', '#2a6fd6', '#f2c14e', '#1d1d22', '#e7e2da', '#7a2fd6']) });
+const carMat = new THREE.MeshStandardMaterial({ roughness: 0.25, metalness: 0.6 });
+const carBody = new THREE.InstancedMesh(new THREE.BoxGeometry(0.24, 0.07, 0.11), carMat, cars.length);
+const carCab = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 0.05, 0.095), new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.1, metalness: 0.9 }), cars.length);
+const headL = new THREE.InstancedMesh(new THREE.BoxGeometry(0.012, 0.022, 0.09), new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3.6, 3), toneMapped: false }), cars.length);
+const tailL = new THREE.InstancedMesh(new THREE.BoxGeometry(0.012, 0.022, 0.09), new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 0.15, 0.1), toneMapped: false }), cars.length);
+cars.forEach((c, i) => carBody.setColorAt(i, new THREE.Color(c.col)));
+carBody.castShadow = true; [carBody, carCab, headL, tailL].forEach(m => { m.frustumCulled = false; city.add(m); });
+// piétons
+const peds = [];
+for (let i = 0; i < 170; i++) { const bi = (R() * N) | 0, bj = (R() * N) | 0, e = BLOCK / 2 - 0.035, side = (R() * 4) | 0;
+  peds.push({ cx: blockC[bi], cz: blockC[bj], e, side, s: rr(-e, e), v: rr(0.05, 0.14) * (R() < 0.5 ? 1 : -1), col: pick(['#e9e2d6', '#ff5c8a', '#4fd8e8', '#ffcf5c', '#8f86ff', '#d6d0c8', '#ff7a45']) }); }
+const pedMesh = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.014, 0.04, 2, 6), new THREE.MeshStandardMaterial({ roughness: 0.7 }), peds.length);
+peds.forEach((p, i) => pedMesh.setColorAt(i, new THREE.Color(p.col))); pedMesh.castShadow = true; pedMesh.frustumCulled = false; city.add(pedMesh);
+// voitures volantes qui tournent au-dessus des tours
+const avs = [];
+for (let i = 0; i < 4; i++) {
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 0.16), new THREE.MeshStandardMaterial({ color: pick(['#d8d4cf', '#1c1c22', '#b4202a']), metalness: 0.7, roughness: 0.3 })); hull.castShadow = true;
+  const light = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.14), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 3, 4), toneMapped: false })); light.position.x = 0.17;
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.14), new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 0.2, 0.3), toneMapped: false })); tail.position.x = -0.17;
+  g.add(hull, light, tail); city.add(g);
+  avs.push({ g, r: rr(2.2, 5), y: TOP + rr(3, 5.5), w: rr(0.15, 0.32) * (R() < 0.5 ? 1 : -1), a: R() * 6.28 });
+}
+// pluie fine
+const RAIN = 1500, rainPos = new Float32Array(RAIN * 6), rainV = new Float32Array(RAIN);
+for (let i = 0; i < RAIN; i++) { const x = rr(-6, 6), y = rr(TOP, 9), z = rr(-6, 6); rainPos.set([x, y, z, x - 0.02, y - 0.16, z], i * 6); rainV[i] = rr(4, 6); }
+const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: '#9fb6ff', transparent: true, opacity: 0.12, depthWrite: false }));
+rain.frustumCulled = false; city.add(rain);
+
+/* ============================== post-traitement ============================== */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.45, 0.92); composer.addPass(bloom);
+// tilt-shift : flou qui grandit en s'éloignant d'une bande nette horizontale (deux passes séparables)
+const tiltShader = dir => ({
+  uniforms: { tDiffuse: { value: null }, uDir: { value: dir }, uFocus: { value: 0.46 }, uBand: { value: 0.07 }, uAmount: { value: 1 }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uDir, uRes; uniform float uFocus, uBand, uAmount; varying vec2 vUv;
+    void main(){
+      float d = max(0., abs(vUv.y - uFocus) - uBand), r = clamp(d * 2.6, 0., 1.) * 9. * uAmount * uRes.y / 900.;   // rayon en pixels
+      vec4 acc = vec4(0.); float wsum = 0.;
+      for (int i = -8; i <= 8; i++) { float t = float(i) / 8.; float w = exp(-t * t * 2.2);
+        acc += texture2D(tDiffuse, vUv + uDir * t * r / uRes) * w; wsum += w; }
+      gl_FragColor = acc / wsum; }`,
+});
+const tiltH = new ShaderPass(tiltShader(new THREE.Vector2(1, 0))), tiltV = new ShaderPass(tiltShader(new THREE.Vector2(0, 1)));
+composer.addPass(tiltH); composer.addPass(tiltV);
+composer.addPass(new OutputPass());
+// étalonnage « maquette » : couleurs plus saturées, vignette, grain et léger battement de lumière par image (stop-motion)
+const grade = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uSeed: { value: 0 }, uFlick: { value: 1 }, uGrain: { value: 1 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uSeed, uFlick, uGrain; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uSeed * 17.13) * 43758.5453); }
+    void main(){
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      float l = dot(c, vec3(.299, .587, .114)); c = mix(vec3(l), c, 1.32);                 // saturation de jouet
+      c = (c - .5) * 1.06 + .5;
+      c *= uFlick;
+      vec2 q = vUv - .5; c *= 1. - dot(q, q) * .9;                                          // vignette
+      c += (h(vUv * 913.) - .5) * .045 * uGrain;                                            // grain
+      gl_FragColor = vec4(clamp(c, 0., 1.), 1.); }`,
+});
+composer.addPass(grade);
+
+/* ============================== interaction ============================== */
+let stopMotion = true;
+const setStop = v => { stopMotion = v; $('stop').classList.toggle('off', !v); $('stop').querySelector('i').textContent = v ? '● on' : '○ off'; $('fps').textContent = v ? '12 fps' : 'smooth'; };
+$('stop').onclick = () => setStop(!stopMotion);
+addEventListener('keydown', e => { if (e.code === 'KeyS') setStop(!stopMotion); });
+// clic sans glisser : la bande nette se place là où on a cliqué
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; controls.autoRotate = false; });
+canvas.addEventListener('pointerup', e => {
+  if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) focusT = 1 - e.clientY / innerHeight;
+  down = null; clearTimeout(window._ar); window._ar = setTimeout(() => controls.autoRotate = true, 6000);
+});
+let focusT = 0.46, focus = 0.46;
+
+/* ============================== animation ============================== */
+const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), s1 = new THREE.Vector3(1, 1, 1), Y = new THREE.Vector3(0, 1, 0);
+let simT = 0, frameN = 0;
+function simulate(dt) {
+  simT += dt; frameN++;
+  // voitures
+  cars.forEach((c, i) => {
+    c.s += c.dir * c.v * dt; if (c.s > L / 2) c.s -= L; if (c.s < -L / 2) c.s += L;
+    const x = c.along ? c.s : c.c, z = c.along ? c.c : c.s, ang = c.along ? (c.dir > 0 ? 0 : Math.PI) : (c.dir > 0 ? -Math.PI / 2 : Math.PI / 2);
+    q.setFromAxisAngle(Y, ang);
+    carBody.setMatrixAt(i, m4.compose(v.set(x, TOP + 0.05, z), q, s1));
+    const fwd = new THREE.Vector3(1, 0, 0).applyQuaternion(q);
+    carCab.setMatrixAt(i, m4.compose(v.set(x - fwd.x * 0.02, TOP + 0.105, z - fwd.z * 0.02), q, s1));
+    headL.setMatrixAt(i, m4.compose(v.set(x + fwd.x * 0.122, TOP + 0.055, z + fwd.z * 0.122), q, s1));
+    tailL.setMatrixAt(i, m4.compose(v.set(x - fwd.x * 0.122, TOP + 0.055, z - fwd.z * 0.122), q, s1));
+  });
+  [carBody, carCab, headL, tailL].forEach(m => m.instanceMatrix.needsUpdate = true);
+  // piétons : ils font les cent pas le long du trottoir
+  peds.forEach((p, i) => {
+    p.s += p.v * dt; if (Math.abs(p.s) > p.e) { p.v *= -1; p.s = Math.sign(p.s) * p.e; }
+    const o = p.e + 0.0; let x, z;
+    if (p.side === 0) { x = p.cx + p.s; z = p.cz + o; } else if (p.side === 1) { x = p.cx + p.s; z = p.cz - o; } else if (p.side === 2) { x = p.cx + o; z = p.cz + p.s; } else { x = p.cx - o; z = p.cz + p.s; }
+    const bob = Math.abs(Math.sin(simT * 9 + i)) * 0.006;
+    pedMesh.setMatrixAt(i, m4.compose(v.set(x, TOP + 0.075 + bob, z), q.identity(), s1));
+  });
+  pedMesh.instanceMatrix.needsUpdate = true;
+  // voitures volantes
+  avs.forEach(a => { a.a += a.w * dt; a.g.position.set(Math.cos(a.a) * a.r, a.y + Math.sin(simT * 0.7 + a.r) * 0.15, Math.sin(a.a) * a.r); a.g.rotation.y = -a.a - Math.sign(a.w) * Math.PI / 2; });
+  // pluie
+  for (let i = 0; i < RAIN; i++) { let y = rainPos[i * 6 + 1] - rainV[i] * dt; if (y < TOP) y += 9 - TOP; rainPos[i * 6 + 1] = y; rainPos[i * 6 + 4] = y - 0.16; }
+  rainGeo.attributes.position.needsUpdate = true;
+  // néons : certains grésillent, les voyants clignotent, le holo défile
+  signs.forEach(s => { if (s.flick) s.mat.color.copy(s.base).multiplyScalar(R() < 0.12 ? 0.15 : 1); });
+  blinkMat.color.setRGB(Math.sin(simT * 3) > 0 ? 2.5 : 0.15, 0.1, 0.1);
+  drawHolo(frameN);
+  holo.rotation.y = simT * 0.4;
+  pools.forEach((p, i) => p.intensity = 2.2 * (0.85 + 0.15 * Math.sin(simT * 2 + i)));
+}
+
+const STEP = 1 / 12, clock = new THREE.Clock(); let acc = 0, shake = new THREE.Vector3();
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  focus += (focusT - focus) * (1 - Math.exp(-6 * dt));
+  if (stopMotion) {
+    acc += dt; if (acc < STEP) return;                 // on garde la même image jusqu'à la suivante : 12 images par seconde
+    const step = acc; acc = 0;
+    controls.update(step);
+    camera.position.sub(shake);                        // petit tremblement d'image en image, comme une caméra posée à la main
+    shake.set(rr(-1, 1), rr(-1, 1), rr(-1, 1)).multiplyScalar(0.012); camera.position.add(shake);
+    simulate(step);
+    grade.uniforms.uFlick.value = 1 + rr(-0.035, 0.035); grade.uniforms.uSeed.value = R() * 100; grade.uniforms.uGrain.value = 1;
+  } else {
+    camera.position.sub(shake); shake.set(0, 0, 0);
+    controls.update(dt); simulate(dt);
+    grade.uniforms.uFlick.value = 1; grade.uniforms.uSeed.value = R() * 100; grade.uniforms.uGrain.value = 0.5;
+  }
+  tiltH.uniforms.uFocus.value = tiltV.uniforms.uFocus.value = focus;
+  composer.render();
+}
+simulate(0.01);
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  [tiltH, tiltV].forEach(p => p.uniforms.uRes.value.set(innerWidth, innerHeight));
+});
+frame();
+document.fonts.ready.then(() => { plateTex.image.getContext('2d'); requestAnimationFrame(() => $('veil').classList.add('gone')); });
+</script>
+</body>
+</html>
