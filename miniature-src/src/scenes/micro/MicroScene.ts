@@ -23,7 +23,7 @@ export class MicroScene extends BaseScene {
   private snowU: Record<string, THREE.IUniform>;
   private rays: THREE.Mesh[] = [];
   private beacon: THREE.Sprite;                      // la petite particule vers laquelle on plongera
-  private dive = { k: 0 };
+  private diveK = { k: 0 };
   private elapsed = 0;
 
   constructor(ctx: SceneContext) {
@@ -90,7 +90,7 @@ export class MicroScene extends BaseScene {
   }
 
   async enter(dir: Direction) {
-    this.dive.k = dir > 0 ? 0 : 1;
+    this.diveK.k = dir > 0 ? 0 : 1;
     this.orbit.radius = dir > 0 ? 3 : 14;
     this.camera.fov = dir > 0 ? 70 : 18; this.camera.updateProjectionMatrix();
   }
@@ -102,7 +102,7 @@ export class MicroScene extends BaseScene {
       tl.to(this.orbit, { radius: 14, duration: 3.6, ease: 'power3.out' }, 0);
       this.fovTo(tl, 42, 3.6, 'power2.out', 0);
     } else {
-      tl.to(this.dive, { k: 0, duration: 3, ease: 'power3.out' }, 0);
+      tl.to(this.diveK, { k: 0, duration: 3, ease: 'power3.out' }, 0);
       this.fovTo(tl, 42, 3, 'power2.out', 0);
     }
     return tl;
@@ -112,7 +112,12 @@ export class MicroScene extends BaseScene {
   outro(dir: Direction) {
     const tl = gsap.timeline();
     if (dir > 0) {
-      tl.to(this.dive, { k: 1, duration: 2.4, ease: 'power3.in' }, 0);
+      // si l'on a tourné la vue et que la particule n'est plus devant nous, on en choisit une devant
+      if (!this.inView(this.beacon.position)) {
+        const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
+        this.beacon.position.copy(this.camera.position).addScaledVector(fwd, 7).add(new THREE.Vector3(0.6, 0.3, 0));
+      }
+      tl.to(this.diveK, { k: 1, duration: 2.4, ease: 'power3.in' }, 0);
       this.fovTo(tl, 14, 2.4, 'power2.in', 0);
     } else {
       tl.to(this.orbit, { radius: 3, duration: 2, ease: 'power3.in' }, 0);
@@ -131,11 +136,7 @@ export class MicroScene extends BaseScene {
     this.beacon.position.copy(b);
     this.beacon.scale.setScalar(0.18 + 0.03 * Math.sin(this.elapsed * 1.7));
     // plongée : la caméra quitte l'orbite et file vers la particule
-    if (this.dive.k > 0) {
-      const from = this.camera.position.clone();
-      this.camera.position.lerpVectors(from, b.clone().add(new THREE.Vector3(0, 0, 0.02)), this.dive.k * 0.985);
-      this.camera.lookAt(b);
-    }
+    this.dive(b.clone().add(new THREE.Vector3(0, 0, 0.02)), b, this.diveK.k * 0.985);
   }
 
   resize(w: number, h: number) { super.resize(w, h); this.snowU.uScale.value = h; }

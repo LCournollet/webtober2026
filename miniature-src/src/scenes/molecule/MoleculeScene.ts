@@ -32,7 +32,7 @@ export class MoleculeScene extends BaseScene {
   private hbondPos: Float32Array;
   private near = 0;            // nombre de molécules proches (on calcule leurs liaisons H)
   private chosen = 0;          // la molécule dans laquelle on plongera
-  private dive = { k: 0 };
+  private diveK = { k: 0 };
   private m4 = new THREE.Matrix4();
   private tmpQ = new THREE.Quaternion();
   private tmpV = new THREE.Vector3();
@@ -153,7 +153,7 @@ export class MoleculeScene extends BaseScene {
   }
 
   async enter(dir: Direction) {
-    this.dive.k = dir > 0 ? 0 : 1;
+    this.diveK.k = dir > 0 ? 0 : 1;
     this.orbit.radius = dir > 0 ? 2.2 : 19;
     this.camera.fov = dir > 0 ? 24 : 14; this.camera.updateProjectionMatrix();
     if (dir < 0) this.chooseMolecule();
@@ -162,7 +162,7 @@ export class MoleculeScene extends BaseScene {
   intro(dir: Direction) {
     const tl = gsap.timeline();
     if (dir > 0) { tl.to(this.orbit, { radius: 19, duration: 3.6, ease: 'power3.out' }, 0); this.fovTo(tl, 40, 3.6, 'power2.out', 0); }
-    else { tl.to(this.dive, { k: 0, duration: 3, ease: 'power3.out' }, 0); this.fovTo(tl, 40, 3, 'power2.out', 0); }
+    else { tl.to(this.diveK, { k: 0, duration: 3, ease: 'power3.out' }, 0); this.fovTo(tl, 40, 3, 'power2.out', 0); }
     return tl;
   }
 
@@ -170,7 +170,7 @@ export class MoleculeScene extends BaseScene {
     const tl = gsap.timeline();
     if (dir > 0) {
       this.chooseMolecule();
-      tl.to(this.dive, { k: 1, duration: 2.6, ease: 'power3.in' }, 0);
+      tl.to(this.diveK, { k: 1, duration: 2.6, ease: 'power3.in' }, 0);
       this.fovTo(tl, 12, 2.6, 'power2.in', 0);
     } else {
       tl.to(this.orbit, { radius: 2.2, duration: 2, ease: 'power3.in' }, 0);
@@ -192,11 +192,10 @@ export class MoleculeScene extends BaseScene {
     if (Math.floor(elapsed * 30) % 2 === 0) this.writeHBonds();
     (this.hbonds.material as THREE.ShaderMaterial).uniforms.uTime.value = elapsed;
     this.applyOrbit(dt);
-    if (this.dive.k > 0) {
-      const target = this.mols[this.chosen].p, from = this.camera.position.clone();
-      const toward = from.clone().sub(target).normalize().multiplyScalar(0.12).add(target);
-      this.camera.position.lerpVectors(from, toward, this.dive.k);
-      this.camera.lookAt(target);
+    if (this.diveK.k > 0) {
+      const target = this.mols[this.chosen].p;
+      const toward = this.camera.position.clone().sub(target).normalize().multiplyScalar(0.12).add(target);
+      this.dive(toward, target, this.diveK.k);
     }
   }
 

@@ -60,6 +60,28 @@ export abstract class BaseScene implements ExperienceScene {
   }
   private _hy = 0;
   private _hp = 0;
+  private _m = new THREE.Matrix4();
+  private _q = new THREE.Quaternion();
+
+  /**
+   * Plongée vers un point : la caméra quitte l'orbite et file vers `to` en regardant `look`.
+   * L'orientation tourne progressivement (slerp) depuis celle de l'orbite : même si l'on a fait pivoter la vue
+   * avant de scroller, il n'y a jamais de saut de cadrage.
+   */
+  protected dive(to: THREE.Vector3, look: THREE.Vector3, k: number) {
+    if (k <= 0) return;
+    const qOrbit = this._q.copy(this.camera.quaternion);   // orientation posée par applyOrbit
+    this.camera.position.lerp(to, k);
+    this._m.lookAt(this.camera.position, look, this.camera.up);
+    const qDive = new THREE.Quaternion().setFromRotationMatrix(this._m);
+    this.camera.quaternion.copy(qOrbit).slerp(qDive, THREE.MathUtils.smoothstep(k, 0, 0.5));
+  }
+
+  /** vrai si le point est dans le champ de la caméra (à `margin` près, en coordonnées écran -1..1) */
+  protected inView(p: THREE.Vector3, margin = 0.8) {
+    const v = p.clone().project(this.camera);
+    return v.z < 1 && Math.abs(v.x) < margin && Math.abs(v.y) < margin;
+  }
 
   /** un tween de FOV qui met à jour la projection */
   protected fovTo(tl: gsap.core.Timeline, fov: number, duration: number, ease: string, at: number | string = 0) {
