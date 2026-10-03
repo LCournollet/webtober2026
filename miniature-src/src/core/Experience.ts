@@ -24,6 +24,7 @@ export class Experience {
   readonly narration = new Narration();
   readonly chrome = new Chrome(LEVEL_COUNT);
   readonly audio = new AudioEngine();
+  private setSoundLabel: (on: boolean) => void = () => {};
   private input: Input;
   private clock = new THREE.Clock();
   private elapsed = 0;
@@ -46,15 +47,8 @@ export class Experience {
     window.addEventListener('resize', () => this.resize());
     const soundBtn = document.getElementById('sound')!;
     const setLabel = (on: boolean) => { soundBtn.textContent = on ? 'sound · on' : 'sound · off'; soundBtn.setAttribute('aria-pressed', String(on)); };
-    let started = false;
-    soundBtn.addEventListener('click', async e => { e.stopPropagation(); started = true; setLabel(await this.audio.toggle()); });
-    // le son démarre au premier geste (clic, touche, toucher) : les navigateurs interdisent de le lancer avant
-    const first = async (e: Event) => {
-      if (started || e.target === soundBtn) return; started = true;   // un clic sur le bouton est géré par le bouton
-      ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.removeEventListener(ev, first));
-      if (!this.audio.enabled) setLabel(await this.audio.toggle());
-    };
-    ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.addEventListener(ev, first));
+    soundBtn.addEventListener('click', async e => { e.stopPropagation(); setLabel(await this.audio.toggle()); });
+    this.setSoundLabel = setLabel;
   }
 
   /** Le scroll appelle simplement : niveau suivant / précédent. La timeline fait le reste. */
@@ -71,6 +65,8 @@ export class Experience {
     this.chrome.setLevel(Level.Street);
     this.resize();
     this.loop();
+    // le son est lancé dans le gestionnaire du clic lui-même : c'est la seule façon que tous les navigateurs l'autorisent
+    await this.chrome.waitForBegin(() => { if (!this.audio.enabled) void this.audio.toggle().then(this.setSoundLabel); });
     this.chrome.liftCurtain();
     await this.transitions.opening(street);
   }

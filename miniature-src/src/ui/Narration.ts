@@ -19,14 +19,14 @@ export class Narration {
     });
     const ps = Array.from(this.box.children);
     this.tl = gsap.timeline({ delay });
-    ps.forEach((p, i) => this.tl!.to(p, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 2.2, ease: 'sine.out' }, i * gap));
+    ps.forEach((p, i) => this.tl!.to(p, { opacity: 1, y: 0, duration: 2.2, ease: 'sine.out', force3D: true }, i * gap));
   }
 
   clear(instant = false) {
     this.tl?.kill();
     const ps = Array.from(this.box.children);
     if (instant || !ps.length) { this.box.innerHTML = ''; return; }
-    gsap.to(ps, { opacity: 0, filter: 'blur(6px)', y: -6, duration: 0.7, ease: 'sine.in', stagger: 0.05, onComplete: () => ps.forEach(p => p.remove()) });
+    gsap.to(ps, { opacity: 0, y: -6, duration: 0.7, force3D: true, ease: 'sine.in', stagger: 0.05, onComplete: () => ps.forEach(p => p.remove()) });
   }
 }
 
@@ -48,4 +48,16 @@ export class Chrome {
   hideHint() { this.hint.classList.remove('on'); }
 
   liftCurtain() { document.getElementById('curtain')!.classList.add('gone'); }
+
+  /** Écran d'entrée : attend un clic (ou une touche). C'est ce geste qui autorise le navigateur à jouer le son. */
+  waitForBegin(onGesture: () => void): Promise<void> {
+    const btn = document.getElementById('begin') as HTMLButtonElement;
+    btn.disabled = false; btn.textContent = 'click to begin';
+    document.getElementById('curtain')!.classList.add('ready');
+    return new Promise(res => {
+      const go = () => { onGesture(); window.removeEventListener('keydown', go); document.getElementById('curtain')!.removeEventListener('click', go); res(); };
+      document.getElementById('curtain')!.addEventListener('click', go);
+      window.addEventListener('keydown', go);
+    });
+  }
 }
