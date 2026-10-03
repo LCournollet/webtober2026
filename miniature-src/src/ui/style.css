@@ -1,0 +1,51 @@
+:root {
+  --ink: #e9e3d6;
+  --muted: rgba(233, 227, 214, 0.45);
+  --warm: #f2c98a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #05070d; color: var(--ink); }
+body { font-family: "Cormorant Garamond", Georgia, serif; -webkit-font-smoothing: antialiased; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+
+#home, #sound {
+  position: absolute; pointer-events: auto; font: 400 10px/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--muted); text-decoration: none; background: none; border: 0; padding: 6px; cursor: pointer;
+  transition: color 0.4s, opacity 1.2s;
+}
+#home { top: 14px; left: 14px; }
+#home b { color: var(--warm); font-weight: 400; }
+#sound { right: 14px; bottom: 12px; }
+#home:hover, #sound:hover { color: var(--ink); }
+
+/* narration : quelques lignes courtes, à gauche, très calmes */
+#narration {
+  position: absolute; left: clamp(22px, 8vw, 140px); top: 50%; transform: translateY(-50%);
+  max-width: min(440px, 80vw); display: flex; flex-direction: column; gap: 14px;
+}
+#narration p {
+  margin: 0; font-size: clamp(18px, 1.7vw, 25px); line-height: 1.35; font-weight: 400; letter-spacing: 0.01em;
+  color: var(--ink); opacity: 0; transform: translateY(8px); filter: blur(4px); text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7);
+}
+#narration p.first { font-size: clamp(30px, 3vw, 46px); font-style: italic; font-weight: 500; }
+#narration p.small { font-size: clamp(16px, 1.4vw, 21px); color: rgba(233, 227, 214, 0.78); font-style: italic; }
+
+#hint {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); font: 400 10px/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); opacity: 0; transition: opacity 1.6s;
+}
+#hint.on { opacity: 1; }
+#hint span { display: inline-block; animation: nudge 2.4s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+/* niveaux : six points minuscules, presque invisibles */
+#dots { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; opacity: 0.55; }
+#dots i { width: 3px; height: 3px; border-radius: 50%; background: rgba(233, 227, 214, 0.25); transition: background 0.8s, transform 0.8s; }
+#dots i.on { background: var(--warm); transform: scale(1.6); }
+
+#curtain { position: absolute; inset: 0; background: #05070d; transition: opacity 2.4s ease; }
+#curtain.gone { opacity: 0; }
+
+@media (max-width: 640px) { #narration { top: auto; bottom: 90px; transform: none; } #dots { display: none; } }
+@media (prefers-reduced-motion: reduce) { #hint span { animation: none; } }
