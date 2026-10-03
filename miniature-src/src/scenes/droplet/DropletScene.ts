@@ -11,6 +11,9 @@ import { rng } from '../../utils/math';
  * bokeh opaque (pour que la transmission ait quelque chose à tordre) et sert aussi de carte d'environnement.
  * La surface ondule à peine (déplacement dans le vertex shader), quelques micro-bulles flottent dedans.
  */
+/** distance de raccord : goutte de rayon 1 sur ~35 % de la hauteur à fov 18 */
+const DROP_START = 1 / (0.35 * Math.tan(THREE.MathUtils.degToRad(9)));
+
 export class DropletScene extends BaseScene {
   readonly level = Level.Droplet;
   readonly look: Look = { exposure: 1.25, bloom: 0.5, bloomThreshold: 0.7, tint: [0.98, 1, 1.03], vignette: 0.55, grain: 0.035 };
@@ -99,16 +102,17 @@ export class DropletScene extends BaseScene {
   }
 
   async enter(dir: Direction) {
-    this.zoom.r = dir > 0 ? 0.32 : 0.35;
-    this.camera.fov = dir > 0 ? 20 : 60; this.camera.updateProjectionMatrix();
+    // en descendant : même cadrage que la fin du travelling dans la rue (goutte centrée, 35 % de l'écran, fov 18)
+    this.zoom.r = dir > 0 ? DROP_START : 0.35;
+    this.camera.fov = dir > 0 ? 18 : 60; this.camera.updateProjectionMatrix();
     this.orbit.dragYaw = this.orbit.dragPitch = 0;
   }
 
-  /** On émerge de l'intérieur de la goutte et on recule pour la voir entière. */
-  intro(_dir: Direction) {
+  /** En descendant, le travelling de la rue continue : on s'approche de la goutte, qui glisse à droite. En remontant, on sort de sa surface. */
+  intro(dir: Direction) {
     const tl = gsap.timeline();
-    tl.to(this.zoom, { r: 4.2, duration: 3.4, ease: 'power3.out' }, 0);
-    this.fovTo(tl, 32, 3.4, 'power2.out', 0);
+    tl.to(this.zoom, { r: 4.2, duration: dir > 0 ? 4.2 : 3.4, ease: dir > 0 ? 'power2.out' : 'power3.out' }, 0);
+    this.fovTo(tl, 32, dir > 0 ? 4.2 : 3.4, 'power2.out', 0);
     return tl;
   }
 
@@ -120,8 +124,8 @@ export class DropletScene extends BaseScene {
       tl.to(this.zoom, { r: 0.15, duration: 1.0, ease: 'power3.in' }, 1.8);     // on passe à travers
       this.fovTo(tl, 62, 2.8, 'power2.in', 0);
     } else {
-      tl.to(this.zoom, { r: 12, duration: 2.2, ease: 'power3.in' }, 0);
-      this.fovTo(tl, 18, 2.2, 'power2.in', 0);
+      tl.to(this.zoom, { r: DROP_START, duration: 2.4, ease: 'power2.inOut' }, 0);   // on revient au cadrage de raccord avec la rue
+      this.fovTo(tl, 18, 2.4, 'power2.inOut', 0);
     }
     return tl;
   }
@@ -132,8 +136,10 @@ export class DropletScene extends BaseScene {
     this.bubbles.rotation.x = Math.sin(elapsed * 0.1) * 0.2;
     this.motes.rotation.y = elapsed * 0.02;
     // quand on se colle à la goutte, l'orbite se recentre sur elle
+    // et au raccord avec la rue (de loin) elle est centrée, puis glisse à droite en approchant
     const near = THREE.MathUtils.clamp((4.2 - this.zoom.r) / 3, 0, 1);
-    this.orbit.target.set(-0.75 * (1 - near), 0, 0);
+    const far = THREE.MathUtils.smoothstep(this.zoom.r, 4.2, DROP_START);
+    this.orbit.target.set(-0.75 * (1 - near) * (1 - far), 0, 0);
     this.orbit.radius = this.zoom.r;
     this.applyOrbit(dt);
     // reflet : point de la sphère dont la normale est la bissectrice caméra / lumière

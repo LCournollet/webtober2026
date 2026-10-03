@@ -6,12 +6,15 @@ import { Rain, Splashes } from './Rain';
 import { Man } from './Man';
 import { rng } from '../../utils/math';
 import { softDisc } from '../../utils/textures';
+import { translucentMaterial } from '../../shaders/translucent';
 
 const LAMP = new THREE.Vector3(-0.15, 4.55, 0.85);   // la tête du lampadaire
 const GROUND_R = 2.7;                                 // rayon de la flaque de lumière au sol
 const CAM_BASE = new THREE.Vector3(3.6, 1.85, 11.2);
 const CAM_LOOK = new THREE.Vector3(0.1, 1.55, 0.2);
 const DROP_AT = new THREE.Vector3(0.95, 2.05, 1.55);  // la goutte que l'on va suivre
+/** distance caméra-goutte en fin de travelling : la goutte occupe ~35 % de la hauteur à fov 18 (= ouverture de DropletScene) */
+const DROP_FRAME_DIST = 0.0095 / (0.35 * Math.tan(THREE.MathUtils.degToRad(9)));
 
 /**
  * Échelle 0 : un homme attend son bus sous un lampadaire, la nuit, sous la pluie.
@@ -152,15 +155,13 @@ export class StreetScene extends BaseScene {
     s.add(this.splashes.mesh);
 
     // --- la goutte que l'on suivra (invisible tant qu'elle n'est pas choisie)
-    this.drop = new THREE.Mesh(new THREE.SphereGeometry(0.035, 32, 24), new THREE.MeshPhysicalMaterial({
-      color: '#f2f6ff', roughness: 0.02, transmission: 1, thickness: 0.05, ior: 1.33, specularIntensity: 1, envMapIntensity: 1.2,
-    }));
+    this.drop = new THREE.Mesh(new THREE.SphereGeometry(0.0095, 32, 24), translucentMaterial({ core: '#3a4a60', rim: '#ffdcae', opacity: 1.1 }));   // sur fond sombre, une goutte se lit par son liseré de lumière
     this.drop.scale.set(1, 1.12, 1);
     this.drop.position.copy(DROP_AT);
     this.drop.visible = false;
     s.add(this.drop);
     const dropGlint = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: '#ffe3b6', transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending }));
-    dropGlint.scale.setScalar(0.09); this.drop.add(dropGlint); this.drop.userData.glint = dropGlint;
+    dropGlint.scale.setScalar(0.0055); dropGlint.position.set(0.0035, 0.004, 0.007); this.drop.add(dropGlint); this.drop.userData.glint = dropGlint;
     // anneau de l'impact final
     this.finaleRing = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd8a0', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     this.finaleRing.position.set(DROP_AT.x, 0.015, DROP_AT.z); s.add(this.finaleRing);
@@ -181,12 +182,12 @@ export class StreetScene extends BaseScene {
     this.drop.position.copy(DROP_AT);
     const glint = this.drop.userData.glint as THREE.Sprite;
     tl.to(this.speed, { value: 0, duration: 1.5, ease: 'expo.out' }, 0);
-    tl.to(glint.material, { opacity: 0.8, duration: 0.8, ease: 'sine.out' }, 0.3);
+    tl.to(glint.material, { opacity: 0.45, duration: 0.8, ease: 'sine.out' }, 0.3);
     this.camFrom.copy(this.camera.position); this.lookFrom.copy(CAM_LOOK);
     this.camState.k = 0;
     tl.to(this.camState, { k: 1, duration: 3.1, ease: 'power3.inOut' }, 0.7);
     this.fovTo(tl, 18, 3.1, 'power2.inOut', 0.7);
-    tl.to(glint.material, { opacity: 0, duration: 0.8 }, 2.6);
+    
     return tl;
   }
 
@@ -264,7 +265,7 @@ export class StreetScene extends BaseScene {
     const idle = new THREE.Vector3(Math.sin(elapsed * 0.07) * 0.18 + this.orbit.hoverYaw * 1.2, Math.sin(elapsed * 0.05) * 0.06 + this.orbit.hoverPitch * 0.8, Math.cos(elapsed * 0.06) * 0.12);
     const base = this.camFrom.lengthSq() > 0 ? this.camFrom : CAM_BASE;
     const wide = base.clone().add(idle.multiplyScalar(1 - k));
-    const near = this.drop.position.clone().add(new THREE.Vector3(0.06, 0.02, 0.32).normalize().multiplyScalar(0.075));
+    const near = this.drop.position.clone().add(new THREE.Vector3(0.06, 0.02, 0.32).normalize().multiplyScalar(DROP_FRAME_DIST));
     this.camera.position.lerpVectors(wide, near, k);
     const look = new THREE.Vector3().lerpVectors(this.lookFrom.lengthSq() > 0 ? this.lookFrom : CAM_LOOK, this.drop.position, Math.min(1, k * 1.4));
     this.camera.lookAt(look);

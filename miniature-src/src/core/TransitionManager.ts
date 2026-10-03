@@ -54,11 +54,19 @@ export class TransitionManager {
     const d = Math.max(0.6, out.duration());
     const post = gsap.timeline();
     post.set(p.fadeColor, { r: mask.r, g: mask.g, b: mask.b }, 0);
+    // rue <-> goutte : les deux cadrages sont raccord, un simple fondu court suffit (pas de zoom radial)
+    const soft = (a.level === Level.Street && to === Level.Droplet) || (a.level === Level.Droplet && to === Level.Street);
+    if (soft) {
+      post.to(p, { blur: 0.55, focus: 0.3, duration: d * 0.9, ease: 'sine.inOut' }, 0);   // le fond se perd, la goutte reste nette
+      post.to(p, { fade: 1, duration: 0.45, ease: 'sine.in' }, d - 0.45);
+      await Promise.all([wait(out), wait(post)]);
+    } else {
     post.to(p, { blur: 1, focus: dir > 0 ? 0.12 : 0.5, duration: d * 0.8, ease: 'sine.in' }, 0);
     post.to(p, { zoom: 0.9 * dir, chroma: 1, duration: d * 0.55, ease: 'expo.in' }, d * 0.45);
     post.to(p, { fade: 1, duration: d * 0.3, ease: 'power2.in' }, d * 0.7);
     if (dir > 0 && a.level === Level.Droplet) post.to(p, { exposure: 2.4, duration: d * 0.4, ease: 'power2.in' }, d * 0.6);   // on traverse la surface : éblouissement
     await Promise.all([wait(out), wait(post)]);
+    }
 
     // --- bascule, écran masqué
     await a.exit(dir);
@@ -72,8 +80,13 @@ export class TransitionManager {
     const inn = b.intro(dir);
     const d2 = Math.max(0.8, inn.duration());
     const post2 = gsap.timeline();
-    post2.set(p, { zoom: 0.7 * dir, blur: 1, chroma: 0.8 }, 0);
-    post2.to(p, { fade: 0, duration: d2 * 0.45, ease: 'power2.out' }, 0);
+    if (soft) {
+      post2.set(p, { zoom: 0, blur: 0.55, chroma: 0, focus: 0.3 }, 0);
+      post2.to(p, { fade: 0, duration: 0.5, ease: 'sine.out' }, 0);
+    } else {
+      post2.set(p, { zoom: 0.7 * dir, blur: 1, chroma: 0.8 }, 0);
+      post2.to(p, { fade: 0, duration: d2 * 0.45, ease: 'power2.out' }, 0);
+    }
     post2.to(p, { exposure: 1, duration: d2 * 0.6, ease: 'power2.out' }, 0);
     post2.to(p, { zoom: 0, chroma: 0, duration: d2 * 0.55, ease: 'expo.out' }, 0);
     post2.to(p, { blur: 0, focus: 0.35, duration: d2 * 0.9, ease: 'sine.out' }, 0.1);
