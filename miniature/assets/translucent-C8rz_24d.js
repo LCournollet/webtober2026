@@ -1,4 +1,4 @@
-import{S as t,A as i,D as r,C as e}from"./index-CSCHxmRk.js";function n(a={}){return new t({transparent:!0,depthWrite:!1,blending:i,side:r,uniforms:{uCore:{value:new e(a.core??"#6f9f8f")},uRim:{value:new e(a.rim??"#cfe8de")},uOpacity:{value:a.opacity??1},uStripes:{value:a.stripes??0},uRays:{value:a.rays??0},uTime:{value:0}},vertexShader:`
+import{S as t,A as i,D as r,C as e}from"./index-xfhZCKqq.js";function n(a={}){return new t({transparent:!0,depthWrite:!1,blending:i,side:r,uniforms:{uCore:{value:new e(a.core??"#6f9f8f")},uRim:{value:new e(a.rim??"#cfe8de")},uOpacity:{value:a.opacity??1},uStripes:{value:a.stripes??0},uRays:{value:a.rays??0},uTime:{value:0}},vertexShader:`
       varying vec3 vN; varying vec3 vV; varying vec3 vLocal;
       void main() {
         vLocal = position;

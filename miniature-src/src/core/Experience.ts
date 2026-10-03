@@ -45,11 +45,16 @@ export class Experience {
     this.input = new Input(canvas, dir => this.step(dir), () => this.transitions.busy);
     window.addEventListener('resize', () => this.resize());
     const soundBtn = document.getElementById('sound')!;
-    soundBtn.addEventListener('click', async () => {
-      const on = await this.audio.toggle();
-      soundBtn.textContent = on ? 'sound · on' : 'sound · off';
-      soundBtn.setAttribute('aria-pressed', String(on));
-    });
+    const setLabel = (on: boolean) => { soundBtn.textContent = on ? 'sound · on' : 'sound · off'; soundBtn.setAttribute('aria-pressed', String(on)); };
+    let started = false;
+    soundBtn.addEventListener('click', async e => { e.stopPropagation(); started = true; setLabel(await this.audio.toggle()); });
+    // le son démarre au premier geste (clic, touche, toucher) : les navigateurs interdisent de le lancer avant
+    const first = async (e: Event) => {
+      if (started || e.target === soundBtn) return; started = true;   // un clic sur le bouton est géré par le bouton
+      ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.removeEventListener(ev, first));
+      if (!this.audio.enabled) setLabel(await this.audio.toggle());
+    };
+    ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.addEventListener(ev, first));
   }
 
   /** Le scroll appelle simplement : niveau suivant / précédent. La timeline fait le reste. */

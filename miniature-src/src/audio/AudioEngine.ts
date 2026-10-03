@@ -7,6 +7,7 @@ import { Level } from '../core/types';
  *             → passe par un passe-bas « étouffement » qui se ferme quand on entre dans la goutte
  *   vivant  : ambiance sous-marine (bruit brun très grave) + petites bulles
  *   matière : drone doux (quintes légèrement désaccordées), un peu plus aérien pour l'atome
+ *   piano   : quelques notes isolées, lentes, en la mineur — synthèse additive (partiels légèrement inharmoniques)
  *
  * Les navigateurs exigent un geste (clic, touche) avant de jouer : le son démarre sur le bouton « sound ».
  */
@@ -14,7 +15,8 @@ export class AudioEngine {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
   private outsideLP!: BiquadFilterNode;
-  private bus: Record<'rain' | 'wind' | 'city' | 'water' | 'bubbles' | 'drone' | 'shimmer', GainNode> = {} as never;
+  private bus: Record<'rain' | 'wind' | 'city' | 'water' | 'bubbles' | 'drone' | 'shimmer' | 'piano', GainNode> = {} as never;
+  private verbIn!: GainNode;
   private level: Level = Level.Street;
   private timers: number[] = [];
   enabled = false;
@@ -34,14 +36,14 @@ export class AudioEngine {
     this.level = level;
     if (!this.ctx) return;
     const t = this.ctx.currentTime, tc = immediate ? 0.3 : 1.6;
-    const mix: Record<string, number> = { rain: 0, wind: 0, city: 0, water: 0, bubbles: 0, drone: 0, shimmer: 0 };
+    const mix: Record<string, number> = { rain: 0, wind: 0, city: 0, water: 0, bubbles: 0, drone: 0, shimmer: 0, piano: 0.5 };
     let lp = 18000;
     switch (level) {
-      case Level.Street: case Level.Return: Object.assign(mix, { rain: 0.5, wind: 0.22, city: 0.18 }); break;
+      case Level.Street: case Level.Return: Object.assign(mix, { rain: 0.6, wind: 0.2, city: 0.16, piano: 0.55 }); break;
       case Level.Droplet: Object.assign(mix, { rain: 0.32, wind: 0.12, city: 0.1, drone: 0.04 }); lp = 700; break;   // le monde s'étouffe
       case Level.Micro: Object.assign(mix, { rain: 0.06, water: 0.42, bubbles: 0.5, drone: 0.05 }); lp = 220; break;
       case Level.Molecule: Object.assign(mix, { water: 0.08, drone: 0.32, shimmer: 0.05 }); lp = 160; break;
-      case Level.Atom: Object.assign(mix, { drone: 0.26, shimmer: 0.22 }); lp = 120; break;
+      case Level.Atom: Object.assign(mix, { drone: 0.26, shimmer: 0.22, piano: 0.42 }); lp = 120; break;
     }
     for (const k of Object.keys(this.bus) as (keyof typeof this.bus)[]) this.bus[k].gain.setTargetAtTime(mix[k], t, tc);
     this.outsideLP.frequency.setTargetAtTime(lp, t, tc * 0.8);
@@ -59,6 +61,63 @@ export class AudioEngine {
     return src;
   }
 
+  /**
+   * Crépitement : des impacts très courts placés au hasard dans un buffer bouclé (gouttes sur le trottoir, sur le parapluie).
+   * Deux couches de longueurs différentes pour que la boucle ne s'entende pas.
+   */
+  private patter(seconds: number, perSecond: number, decayMs: number): AudioBufferSourceNode {
+    const ctx = this.ctx!, sr = ctx.sampleRate, len = Math.floor(sr * seconds), buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    const n = Math.floor(seconds * perSecond), dec = (decayMs / 1000) * sr;
+    for (let k = 0; k < n; k++) {
+      const at = Math.floor(Math.random() * len), amp = Math.pow(Math.random(), 2.2) * 0.9;
+      for (let i = 0; i < dec * 5; i++) d[(at + i) % len] += (Math.random() * 2 - 1) * amp * Math.exp(-i / dec);
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.start();
+    return src;
+  }
+
+  /** Une note de piano : partiels inharmoniques, les aigus s'éteignent plus vite, marteau feutré (filtre qui se referme). */
+  private pianoNote(midi: number, when: number, vel: number) {
+    const ctx = this.ctx!, f0 = 440 * Math.pow(2, (midi - 69) / 12), B = 0.00035;
+    const out = this.gain(0), lp = this.filter('lowpass', 900 + vel * 2600, 0.3), pan = ctx.createStereoPanner();
+    pan.pan.value = (midi - 64) / 40 + (Math.random() - 0.5) * 0.3;
+    lp.frequency.setValueAtTime(900 + vel * 2600, when); lp.frequency.exponentialRampToValueAtTime(380, when + 4);
+    out.connect(lp); lp.connect(pan); pan.connect(this.bus.piano);
+    const life = 7 - (midi - 48) * 0.06;
+    for (let n = 1; n <= 7; n++) {
+      const f = f0 * n * Math.sqrt(1 + B * n * n); if (f > 9000) break;
+      const o = ctx.createOscillator(), g = this.gain(0);
+      o.type = 'sine'; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 3;
+      const a = vel * 0.4 / Math.pow(n, 1.35), tail = life / (1 + (n - 1) * 0.7);
+      g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(a, when + 0.006);
+      g.gain.exponentialRampToValueAtTime(a * 0.35, when + 0.35); g.gain.exponentialRampToValueAtTime(0.0001, when + tail);
+      o.connect(g); g.connect(out); o.start(when); o.stop(when + tail + 0.1);
+    }
+    out.gain.setValueAtTime(1, when);
+  }
+
+  /** Musique : quatre accords lents (la m, fa, do, sol), une ou deux notes à la fois, beaucoup de silence. */
+  private music() {
+    const chords = [[57, 60, 64, 69, 72, 76], [53, 57, 60, 65, 69, 72], [55, 60, 64, 67, 72, 76], [55, 59, 62, 67, 71, 74]];
+    const bass = [45, 41, 48, 43];
+    let bar = 0, step = 0;
+    const tick = () => {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime + 0.05, c = chords[bar % 4];
+      const up = this.level === Level.Atom || this.level === Level.Molecule ? 12 : 0;   // plus on descend, plus c'est aérien
+      if (step === 0 && Math.random() < 0.8) this.pianoNote(bass[bar % 4], t, 0.32);
+      if (Math.random() < 0.75) {
+        const note = c[2 + Math.floor(Math.random() * 4)] + up;
+        this.pianoNote(note, t + (step === 0 ? 0.25 : 0), 0.25 + Math.random() * 0.2);
+        if (Math.random() < 0.18) this.pianoNote(c[Math.floor(Math.random() * 3)] + 12 + up, t + 0.9 + Math.random() * 0.4, 0.18);
+      }
+      step++;
+      if (step >= 3) { step = 0; bar++; }
+      this.timers.push(window.setTimeout(tick, 2300 + Math.random() * 1700));
+    };
+    this.timers.push(window.setTimeout(tick, 1200));
+  }
+
   private gain(v = 0, to?: AudioNode) { const g = this.ctx!.createGain(); g.gain.value = v; if (to) g.connect(to); return g; }
   private filter(type: BiquadFilterType, f: number, q = 0.7) { const b = this.ctx!.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; }
   private lfo(rate: number, depth: number, target: AudioParam) { const o = this.ctx!.createOscillator(), g = this.gain(depth); o.frequency.value = rate; o.connect(g); g.connect(target); o.start(); }
@@ -72,6 +131,11 @@ export class AudioEngine {
     verb.buffer = ir;
     const wet = this.gain(0.32, this.master); verb.connect(wet);
     const out = this.gain(1, this.master); out.connect(verb);
+    this.verbIn = this.gain(0.9); this.verbIn.connect(verb);
+
+    // --- piano, hors du filtre d'étouffement, très réverbéré
+    this.bus.piano = this.gain(0, this.master); this.bus.piano.connect(this.verbIn);
+    this.music();
 
     // --- dehors, derrière le filtre d'étouffement
     this.outsideLP = this.filter('lowpass', 18000, 0.5); this.outsideLP.connect(out);
@@ -79,6 +143,11 @@ export class AudioEngine {
     const rain = this.noise('white'), rh = this.filter('highpass', 900), rl = this.filter('lowpass', 7000), rainShimmer = this.gain(0.55);
     rain.connect(rh); rh.connect(rl); rl.connect(rainShimmer); rainShimmer.connect(this.bus.rain);
     this.lfo(0.13, 0.12, rainShimmer.gain);
+    // gouttes sur le trottoir (fines, nombreuses) et sur le parapluie (plus rondes, plus graves)
+    const street = this.patter(7.3, 260, 1.2), sh = this.filter('highpass', 2200), sg = this.gain(0.5);
+    street.connect(sh); sh.connect(sg); sg.connect(this.bus.rain);
+    const umb = this.patter(5.1, 38, 6), ub = this.filter('bandpass', 950, 1.4), ug = this.gain(0.9);
+    umb.connect(ub); ub.connect(ug); ug.connect(this.bus.rain);
     this.bus.wind = this.gain(0, this.outsideLP);
     const wind = this.noise('brown'), wl = this.filter('lowpass', 380, 1.2), windG = this.gain(0.7);
     wind.connect(wl); wl.connect(windG); windG.connect(this.bus.wind);
