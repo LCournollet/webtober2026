@@ -25,9 +25,6 @@
   #title h1 { margin: 0; font-family: "Cormorant Garamond", serif; font-weight: 500; font-style: italic; font-size: clamp(30px, 4vw, 54px); color: #fff; line-height: 1; }
   #title p { margin: 10px 0 0; font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
   #hint { left: 50%; bottom: 16px; transform: translateX(-50%); white-space: nowrap; }
-  #stop { right: 18px; bottom: 16px; }
-  #stop i { font-style: normal; color: var(--brass); }
-  #stop.off i { color: var(--muted); }
   /* intérieur du microscope */
   .in { opacity: 0; pointer-events: none; }
   body.inside .in { opacity: 1; pointer-events: auto; }
@@ -57,7 +54,6 @@
 <a class="ui out" id="home" href="/">← Devtober · <b>03 / Miniature</b></a>
 <div class="ui out" id="title"><h1>The pocket microscope</h1><p>Brass &amp; enamel · scale 1:12 · one drop of pond water</p></div>
 <div class="ui out" id="hint">Drag to orbit · scroll to zoom · click the eyepiece to look inside</div>
-<button class="ui" id="stop">Stop-motion <i>● on</i> · S</button>
 <button class="ui in" id="back">← Step back · Esc</button>
 <div class="ui in" id="label">Pond water · ×40</div>
 <div class="ui in" id="mag"><span>Objective</span><button class="ui on" data-m="0">×40</button><button class="ui" data-m="1">×100</button><button class="ui" data-m="2">×400</button></div>
@@ -219,11 +215,11 @@ const tilt = dir => new ShaderPass({
 const tiltH = tilt(new THREE.Vector2(1, 0)), tiltV = tilt(new THREE.Vector2(0, 1));
 composer.addPass(tiltH); composer.addPass(tiltV); composer.addPass(new OutputPass());
 const grade = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, uSeed: { value: 0 }, uFlick: { value: 1 } },
+  uniforms: { tDiffuse: { value: null }, uSeed: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uSeed, uFlick; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uSeed; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uSeed) * 43758.5453); }
-    void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb; float l = dot(c, vec3(.299,.587,.114)); c = mix(vec3(l), c, 1.12); c *= uFlick;
+    void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb; float l = dot(c, vec3(.299,.587,.114)); c = mix(vec3(l), c, 1.12);
       vec2 q = vUv - .5; c *= 1. - dot(q, q) * .85; c += (h(vUv * 917.) - .5) * .04; gl_FragColor = vec4(clamp(c, 0., 1.), 1.); }`,
 });
 composer.addPass(grade);
@@ -419,20 +415,16 @@ let turretT = 0;
 const MAG_ROT = [0, -Math.PI * 2 / 3, -Math.PI * 4 / 3];
 const setMag = i => { view.kT = MAGS[i].k; document.querySelectorAll('#mag button').forEach(b => b.classList.toggle('on', +b.dataset.m === i)); $('label').textContent = 'Pond water · ' + MAGS[i].label; turretT = MAG_ROT[i]; };
 document.querySelectorAll('#mag button').forEach(b => b.onclick = () => setMag(+b.dataset.m));
-let stopMotion = true;
-const setStop = v => { stopMotion = v; $('stop').classList.toggle('off', !v); $('stop').querySelector('i').textContent = v ? '● on' : '○ off'; };
-$('stop').onclick = () => setStop(!stopMotion);
 addEventListener('keydown', e => {
-  if (e.code === 'KeyS') setStop(!stopMotion);
   if (e.key === 'Escape') goOutside();
   if (inside && ['1', '2', '3'].includes(e.key)) setMag(+e.key - 1);
   if (!inside && e.key === 'Enter') goInside();
 });
 
 /* =========================================================================================
-   4. Boucle : 12 images par seconde en stop-motion (petit tremblement, lumière qui bat), sinon fluide
+   4. Boucle
    ========================================================================================= */
-const STEP = 1 / 12, clock = new THREE.Clock(); let acc = 0; const shake = new THREE.Vector3();
+const clock = new THREE.Clock();
 function update(dt) {
   if (anim) { anim.k = Math.min(1, anim.k + dt / anim.dur); const e = ease(anim.k);
     camera.position.lerpVectors(anim.p0, anim.p1, e); controls.target.lerpVectors(anim.t0, anim.t1, e); camera.lookAt(controls.target);
@@ -445,21 +437,14 @@ function update(dt) {
   knobs.forEach((k, i) => k.rotation.x = view.focus * 6 * (i % 2 ? 3 : 1));
   if (inside) stepOrgs(dt);
 }
-function render(sm) {
-  if (inside) { const j = sm ? 2 * MH / 1000 : 0; drawMicro(rr(-j, j), rr(-j, j), sm ? 1 + rr(-0.02, 0.02) : 1); return; }
-  grade.uniforms.uSeed.value = R() * 100; grade.uniforms.uFlick.value = sm ? 1 + rr(-0.03, 0.03) : 1;
+function render() {
+  if (inside) { drawMicro(0, 0, 1); return; }
+  grade.uniforms.uSeed.value = R() * 100;
   composer.render();
 }
 function frame() {
   requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.1);
-  if (stopMotion) {
-    acc += dt; if (acc < STEP) return;                              // on garde la même image jusqu'à la suivante
-    const st = acc; acc = 0;
-    camera.position.sub(shake); update(st);
-    if (!inside && !anim) { shake.set(rr(-1, 1), rr(-1, 1), rr(-1, 1)).multiplyScalar(0.025); camera.position.add(shake); } else shake.set(0, 0, 0);
-    render(true);
-  } else { camera.position.sub(shake); shake.set(0, 0, 0); update(dt); render(false); }
+  update(Math.min(clock.getDelta(), 0.1)); render();
 }
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
