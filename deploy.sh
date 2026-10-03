@@ -11,6 +11,7 @@ else
   T="$1"; [ -d "$T" ] || { echo "$T introuvable"; exit 1; }
   ssh -i "$KEY" "$VPS" "rm -rf '$DEST/$T.tmp' && mkdir -p '$DEST/$T.tmp'"
   scp -i "$KEY" -r "$T/." "$VPS:$DEST/$T.tmp/"
-  ssh -i "$KEY" "$VPS" "rm -rf '$DEST/$T' && mv '$DEST/$T.tmp' '$DEST/$T'"
+  # les anciens fichiers versionnés (assets/*-hash.js) restent servis : une page ouverte avant le déploiement continue de marcher
+  ssh -i "$KEY" "$VPS" "if [ -d '$DEST/$T/assets' ]; then mkdir -p '$DEST/$T.tmp/assets' && cp -rn '$DEST/$T/assets/.' '$DEST/$T.tmp/assets/'; fi; rm -rf '$DEST/$T' && mv '$DEST/$T.tmp' '$DEST/$T'"
   echo "→ https://devtober.57-131-40-94.sslip.io/$T/"
 fi

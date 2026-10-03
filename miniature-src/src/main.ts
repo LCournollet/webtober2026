@@ -1,3 +1,6 @@
+// une page ouverte avant un nouveau déploiement réclame d'anciens fichiers : on recharge plutôt que de rester bloqué
+window.addEventListener('vite:preloadError', () => window.location.reload());
+
 import { Experience } from './core/Experience';
 
 const canvas = document.getElementById('gl') as HTMLCanvasElement;

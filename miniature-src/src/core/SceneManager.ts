@@ -26,13 +26,18 @@ export class SceneManager {
   get(level: Level): Promise<ExperienceScene> {
     const k = this.key(level);
     let p = this.cache.get(k);
-    if (!p) { p = this.factories[k](this.ctx); this.cache.set(k, p); }
+    if (!p) {
+      // si le chargement échoue (réseau, fichier remplacé par un nouveau déploiement), on n'en garde pas la trace :
+      // la prochaine demande réessaiera au lieu de rester bloquée
+      p = this.factories[k](this.ctx).catch(err => { this.cache.delete(k); throw err; });
+      this.cache.set(k, p);
+    }
     return p;
   }
 
   /** Précharge l'échelle suivante pendant qu'on contemple la courante. */
   preload(level: Level) {
-    if (level >= Level.Street && level <= Level.Atom) void this.get(level);
+    if (level >= Level.Street && level <= Level.Atom) this.get(level).catch(() => {});
   }
 
   forEachLoaded(fn: (s: ExperienceScene) => void) {
