@@ -1,0 +1,101 @@
+:root {
+  --ink: #1d2338;
+  --cream: #fbf8f1;
+  --red: #e2574c;
+  --gold: #f2c14e;
+  --blue: #a9c6e8;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #2a3150; color: var(--cream); font-family: Nunito, system-ui, sans-serif; }
+body { touch-action: none; user-select: none; -webkit-user-select: none; }
+
+#stage { position: fixed; inset: 0; }
+#scene { width: 100%; height: 100%; display: block; }
+#stage.playing, #stage.playing * { cursor: none; }
+#stage.shake { animation: shake 0.22s; }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.cal-m { font: 800 15px Nunito, sans-serif; fill: #fff; letter-spacing: 0.12em; }
+.cal-d { font: 800 72px "Baloo 2", sans-serif; fill: var(--ink); }
+.cal-w { font: 800 20px Nunito, sans-serif; fill: #d9534a; letter-spacing: 0.1em; }
+.scr-s { font: 700 11px Nunito, sans-serif; fill: #d6e6ff; }
+.scr-b { font: 800 16px Nunito, sans-serif; fill: #fff; }
+.mug-t { font: 800 11px Nunito, sans-serif; fill: #d9534a; letter-spacing: 0.06em; }
+.ring { font: 800 20px "Baloo 2", sans-serif; fill: var(--gold); letter-spacing: 0.04em; }
+.dream-i { font-size: 60px; }
+.zz { font: 800 34px "Baloo 2", sans-serif; fill: #dbe6ff; animation: zz 2.6s ease-out forwards; }
+
+#alarmInner.ringing { animation: ring 0.12s linear infinite; transform-box: fill-box; transform-origin: center; }
+#ring { opacity: 0; }
+#ring.on { animation: ringTxt 0.9s steps(2) infinite; }
+#steam { animation: steam 3s ease-in-out infinite; }
+#drool { transform-box: fill-box; transform-origin: top; animation: drool 2.4s ease-in-out infinite; }
+#guard { transform-box: fill-box; transform-origin: 50% 100%; transform: translateY(260px) rotate(20deg); opacity: 0; transition: transform 0.25s cubic-bezier(.3,1.5,.5,1), opacity 0.15s; }
+#guard.up { transform: none; opacity: 1; }
+#dream { transform-box: fill-box; transform-origin: 20% 90%; transition: transform 0.35s cubic-bezier(.3,1.6,.5,1), opacity 0.3s; }
+#dream.pop { transform: scale(0); opacity: 0; transition: transform 0.12s ease-in, opacity 0.12s; }
+
+/* bulle de paroles */
+.bubble {
+  position: fixed; transform: translate(-50%, -100%); background: var(--cream); color: var(--ink); font: 800 clamp(15px, 1.5vw, 20px) "Baloo 2", sans-serif;
+  padding: 10px 16px; border-radius: 18px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); white-space: nowrap; pointer-events: none;
+  animation: pop 0.25s cubic-bezier(.3,1.6,.5,1);
+}
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -10px; border: 10px solid transparent; border-top-color: var(--cream); border-bottom: 0; transform: translateX(-50%); }
+
+/* interface */
+#home { position: fixed; top: 16px; left: 18px; color: rgba(251, 248, 241, 0.7); text-decoration: none; font: 700 12px Nunito, sans-serif; letter-spacing: 0.06em; z-index: 5; }
+#home b { color: var(--gold); }
+#clock { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); background: #11141f; border: 2px solid #2f3756; border-radius: 12px; padding: 6px 16px 4px; text-align: center; z-index: 5; box-shadow: 0 10px 30px -14px #000; }
+#clock span { display: block; font: 800 10px Nunito, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: #8d97bb; }
+#clock b { font: 400 34px/1 "Share Tech Mono", monospace; color: #ff6b5e; text-shadow: 0 0 12px rgba(255, 107, 94, 0.6); }
+#clock.late b { animation: blink 0.5s steps(2) infinite; }
+#mute { position: fixed; top: 12px; right: 14px; z-index: 5; background: rgba(17, 20, 31, 0.6); border: 0; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+#hud { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(560px, 100% - 32px); display: flex; align-items: center; gap: 14px; z-index: 5; background: rgba(17, 20, 31, 0.72); backdrop-filter: blur(6px); padding: 10px 16px; border-radius: 16px; }
+.meter { flex: 1; display: flex; align-items: center; gap: 10px; }
+.meter-l { font: 800 12px Nunito, sans-serif; white-space: nowrap; color: #c9d2f0; }
+.bar { position: relative; flex: 1; height: 14px; background: #2b3150; border-radius: 99px; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #7f8fd0, #f2c14e 60%, #ff7a5c); border-radius: 99px; transition: width 0.15s; }
+.bar em { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255, 255, 255, 0.25); }
+#mood { font-size: 22px; width: 28px; text-align: center; }
+.count { font: 800 13px Nunito, sans-serif; white-space: nowrap; }
+.count b { color: var(--gold); font-size: 16px; }
+
+/* main qui gifle */
+#hand { position: fixed; left: 0; top: 0; width: 92px; height: 92px; margin: -46px 0 0 -46px; pointer-events: none; z-index: 8; opacity: 0; transition: opacity 0.2s; will-change: transform; }
+#hand svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35)); }
+.playing ~ #hand { opacity: 1; }
+
+/* panneaux d'intro et de fin */
+.panel { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(17, 20, 31, 0.55); backdrop-filter: blur(3px); z-index: 10; padding: 16px; }
+.card { background: var(--cream); color: var(--ink); border-radius: 22px; padding: clamp(22px, 4vw, 36px); max-width: 460px; box-shadow: 0 30px 80px -30px #000; animation: pop 0.35s cubic-bezier(.3,1.5,.5,1); }
+.card h1 { font: 800 clamp(26px, 3.4vw, 34px)/1.08 "Baloo 2", sans-serif; margin: 6px 0 10px; }
+.card p { margin: 0 0 12px; font-size: 16px; }
+.kicker { font: 800 12px Nunito, sans-serif !important; letter-spacing: 0.18em; text-transform: uppercase; color: #d9534a; }
+.how { background: #efe8da; border-radius: 12px; padding: 10px 14px; font-size: 14px !important; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.stats div { background: #efe8da; border-radius: 12px; padding: 8px 10px; text-align: center; font-size: 12px; font-weight: 700; color: #5b6078; }
+.stats b { display: block; font: 800 22px "Baloo 2", sans-serif; color: var(--ink); }
+.rank { font: 800 20px "Baloo 2", sans-serif; color: #d9534a; }
+.btn { appearance: none; border: 0; background: var(--ink); color: var(--cream); font: 800 17px "Baloo 2", sans-serif; padding: 12px 26px; border-radius: 999px; cursor: pointer; box-shadow: 0 6px 0 #0b0e18; transition: transform 0.1s, box-shadow 0.1s; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0b0e18; }
+
+@keyframes shake { 25% { transform: translate(-8px, 3px); } 50% { transform: translate(6px, -4px); } 75% { transform: translate(-3px, 2px); } }
+@keyframes zz { from { transform: translate(0, 0) scale(0.6); opacity: 0; } 20% { opacity: 1; } to { transform: translate(60px, -120px) scale(1.2); opacity: 0; } }
+@keyframes ring { 0% { transform: rotate(-9deg); } 50% { transform: rotate(9deg); } 100% { transform: rotate(-9deg); } }
+@keyframes ringTxt { 0% { opacity: 1; } 100% { opacity: 0.2; } }
+@keyframes steam { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(-8px); opacity: 1; } }
+@keyframes drool { 0%, 100% { transform: scaleY(0.6); } 50% { transform: scaleY(1.25); } }
+@keyframes pop { from { transform: translate(-50%, -100%) scale(0.6); opacity: 0; } }
+.card { animation-name: popCard; }
+@keyframes popCard { from { transform: scale(0.9); opacity: 0; } }
+@keyframes blink { 50% { opacity: 0.2; } }
+
+@media (max-width: 640px) {
+  .meter-l { display: none; }
+  #clock b { font-size: 26px; }
+  #hand { width: 70px; height: 70px; margin: -35px 0 0 -35px; }
+}
+@media (prefers-reduced-motion: reduce) { #stage.shake { animation: none; } }
