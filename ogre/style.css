@@ -40,7 +40,7 @@ svg { display: block; }
 .host-link:hover { background: var(--soft); }
 .pill-menu { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 5px 5px 12px; background: #fff; cursor: pointer; }
 .pill-menu svg { width: 16px; height: 16px; }
-.me { width: 30px; height: 30px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; font-size: 16px; }
+.me-av { width: 30px; height: 30px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; font-size: 16px; }
 
 /* ------------------------------------------------------------ titre + galerie */
 .title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 26px 0 18px; }
@@ -196,10 +196,10 @@ h3 { font-size: 22px; font-weight: 700; margin: 0 0 18px; color: var(--ink); let
 .amen-all li.no { color: var(--muted); text-decoration: line-through; }
 .amen-all h4 { margin: 18px 0 6px; font-size: 17px; }
 
-.chat { display: grid; gap: 10px; min-height: 260px; align-content: start; }
-.msg { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 15px; animation: up .25s ease; }
-.msg.host { background: var(--soft); border-bottom-left-radius: 4px; display: flex; gap: 10px; align-items: flex-start; }
-.msg.host .avatar { width: 28px; height: 28px; }
+.chat { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-height: 260px; align-content: start; }
+.msg { width: fit-content; max-width: 80%; padding: 10px 14px; line-height: 1.4; border-radius: 16px; font-size: 15px; animation: up .25s ease; }
+.msg.host { justify-self: start; background: var(--soft); border-bottom-left-radius: 4px; display: flex; gap: 10px; align-items: flex-start; }
+.msg.host .avatar { width: 28px; height: 28px; flex: none; }
 .msg.me { background: var(--brand); color: #fff; justify-self: end; border-bottom-right-radius: 4px; }
 .msg.sys { justify-self: center; background: none; color: var(--muted); font-size: 13px; padding: 2px; }
 .typing span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin: 0 2px; animation: dot 1s infinite; }
