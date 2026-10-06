@@ -247,22 +247,33 @@
   try { if (!(await fetch(SRC, { method: 'HEAD' })).ok) return; } catch { return; }
   btn.hidden = false; document.getElementById('musicCred').hidden = false;
   const a = new Audio(SRC); a.loop = true; a.preload = 'none'; a.volume = 0;
-  let wanted = localStorage.getItem('relicMuted') !== '1', fadeT = 0, started = false;
+  window.__relicAudio = a;   // pour déboguer depuis la console
+  let wanted = localStorage.getItem('relicMuted') !== '1', fadeT = 0;
   const fade = (to, ms, then) => {
     clearInterval(fadeT); const from = a.volume, t0 = performance.now();
     fadeT = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / ms); a.volume = from + (to - from) * k; if (k === 1) { clearInterval(fadeT); then?.(); } }, 30);
   };
   // le son est ON par défaut : le bouton l'affiche tout de suite, même si le navigateur attend un premier geste pour jouer
   const paint = () => { btn.classList.toggle('on', wanted); label.textContent = wanted ? 'Sound on' : 'Sound off'; btn.setAttribute('aria-pressed', String(wanted)); };
-  const play = () => { started = true; a.play().then(() => fade(VOL, 2500)).catch(() => { started = false; }); paint(); };
+  // on se fie à l'état réel du lecteur (a.paused), pas à une variable : certains navigateurs refusent le premier geste
+  const play = () => { if (!a.paused) return fade(VOL, 800);   // déjà en lecture (ex. pendant un fondu de sortie) : on remonte le volume
+    a.play().then(() => fade(VOL, 2500)).catch(() => {}); };
   const stop = () => fade(0, 500, () => a.pause());
-  btn.onclick = e => { e.stopPropagation(); if (wanted && !started) return play();   // affiché ON mais encore bloqué par le navigateur : ce clic le lance
-    wanted = !wanted; localStorage.setItem('relicMuted', wanted ? '0' : '1'); if (wanted) play(); else { stop(); paint(); } };
-  const first = e => { if (e.target === btn) return; ['pointerdown', 'keydown', 'touchend'].forEach(t => removeEventListener(t, first, true)); if (wanted && !started) play(); };
-  ['pointerdown', 'keydown', 'touchend'].forEach(t => addEventListener(t, first, true));
-  document.addEventListener('visibilitychange', () => { if (!started || !wanted) return; if (document.hidden) stop(); else a.play().then(() => fade(VOL, 1200)).catch(() => {}); });
+  btn.onclick = e => {
+    e.stopPropagation();
+    if (wanted && a.paused) { play(); return; }   // affiché ON mais pas encore autorisé : ce clic le lance
+    wanted = !wanted; localStorage.setItem('relicMuted', wanted ? '0' : '1');
+    if (wanted) play(); else stop();
+    paint();
+  };
+  // tant que la musique ne joue pas vraiment, chaque geste retente (Firefox n'accepte pas toujours l'appui seul)
+  const GESTURES = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchend'];
+  const kick = e => { if (e.target === btn || !wanted || !a.paused) return; play(); };
+  GESTURES.forEach(t => addEventListener(t, kick, true));
+  a.addEventListener('playing', () => GESTURES.forEach(t => removeEventListener(t, kick, true)), { once: true });
+  document.addEventListener('visibilitychange', () => { if (!wanted) return; if (document.hidden) stop(); else play(); });
   paint();
-  if (wanted) { a.preload = 'auto'; a.play().then(() => { started = true; fade(VOL, 2500); }).catch(() => { started = false; }); }   // lecture immédiate si le navigateur l'autorise
+  if (wanted) { a.preload = 'auto'; play(); }   // lecture immédiate si le navigateur l'autorise
 })();
 </script>
 <div id="loader"></div>
