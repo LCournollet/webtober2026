@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Souche avec toilettes au fond du jardin · tanières · Devtober 06</title>
+  <meta name="description" content="Fan-parodie : la cabane du marais de Shrek, à louer. Calme absolu, toilettes privées, hôte grognon." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛖</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Rye&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=4" />
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-in">
+      <a class="logo" href="#" aria-label="tanières, accueil">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 26V14L16 5l12 9v12" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M12 26v-6a4 4 0 0 1 8 0v6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 7c3-4 7-4 8-2-2 0-4 1-5 4" fill="var(--lime)"/></svg>
+        <span>tanières</span>
+      </a>
+      <button class="search" type="button" id="searchBtn">
+        <span><b>Marais</b></span><i></i><span>Quand vous voulez</span><i></i><span class="muted">1 voyageur (max)</span>
+        <em aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></em>
+      </button>
+      <div class="nav-r">
+        <a href="#" class="host-link" data-toast="Les inscriptions d'ogres sont closes. Il n'y en a qu'un.">Devenir hôte</a>
+        <button class="pill-menu" type="button" data-toast="Connexion indisponible : un âne bavard occupe la ligne.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="me">🧅</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="title-row">
+      <h1>Souche aménagée avec toilettes au fond du jardin · Marais de Shrek</h1>
+      <div class="title-actions">
+        <button type="button" class="link-btn" id="share"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Partager</button>
+        <button type="button" class="link-btn" id="save"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Enregistrer</span></button>
+      </div>
+    </div>
+
+    <section class="gallery" id="gallery" aria-label="Photos du logement">
+      <button class="ph ph-main" data-i="0" type="button"></button>
+      <button class="ph" data-i="1" type="button"></button>
+      <button class="ph" data-i="2" type="button"></button>
+      <button class="ph" data-i="3" type="button"></button>
+      <button class="ph" data-i="4" type="button"></button>
+      <button class="all-photos" type="button" id="allPhotos"><svg viewBox="0 0 24 24"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z" fill="currentColor"/></svg>Afficher toutes les photos</button>
+    </section>
+
+    <div class="cols">
+      <div class="main-col">
+        <section class="intro">
+          <h2>Logement entier : souche · Marais, Royaume de Fort Fort Lointain</h2>
+          <p class="specs">1 voyageur · 1 chambre · 1 lit (de feuilles) · 1 toilettes (extérieures, réservées)</p>
+          <div class="laurel">
+            <span class="l-badge">🏆 Coup de cœur<br/>des ogres</span>
+            <p>L'un des logements les plus isolés de tanières, d'après les voyageurs qui en sont revenus.</p>
+            <span class="l-num"><b>4,21</b><small>★★★★☆</small></span>
+            <span class="l-num"><b>1 042</b><small>commentaires</small></span>
+          </div>
+        </section>
+
+        <section class="host-row">
+          <span class="avatar" id="hostAvatar"></span>
+          <div><b>Hôte : Shrek</b><span>Superhôte grognon · Hôte depuis toujours</span></div>
+        </section>
+
+        <section class="highlights">
+          <div><span class="hl-i">🚽</span><div><b>Toilettes privées au fond du jardin</b><p>Elles sont à l'hôte. Rien qu'à l'hôte. Une visite virtuelle est disponible ci-dessous.</p></div></div>
+          <div><span class="hl-i">🤫</span><div><b>Calme absolu</b><p>Les voisins sont partis. Personne ne sait vraiment pourquoi.</p></div></div>
+          <div><span class="hl-i">🔑</span><div><b>Arrivée autonome</b><p>Entrez par la porte ronde. Sortez en courant si besoin.</p></div></div>
+        </section>
+
+        <section class="desc">
+          <p>Nichée au cœur d'un marais authentique, cette souche de caractère offre une expérience <b>loin de tout, et surtout loin des gens</b>. Réveil au chant des grenouilles, bain de boue tiède, coucher de soleil sur la vase : ici, le temps s'arrête (et l'odeur aussi).</p>
+          <p class="more" hidden>Le logement a été entièrement rénové à la main par l'hôte, avec des matériaux 100 % locaux : boue, bois, boue. Les toilettes, construites en planches massives, disposent d'une porte qui ferme presque et d'un stock généreux de pages de contes de fées en guise de papier. L'hôte vit sur place et tient à le rester. Les chevaliers, princesses en détresse, villageois armés et créatures de contes sont priés de passer leur chemin.</p>
+          <button class="link-btn u" id="readMore" type="button">Lire la suite ›</button>
+        </section>
+
+        <section class="block">
+          <h3>Où vous dormirez</h3>
+          <div class="sleep-card"><div class="sleep-img" id="sleepImg"></div><b>Chambre</b><span>1 lit de feuilles (double, si on se serre)</span></div>
+        </section>
+
+        <section class="block">
+          <h3>Ce que propose ce logement</h3>
+          <ul class="amen" id="amen"></ul>
+          <button class="btn-out" id="allAmen" type="button">Afficher les 32 équipements</button>
+        </section>
+
+        <section class="block toilets">
+          <div class="toilets-txt">
+            <h3>Les toilettes</h3>
+            <p>Joyau du logement : de véritables <b>toilettes sèches d'époque</b>, au fond du jardin. Bois massif, ventilation naturelle par lune découpée, papier fourni (contes de fées assortis).</p>
+            <p class="note">Merci de frapper avant d'entrer.</p>
+            <button class="btn-dark" id="visit" type="button"><span>🚪</span> Visite virtuelle des toilettes</button>
+          </div>
+          <div class="toilets-img" id="toiletsImg"></div>
+        </section>
+
+        <section class="block">
+          <h3 id="calTitle">Sélectionnez vos dates</h3>
+          <p class="muted" id="calSub">Ajoutez vos dates de voyage pour voir les prix exacts (et la réaction de l'hôte).</p>
+          <div class="cal" id="cal"></div>
+          <div class="cal-foot"><span class="legend"><i class="lg-x"></i> Indisponible (pleine lune, rendez-vous important)</span><button class="link-btn u" id="clearDates" type="button">Effacer les dates</button></div>
+        </section>
+
+        <section class="block" id="reviews">
+          <h3 class="rv-title">★ 4,21 · 1 042 commentaires</h3>
+          <div class="cats" id="cats"></div>
+          <div class="rv-grid" id="rvGrid"></div>
+          <button class="btn-out" id="allReviews" type="button">Afficher les 1 042 commentaires</button>
+        </section>
+
+        <section class="block">
+          <h3>Où se situe le logement</h3>
+          <p>Marais, Royaume de Fort Fort Lointain</p>
+          <div class="map" id="map"></div>
+          <p class="muted">Adresse exacte communiquée après la réservation. Ou jamais.</p>
+        </section>
+
+        <section class="block host-card">
+          <div class="hc-left">
+            <span class="avatar big" id="hostAvatar2"></span>
+            <div><b>Shrek</b><span>Superhôte grognon</span></div>
+            <ul><li><b>1 042</b>évaluations</li><li><b>4,21★</b>note</li><li><b>∞</b>années d'expérience</li></ul>
+          </div>
+          <div class="hc-right">
+            <p><b>Taux de réponse :</b> 12 % · <b>Délai :</b> quand il veut</p>
+            <p>« J'ai plusieurs couches. Mes avis aussi. Certains font pleurer. »</p>
+            <button class="btn-out" id="contact" type="button">Envoyer un message à l'hôte</button>
+          </div>
+        </section>
+
+        <section class="block rules">
+          <h3>À savoir</h3>
+          <div class="rules-g">
+            <div><b>Règlement intérieur</b><p>Arrivée : à partir de 15 h<br/>Départ : immédiatement<br/>1 voyageur maximum<br/>Interdit aux chevaliers</p></div>
+            <div><b>Sécurité et logement</b><p>Détecteur de fumée : l'hôte<br/>Détecteur de monoxyde : la grenouille<br/>Présence d'un ogre sur place</p></div>
+            <div><b>Conditions d'annulation</b><p>Annulation gratuite si vous partez en courant dans les 5 minutes suivant l'arrivée.</p></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="book-col">
+        <div class="book" id="book">
+          <div class="price"><b id="nightly">49 €</b> <span>par nuit</span></div>
+          <div class="fields">
+            <button type="button" class="f" id="fIn"><small>ARRIVÉE</small><span>Ajouter une date</span></button>
+            <button type="button" class="f" id="fOut"><small>DÉPART</small><span>Ajouter une date</span></button>
+            <div class="f full guests"><small>VOYAGEURS</small><span id="gCount">1 voyageur</span>
+              <div class="stepper"><button type="button" id="gMinus" aria-label="Moins">−</button><button type="button" id="gPlus" aria-label="Plus">+</button></div>
+            </div>
+          </div>
+          <button class="btn-book" id="bookBtn" type="button">Réserver</button>
+          <p class="center muted small">Aucun montant ne vous sera débité. Ni maintenant, ni jamais (parodie).</p>
+          <div class="fees" id="fees" hidden></div>
+        </div>
+        <p class="report"><span>🚩</span> <a href="#" data-toast="Signalement transmis à l'hôte. Il a ri.">Signaler cette annonce</a></p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p><b>Fan-parodie non officielle</b>, sans lien avec DreamWorks Animation. Shrek et les personnages associés appartiennent à leurs ayants droit. Illustrations originales, aucune donnée collectée, aucune réservation réelle.</p>
+      <p><a href="/" id="home">← Devtober · <b>06</b></a> · tanières © Marais · Confidentialité · Conditions · Plan du marais</p>
+    </div>
+  </footer>
+
+  <div id="modal" class="modal" hidden><div class="modal-card" role="dialog" aria-modal="true"><button class="x" type="button" aria-label="Fermer">✕</button><div class="modal-body"></div></div></div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="./app.js?v=4"></script>
+</body>
+</html>
