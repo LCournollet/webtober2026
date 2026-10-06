@@ -41,6 +41,8 @@
     await Promise.all(dirs.map(async d => {
       try {
         const m = await (await fetch(`/${d.name}/meta.json`)).json();
+        // en cas de doublon (anciennes versions gardées pour comparer), le dossier qui porte le nom du thème l'emporte
+        if (!m.day || (byDay[m.day] && byDay[m.day].slug === byDay[m.day].theme)) return;
         byDay[m.day] = { ...m, slug: d.name };
       } catch {}
     }));
