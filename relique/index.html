@@ -48,15 +48,14 @@
   body.pre .logo svg { visibility: hidden; }
   #intro h1, #intro p, .logo span { transition: opacity .9s ease .15s; }
   #credBtn { right: 18px; bottom: 16px; transition: color .2s; }
-  #snd { left: 18px; bottom: 16px; display: flex; align-items: center; gap: 8px; transition: color .2s, opacity .6s; }
+  #snd { left: 18px; bottom: 36px; display: flex; align-items: center; gap: 8px; transition: color .2s, opacity .6s; }
   #snd .eq { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
   #snd .eq i { width: 2px; height: 3px; background: currentColor; transition: height .3s; }
   #snd.on { color: var(--ink); }
   #snd.on .eq i { animation: eq 1s ease-in-out infinite; }
   #snd.on .eq i:nth-child(2) { animation-delay: -.35s; } #snd.on .eq i:nth-child(3) { animation-delay: -.7s; } #snd.on .eq i:nth-child(4) { animation-delay: -.2s; }
-  #snd.invite { animation: invite 2.4s ease-in-out infinite; }
   @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 10px; } }
-  @keyframes invite { 0%, 100% { color: var(--muted); } 50% { color: var(--red); } }
+
   #credits { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 40; overflow-y: auto; overscroll-behavior: contain;
     background: rgba(9, 2, 4, .9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-left: 1px solid var(--dim);
     padding: 26px 26px 40px; transform: translateX(102%); transition: transform .5s cubic-bezier(.7,0,.2,1); user-select: text; -webkit-user-select: text; }
@@ -253,14 +252,17 @@
     clearInterval(fadeT); const from = a.volume, t0 = performance.now();
     fadeT = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / ms); a.volume = from + (to - from) * k; if (k === 1) { clearInterval(fadeT); then?.(); } }, 30);
   };
-  const paint = () => { const on = wanted && started; btn.classList.toggle('on', on); btn.classList.toggle('invite', wanted && !started); label.textContent = on ? 'Sound on' : wanted ? 'Sound ▸' : 'Sound off'; btn.setAttribute('aria-pressed', String(on)); };
-  const play = () => { started = true; a.play().then(() => fade(VOL, 2500)).catch(() => { started = false; paint(); }); paint(); };
+  // le son est ON par défaut : le bouton l'affiche tout de suite, même si le navigateur attend un premier geste pour jouer
+  const paint = () => { btn.classList.toggle('on', wanted); label.textContent = wanted ? 'Sound on' : 'Sound off'; btn.setAttribute('aria-pressed', String(wanted)); };
+  const play = () => { started = true; a.play().then(() => fade(VOL, 2500)).catch(() => { started = false; }); paint(); };
   const stop = () => fade(0, 500, () => a.pause());
-  btn.onclick = e => { e.stopPropagation(); wanted = !(wanted && started); localStorage.setItem('relicMuted', wanted ? '0' : '1'); if (wanted) play(); else { stop(); paint(); } };
+  btn.onclick = e => { e.stopPropagation(); if (wanted && !started) return play();   // affiché ON mais encore bloqué par le navigateur : ce clic le lance
+    wanted = !wanted; localStorage.setItem('relicMuted', wanted ? '0' : '1'); if (wanted) play(); else { stop(); paint(); } };
   const first = e => { if (e.target === btn) return; ['pointerdown', 'keydown', 'touchend'].forEach(t => removeEventListener(t, first, true)); if (wanted && !started) play(); };
   ['pointerdown', 'keydown', 'touchend'].forEach(t => addEventListener(t, first, true));
   document.addEventListener('visibilitychange', () => { if (!started || !wanted) return; if (document.hidden) stop(); else a.play().then(() => fade(VOL, 1200)).catch(() => {}); });
   paint();
+  if (wanted) { a.preload = 'auto'; a.play().then(() => { started = true; fade(VOL, 2500); }).catch(() => { started = false; }); }   // lecture immédiate si le navigateur l'autorise
 })();
 </script>
 <div id="loader"></div>
