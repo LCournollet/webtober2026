@@ -48,6 +48,15 @@
   body.pre .logo svg { visibility: hidden; }
   #intro h1, #intro p, .logo span { transition: opacity .9s ease .15s; }
   #credBtn { right: 18px; bottom: 16px; transition: color .2s; }
+  #snd { left: 18px; bottom: 16px; display: flex; align-items: center; gap: 8px; transition: color .2s, opacity .6s; }
+  #snd .eq { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+  #snd .eq i { width: 2px; height: 3px; background: currentColor; transition: height .3s; }
+  #snd.on { color: var(--ink); }
+  #snd.on .eq i { animation: eq 1s ease-in-out infinite; }
+  #snd.on .eq i:nth-child(2) { animation-delay: -.35s; } #snd.on .eq i:nth-child(3) { animation-delay: -.7s; } #snd.on .eq i:nth-child(4) { animation-delay: -.2s; }
+  #snd.invite { animation: invite 2.4s ease-in-out infinite; }
+  @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 10px; } }
+  @keyframes invite { 0%, 100% { color: var(--muted); } 50% { color: var(--red); } }
   #credits { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 40; overflow-y: auto; overscroll-behavior: contain;
     background: rgba(9, 2, 4, .9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-left: 1px solid var(--dim);
     padding: 26px 26px 40px; transform: translateX(102%); transition: transform .5s cubic-bezier(.7,0,.2,1); user-select: text; -webkit-user-select: text; }
@@ -148,6 +157,7 @@
 </aside>
 <div id="flash"></div>
 <button class="ui" id="credBtn">Credits</button>
+<button class="ui" id="snd" hidden aria-pressed="false"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sndL">Sound</span></button>
 <aside id="credits" aria-label="Credits">
   <header><h2>CREDITS</h2><button class="x" id="credX" aria-label="Close">✕</button></header>
   <h3>// Main inspiration</h3>
@@ -163,6 +173,7 @@
     <li><span>Wiki</span><a href="https://cyberpunk.fandom.com/fr/wiki/Relic" target="_blank" rel="noopener">Relic — Cyberpunk Wiki (fandom, FR)</a></li>
     <li><span>Reddit · r/cyberpunkgame</span><a href="https://www.reddit.com/r/cyberpunkgame/comments/1p5h1z7/what_is_all_the_fuss_about_relic/?tl=fr" target="_blank" rel="noopener">What is all the fuss about Relic?</a></li>
     <li><span>cbrpnk.de</span><a href="https://www.cbrpnk.de/blog/relic-geschichte-und-technische-daten/" target="_blank" rel="noopener">Relic — Geschichte und technische Daten</a></li>
+    <li id="musicCred" hidden><span>Music</span>Panam's theme — Cyberpunk 2077 original soundtrack · © CD PROJEKT RED</li>
   </ul>
   <div id="credImgs"></div>
   <p class="legalx">Cyberpunk 2077, the Relic, Arasaka and all related marks © CD PROJEKT S.A. Unofficial, non-commercial fan project made for Devtober.
@@ -229,6 +240,29 @@
 })();
 </script>
 <div id="flood"></div>
+<script>
+// musique : uniquement si le fichier est présent (il n'est pas dans le dépôt public). Elle démarre au premier geste
+// (les navigateurs l'exigent), en fondu, en boucle ; couper le son est mémorisé.
+(async () => {
+  const SRC = 'audio/panam.mp3', VOL = 0.32, btn = document.getElementById('snd'), label = document.getElementById('sndL');
+  try { if (!(await fetch(SRC, { method: 'HEAD' })).ok) return; } catch { return; }
+  btn.hidden = false; document.getElementById('musicCred').hidden = false;
+  const a = new Audio(SRC); a.loop = true; a.preload = 'none'; a.volume = 0;
+  let wanted = localStorage.getItem('relicMuted') !== '1', fadeT = 0, started = false;
+  const fade = (to, ms, then) => {
+    clearInterval(fadeT); const from = a.volume, t0 = performance.now();
+    fadeT = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / ms); a.volume = from + (to - from) * k; if (k === 1) { clearInterval(fadeT); then?.(); } }, 30);
+  };
+  const paint = () => { const on = wanted && started; btn.classList.toggle('on', on); btn.classList.toggle('invite', wanted && !started); label.textContent = on ? 'Sound on' : wanted ? 'Sound ▸' : 'Sound off'; btn.setAttribute('aria-pressed', String(on)); };
+  const play = () => { started = true; a.play().then(() => fade(VOL, 2500)).catch(() => { started = false; paint(); }); paint(); };
+  const stop = () => fade(0, 500, () => a.pause());
+  btn.onclick = e => { e.stopPropagation(); wanted = !(wanted && started); localStorage.setItem('relicMuted', wanted ? '0' : '1'); if (wanted) play(); else { stop(); paint(); } };
+  const first = e => { if (e.target === btn) return; ['pointerdown', 'keydown', 'touchend'].forEach(t => removeEventListener(t, first, true)); if (wanted && !started) play(); };
+  ['pointerdown', 'keydown', 'touchend'].forEach(t => addEventListener(t, first, true));
+  document.addEventListener('visibilitychange', () => { if (!started || !wanted) return; if (document.hidden) stop(); else a.play().then(() => fade(VOL, 1200)).catch(() => {}); });
+  paint();
+})();
+</script>
 <div id="loader"></div>
 <svg id="ldLogo" viewBox="-0.52 -0.52 1.04 1.04" aria-hidden="true">
   <defs><mask id="snakeM" maskUnits="userSpaceOnUse" x="-0.6" y="-0.6" width="1.2" height="1.2">
