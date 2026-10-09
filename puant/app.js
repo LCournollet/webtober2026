@@ -68,11 +68,14 @@ $('#glass').innerHTML = `<svg viewBox="0 0 300 420" xmlns="http://www.w3.org/200
     <linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".05"/><stop offset=".3" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity=".12"/></linearGradient>
     <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a7b95e"/><stop offset="1" stop-color="#5e6b2a"/></linearGradient>
     <radialGradient id="halo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#c9a35a" stop-opacity=".25"/><stop offset="1" stop-color="#c9a35a" stop-opacity="0"/></radialGradient>
+    <clipPath id="bowl"><path d="M88 72 C72 150 84 208 150 219 C216 208 228 150 212 72 Z"/></clipPath>
   </defs>
   <ellipse cx="150" cy="200" rx="160" ry="170" fill="url(#halo)"/>
   <path d="M86 70 C70 150 82 210 150 222 C218 210 230 150 214 70 Z" fill="url(#gl)" stroke="#e8cf98" stroke-opacity=".5"/>
-  <path d="M80 150 C84 200 104 216 150 220 C196 216 216 200 220 150 Z" fill="url(#liq)" opacity=".85"/>
-  <ellipse cx="150" cy="150" rx="70" ry="9" fill="#c5d47a" opacity=".55"/>
+  <g clip-path="url(#bowl)">
+    <rect x="60" y="150" width="180" height="80" fill="url(#liq)" opacity=".85"/>
+    <ellipse cx="150" cy="150" rx="80" ry="8" fill="#c5d47a" opacity=".55"/>
+  </g>
   <path d="M146 222 v120 h8 v-120" fill="url(#gl)" stroke="#e8cf98" stroke-opacity=".4"/>
   <ellipse cx="150" cy="350" rx="58" ry="10" fill="url(#gl)" stroke="#e8cf98" stroke-opacity=".45"/>
   <path d="M104 92 C100 130 104 170 118 196" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/>
@@ -88,12 +91,12 @@ $('#glass').innerHTML = `<svg viewBox="0 0 300 420" xmlns="http://www.w3.org/200
   addEventListener('resize', resize); resize();
   const tick = () => {
     const s = src();
-    if (parts.length < 90) parts.push({ x: s.x + (Math.random() - 0.5) * 60, y: s.y, r: 10 + Math.random() * 18, vy: -(0.3 + Math.random() * 0.5), vx: (Math.random() - 0.5) * 0.3, life: 0, max: 380 + Math.random() * 260, ph: Math.random() * 6 });
+    if (parts.length < 70 && Math.random() < 0.5) parts.push({ x: s.x + (Math.random() - 0.5) * 90, y: s.y + 10, r: 18 + Math.random() * 22, vy: -(0.45 + Math.random() * 0.6), vx: (Math.random() - 0.5) * 0.4, life: 0, max: 300 + Math.random() * 220, ph: Math.random() * 6 });
     g.clearRect(0, 0, W, H);
-    g.globalCompositeOperation = 'lighter';
+    g.globalCompositeOperation = 'source-over';   // pas d'addition : les volutes ne doivent jamais saturer en boule lumineuse
     for (const p of parts) {
-      p.life++; p.y += p.vy; p.x += p.vx + Math.sin(p.life / 40 + p.ph) * 0.35; p.r += 0.12;
-      const k = p.life / p.max, a = Math.sin(Math.PI * k) * 0.13;
+      p.life++; p.y += p.vy; p.x += p.vx + Math.sin(p.life / 40 + p.ph) * 0.35; p.r += 0.22;
+      const k = p.life / p.max, a = Math.sin(Math.PI * k) * 0.07;
       const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
       gr.addColorStop(0, `rgba(160, 185, 90, ${a})`); gr.addColorStop(1, 'rgba(160, 185, 90, 0)');
       g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
