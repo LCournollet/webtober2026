@@ -1,0 +1,16 @@
+import cv2, numpy as np
+img = cv2.imread('source/faker.webp')
+keep = np.array([(445,40),(500,4),(600,0),(682,28),(702,110),(697,200),(682,262),(655,312),(642,340),(652,395),(700,420),(708,458),(590,462),(538,446),(508,402),(503,345),(516,322),(492,298),(468,250),(452,200),(438,130)], np.int32)
+poly = np.zeros(img.shape[:2], np.uint8); cv2.fillPoly(poly, [keep], 1)
+# GrabCut initialisé avec le polygone : dedans = probablement premier plan, dehors = fond certain
+gc = np.where(poly == 1, cv2.GC_PR_FGD, cv2.GC_BGD).astype(np.uint8)
+bg, fg = np.zeros((1,65)), np.zeros((1,65))
+cv2.grabCut(img, gc, None, bg, fg, 6, cv2.GC_INIT_WITH_MASK)
+mask = np.where((gc == cv2.GC_FGD) | (gc == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
+mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((9,9),np.uint8))
+cv2.imwrite('source/_mask.png', mask)
+vis = img.copy(); vis[mask == 0] = (vis[mask == 0] * 0.15).astype(np.uint8)
+cv2.polylines(vis, [keep], True, (0,0,255), 1)
+cv2.imwrite('source/_masked.png', vis[0:470, 400:740])
+print('fg px', int((mask>0).sum()))

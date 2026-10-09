@@ -1,0 +1,3 @@
+node_modules
+# la photo source et les aperçus ne sont jamais publiés : seul public/portrait.json (fragments) part en ligne
+source/
