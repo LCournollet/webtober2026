@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Aries · Devtober 09</title>
+  <meta name="description" content="Une nuit claire, loin de tout. Reliez les étoiles du Bélier et réveillez le bélier à la toison d'or." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♈</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <canvas id="fx"></canvas>
+  <svg id="land" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="l1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1622"/><stop offset="1" stop-color="#070b12"/></linearGradient>
+      <linearGradient id="l2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070c14"/><stop offset="1" stop-color="#03050a"/></linearGradient>
+      <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3e4a" stop-opacity="0"/><stop offset="1" stop-color="#2c3e4a" stop-opacity=".35"/></linearGradient>
+    </defs>
+    <g id="ridgeFar"><path d="M0 250 L90 222 L170 238 L260 196 L340 214 L430 176 L520 206 L600 188 L700 222 L790 200 L880 230 L980 186 L1060 204 L1150 170 L1240 200 L1330 182 L1420 214 L1520 196 L1600 214 V400 H0Z" fill="url(#l1)"/>
+      <rect y="170" width="1600" height="90" fill="url(#haze)"/></g>
+    <g id="ridgeNear"><path id="nearPath" fill="url(#l2)"/></g>
+  </svg>
+  <div id="labels"></div>
+
+  <div id="ui">
+    <div class="hint" id="hint">Reliez les étoiles du Bélier <span id="prog">0 / 3</span></div>
+    <div class="myth" id="myth">
+      <p class="over">Le Bélier · Aries</p>
+      <h2>Chrysomallos, le bélier à la toison d'or</h2>
+      <p>Il emporta Phrixos et Hellé à travers le ciel pour les arracher à leur marâtre. Zeus le plaça parmi les étoiles ; sa toison, suspendue en Colchide, deviendra la quête de Jason et des Argonautes.</p>
+      <div class="row"><button id="wake" type="button">Réveiller le bélier</button><button id="again" type="button" class="ghost">Effacer le ciel</button></div>
+    </div>
+    <button id="sound" type="button" aria-pressed="true">son</button>
+  </div>
+
+  <div id="intro">
+    <p class="over">Devtober · 09 · Bélier</p>
+    <h1>Aries</h1>
+    <p class="lead">Une nuit claire, loin de toute lumière.<br/>Quelque part au-dessus de l'horizon, un bélier attend qu'on le retrouve.</p>
+    <button id="enter" type="button">Lever les yeux</button>
+    <p class="small">Avec le son, de préférence.</p>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
