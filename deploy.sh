@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 VPS="ubuntu@57.131.40.94"; KEY="$HOME/.ssh/palais_vps"; DEST="/var/www/devtober"
 if [ $# -eq 0 ]; then
-  scp -i "$KEY" index.html "$VPS:$DEST/"
+  scp -i "$KEY" index.html retour.js "$VPS:$DEST/"   # retour.js : bouton « ← Calendrier » commun à tous les jours
   echo "→ https://devtober.57-131-40-94.sslip.io/"
 else
   T="$1"; [ -d "$T" ] || { echo "$T introuvable"; exit 1; }
