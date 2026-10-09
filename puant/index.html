@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Le Nez · Maison de dégustation olfactive · Devtober 09</title>
+  <meta name="description" content="Maison de dégustation olfactive depuis 1887. L'art de sentir ce que personne ne veut sentir." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👃</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cinzel:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=6" />
+</head>
+<body>
+  <header class="nav">
+    <a class="mark" href="#top"><span class="mono">N</span><span>LE NEZ</span></a>
+    <nav><a href="#cave">La Cave</a><a href="#atelier">L'Atelier</a><a href="#epreuve">L'Épreuve</a></nav>
+    <a class="nav-cta" href="#cave">Réserver une dégustation</a>
+  </header>
+
+  <section class="hero" id="top">
+    <canvas id="smoke"></canvas>
+    <div class="hero-txt">
+      <p class="over">Maison de dégustation olfactive · Depuis 1887</p>
+      <h1>Le Nez</h1>
+      <p class="tag">L'art de sentir ce que personne<br/>ne veut sentir.</p>
+      <a class="btn-gold" href="#cave">Découvrir la cave</a>
+    </div>
+    <div class="glass-wrap" id="glass"></div>
+    <div class="scroll-cue">Défiler</div>
+  </section>
+
+  <section class="manifesto">
+    <p class="over">Notre philosophie</p>
+    <blockquote>« Tout le monde sait apprécier un grand parfum. Il faut un vrai nez pour apprécier une chaussette de randonnée au troisième jour. »</blockquote>
+    <p class="sig">Édouard de Rance, maître nez, fondateur</p>
+    <div class="facts">
+      <div><b>137</b><span>ans de savoir-faire</span></div>
+      <div><b>10</b><span>grands crus en cave</span></div>
+      <div><b>0</b><span>ami restant</span></div>
+    </div>
+  </section>
+
+  <section class="cave" id="cave">
+    <div class="sec-head"><p class="over">Collection permanente</p><h2>La Cave</h2><p>Chaque cuvée est sélectionnée, notée et décrite par notre jury de nez professionnels, dans des conditions de sécurité strictes.</p></div>
+    <div class="filters" id="filters">
+      <button class="on" data-f="all">Toutes</button><button data-f="5">Intensité ★★★★★</button><button data-f="urbain">Urbaines</button><button data-f="domestique">Domestiques</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="atelier" id="atelier">
+    <div class="sec-head"><p class="over">Sur mesure</p><h2>L'Atelier d'assemblage</h2><p>Composez votre propre cuvée. Choisissez jusqu'à trois notes, dosez-les, notre maître nez rédige la fiche.</p></div>
+    <div class="at-grid">
+      <div>
+        <div class="notes" id="notes"></div>
+        <div class="doses" id="doses"><p class="muted">Sélectionnez une à trois notes ci-dessus.</p></div>
+      </div>
+      <div class="at-result" id="atResult">
+        <div class="at-bottle" id="atBottle"></div>
+        <div class="at-card" id="atCard"><p class="muted center">Votre assemblage apparaîtra ici.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="epreuve" id="epreuve">
+    <div class="sec-head"><p class="over">Certification</p><h2>L'Épreuve du Nez</h2><p>Cinq fiches de dégustation. À vous de retrouver la cuvée. Les meilleurs reçoivent le diplôme de Nez d'Or.</p></div>
+    <div class="quiz" id="quiz"></div>
+  </section>
+
+  <footer class="foot">
+    <div class="mark big"><span class="mono">N</span><span>LE NEZ</span></div>
+    <p class="warn">L'abus d'odeurs est dangereux pour l'amitié. À sentir avec modération.</p>
+    <p class="small">Maison fictive. Aucune odeur n'a été transmise par cet écran (pour l'instant). · <a href="/" id="home">← Devtober · <b>09</b></a></p>
+  </footer>
+
+  <div id="modal" class="modal" hidden><div class="sheet" role="dialog" aria-modal="true"><button class="x" type="button" aria-label="Fermer">✕</button><div class="sheet-body"></div></div></div>
+
+  <script type="module" src="./app.js?v=6"></script>
+</body>
+</html>
