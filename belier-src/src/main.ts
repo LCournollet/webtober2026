@@ -49,19 +49,23 @@ function applyLook() {
   const d = dir(ra - look.yaw / 15, dec + look.pitch);
   camera.up.set(0, 1, 0); camera.position.set(0, 0, 0); camera.lookAt(d);
   // le paysage suit un peu le regard (parallaxe)
-  ($('ridgeFar') as unknown as SVGGElement).setAttribute('transform', `translate(${(-look.yaw * 6).toFixed(1)} ${(look.pitch * 2).toFixed(1)})`);
-  ($('ridgeNear') as unknown as SVGGElement).setAttribute('transform', `translate(${(-look.yaw * 11).toFixed(1)} ${(look.pitch * 3.5).toFixed(1)})`);
+  ($('ridgeFar') as unknown as SVGGElement).setAttribute('transform', `translate(${(-look.yaw * 5).toFixed(1)} ${(look.pitch * 2).toFixed(1)})`);
+  ($('ridgeNear') as unknown as SVGGElement).setAttribute('transform', `translate(${(-look.yaw * 9).toFixed(1)} ${(look.pitch * 3.5).toFixed(1)})`);
 }
 applyLook();
 
 /* ------------------------------------------------------------------ paysage : crête proche avec sapins (générée) */
 (() => {
   let s = 11; const R = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  let d = 'M-200 400 L-200 300 ';
-  for (let x = -200; x <= 1800; x += 20) d += `L${x} ${(290 + Math.sin(x / 210) * 22 + Math.sin(x / 67 + 1) * 8 + R() * 4).toFixed(1)} `;
-  d += 'L1800 400 Z';
-  for (let i = 0; i < 46; i++) {
-    const x = -150 + R() * 1900, base = 296 + Math.sin(x / 210) * 22 + Math.sin(x / 67 + 1) * 8, h = 40 + R() * (x < 300 || x > 1300 ? 120 : 55), w = h * 0.34;
+  const X0 = -3200, X1 = 4800;   // bien plus large que l'écran : en tournant la tête, on n'atteint jamais le bord
+  let far = `M${X0} 1400 L${X0} 230 `;
+  for (let x = X0; x <= X1; x += 40) far += `L${x} ${(212 + Math.sin(x / 150) * 18 + Math.sin(x / 47 + 2) * 9 + Math.sin(x / 390) * 14).toFixed(1)} `;
+  $('farPath').setAttribute('d', far + `L${X1} 1400 Z`);
+  let d = `M${X0} 1400 L${X0} 300 `;
+  for (let x = X0; x <= X1; x += 20) d += `L${x} ${(290 + Math.sin(x / 210) * 22 + Math.sin(x / 67 + 1) * 8 + R() * 4).toFixed(1)} `;
+  d += `L${X1} 1400 Z`;
+  for (let i = 0; i < 190; i++) {
+    const x = X0 + 100 + R() * (X1 - X0 - 200), base = 296 + Math.sin(x / 210) * 22 + Math.sin(x / 67 + 1) * 8, h = 40 + R() * (Math.abs(x - 800) > 500 ? 120 : 55), w = h * 0.34;
     d += `M${x - w * 0.12} ${base + 4} `;
     const tiers = 6;
     for (let k = 0; k <= tiers; k++) { const y = base - (h * k) / tiers, ww = w * (1 - k / tiers); d += `L${(x - ww).toFixed(1)} ${(y + h / tiers * 0.35).toFixed(1)} L${(x - ww * 0.45).toFixed(1)} ${y.toFixed(1)} `; }
@@ -80,7 +84,8 @@ const tmp = new THREE.Vector3();
 function project() {
   AR.forEach((s, i) => {
     tmp.copy(s.v).project(camera);
-    s.vis = tmp.z < 1; s.x = (tmp.x * 0.5 + 0.5) * W; s.y = (-tmp.y * 0.5 + 0.5) * H;
+    s.x = (tmp.x * 0.5 + 0.5) * W; s.y = (-tmp.y * 0.5 + 0.5) * H;
+    s.vis = tmp.z < 1 && Number.isFinite(s.x) && Number.isFinite(s.y);   // (fenêtre de taille nulle : rien à dessiner)
     labels[i].style.left = s.x + 'px'; labels[i].style.top = s.y + 'px';
   });
 }
@@ -199,7 +204,7 @@ function ramFrame(off: { x: number; y: number; rot: number; sc: number }) {
 }
 
 function drawRam(now: number, dt: number) {
-  if (ramT < 0) return;
+  if (ramT < 0 || !byId.hamal.vis || !byId.bharani.vis) return;
   ramT = Math.min(1, ramT + dt / 6.5);
   ramAlpha = Math.min(1, ramAlpha + dt * 0.6);
   // la course : un grand bond vers l'est, puis retour à sa place
@@ -253,7 +258,7 @@ function draw(now: number, dt: number) {
   // halo des étoiles du Bélier : discret, plus visible si on cherche longtemps
   const help = Math.min(1, Math.max(0, (now - lastProgressAt - 9000) / 6000));
   for (const s of AR) {
-    if (!s.vis) continue;
+    if (!s.vis || !W || !H) continue;
     s.pulse = Math.max(0, s.pulse - dt * 0.8);
     const r = 9 + s.pulse * 9, a = (complete ? 0.12 : 0.07 + help * 0.22 + (s === hover ? 0.35 : 0)) + s.pulse * 0.16;
     const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 2.2);

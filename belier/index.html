@@ -9,20 +9,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-Bz9ihcom.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CoZxZe4A.css">
+  <script type="module" crossorigin src="./assets/index-j42Luwbv.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CjC2UBiq.css">
 </head>
 <body>
   <canvas id="gl"></canvas>
   <canvas id="fx"></canvas>
   <svg id="land" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
     <defs>
-      <linearGradient id="l1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1622"/><stop offset="1" stop-color="#070b12"/></linearGradient>
-      <linearGradient id="l2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070c14"/><stop offset="1" stop-color="#03050a"/></linearGradient>
+      <linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="180" x2="0" y2="400"><stop offset="0" stop-color="#0d1622"/><stop offset="1" stop-color="#070b12"/></linearGradient>
+      <linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="420"><stop offset="0" stop-color="#070c14"/><stop offset="1" stop-color="#03050a"/></linearGradient>
       <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3e4a" stop-opacity="0"/><stop offset="1" stop-color="#2c3e4a" stop-opacity=".35"/></linearGradient>
     </defs>
-    <g id="ridgeFar"><path d="M0 250 L90 222 L170 238 L260 196 L340 214 L430 176 L520 206 L600 188 L700 222 L790 200 L880 230 L980 186 L1060 204 L1150 170 L1240 200 L1330 182 L1420 214 L1520 196 L1600 214 V400 H0Z" fill="url(#l1)"/>
-      <rect y="170" width="1600" height="90" fill="url(#haze)"/></g>
+    <g id="ridgeFar"><path id="farPath" fill="url(#l1)"/><rect x="-4000" y="170" width="12000" height="90" fill="url(#haze)"/></g>
     <g id="ridgeNear"><path id="nearPath" fill="url(#l2)"/></g>
   </svg>
   <div id="labels"></div>

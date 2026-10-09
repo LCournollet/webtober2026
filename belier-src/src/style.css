@@ -3,7 +3,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #010205; col
 #gl, #fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #gl { touch-action: none; cursor: crosshair; }
 #fx { pointer-events: none; }
-#land { position: fixed; left: 0; right: 0; bottom: 0; width: 100%; height: 30vh; pointer-events: none; transition: height 4.2s cubic-bezier(.3,.7,.2,1); }
+#land { overflow: visible; position: fixed; left: 0; right: 0; bottom: 0; width: 100%; height: 30vh; pointer-events: none; transition: height 4.2s cubic-bezier(.3,.7,.2,1); }
 body.look-down #land { height: 62vh; }
 
 #labels { position: fixed; inset: 0; pointer-events: none; }
