@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Le Capo · Devtober 15</title>
+  <meta name="description" content="Tu es le capo du kop. Frappe le tambour en rythme et emmène toute la tribune jusqu'au HOURRA final." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📣</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #07080d; color: #fff; font-family: Barlow, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+    #c, #hud { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #c { touch-action: none; }
+    #hud { pointer-events: none; }
+    .panel { position: fixed; inset: 0; display: grid; place-items: center; z-index: 5; padding: 16px; background: radial-gradient(ellipse at center, rgba(7,8,13,.45), rgba(7,8,13,.85)); }
+    .card { max-width: 520px; text-align: center; }
+    .kick { font: 800 12px Barlow; letter-spacing: .32em; text-transform: uppercase; color: #f2b705; }
+    h1 { font: 400 clamp(54px, 12vw, 104px)/.95 Anton, sans-serif; margin: 8px 0 12px; letter-spacing: .02em; text-transform: uppercase; }
+    h1 em { font-style: normal; color: #e0203a; }
+    .card p { font: 500 17px/1.45 Barlow; margin: 0 0 14px; opacity: .9; }
+    .keys { font-size: 14px !important; opacity: .7 !important; }
+    .btn { font: 400 22px Anton, sans-serif; letter-spacing: .06em; text-transform: uppercase; background: #e0203a; color: #fff; border: 0; padding: 14px 30px; cursor: pointer; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); }
+    .btn:hover { background: #f2b705; color: #111; }
+    .stats { display: flex; justify-content: center; gap: 22px; margin: 6px 0 18px; flex-wrap: wrap; }
+    .stats div { font: 800 12px Barlow; letter-spacing: .18em; text-transform: uppercase; opacity: .75; }
+    .stats b { display: block; font: 400 34px Anton; letter-spacing: .02em; opacity: 1; color: #f2b705; }
+    #mute { position: fixed; right: 14px; top: 14px; z-index: 6; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 999px; padding: 7px 12px; font: 800 11px Barlow; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <canvas id="hud"></canvas>
+  <div class="panel" id="intro">
+    <div class="card">
+      <div class="kick">Virage Nord · Soir de derby</div>
+      <h1>Le <em>Capo</em></h1>
+      <p>Cinquante mille personnes attendent ton signal. Frappe le tambour <b>pile</b> quand les notes touchent le cercle. Plus tu es juste, plus la tribune s'enflamme : chants, ola, fumigènes… jusqu'au <b>HOURRA</b> final.</p>
+      <p class="keys">Clic, tape l'écran, ou barre espace. Le son est indispensable.</p>
+      <button class="btn" id="go" type="button">Monter sur la passerelle</button>
+    </div>
+  </div>
+  <div class="panel" id="end" hidden><div class="card" id="endCard"></div></div>
+  <button id="mute" type="button">son</button>
+  <script type="module" src="./app.js?v=6"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
