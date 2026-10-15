@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Ricochets · Devtober 12</title>
+  <meta name="description" content="Un lac au coucher du soleil. Un galet plat. Combien de ricochets ?" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪨</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1220; color: #fff4e6; font-family: Inter, system-ui, sans-serif; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    #trail { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .count { position: fixed; left: 50%; top: 9vh; transform: translateX(-50%); text-align: center; pointer-events: none; text-shadow: 0 2px 20px rgba(80, 30, 10, .6); }
+    .count b { display: block; font: 300 clamp(70px, 11vw, 130px)/1 Fraunces, serif; transition: transform .15s; }
+    .count b.pop { transform: scale(1.15); }
+    .count span { font: 500 12px Inter; letter-spacing: .3em; text-transform: uppercase; opacity: .75; }
+    .msg { position: fixed; left: 50%; top: calc(9vh + clamp(70px, 11vw, 130px) + 44px); transform: translateX(-50%); font: italic 300 22px Fraunces, serif; opacity: 0; transition: opacity .6s; pointer-events: none; text-shadow: 0 2px 14px rgba(80, 30, 10, .7); white-space: nowrap; }
+    .msg.on { opacity: 1; }
+    .hint { position: fixed; left: 50%; bottom: 7vh; transform: translateX(-50%); font: 400 14px Inter; letter-spacing: .04em; opacity: .85; pointer-events: none; text-align: center; text-shadow: 0 1px 10px rgba(0,0,0,.5); transition: opacity .6s; }
+    .hint.off { opacity: 0; }
+    .best { position: fixed; right: 18px; top: 16px; font: 500 12px Inter; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+    #mute { position: fixed; right: 16px; bottom: 16px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,244,230,.3); color: #fff4e6; border-radius: 999px; padding: 7px 12px; font: 500 11px Inter; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <canvas id="trail"></canvas>
+  <div class="count"><b id="n">0</b><span>ricochets</span></div>
+  <div class="msg" id="msg"></div>
+  <div class="hint" id="hint">Glisse vers le haut, <b>vite</b> et <b>bas</b>, pour lancer le galet</div>
+  <div class="best">Record · <b id="best">0</b></div>
+  <button id="mute" type="button">son</button>
+  <script type="module" src="./app.js?v=4"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
