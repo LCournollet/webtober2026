@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Le Grimoire · Devtober 10</title>
+  <meta name="description" content="Un vieux livre de sorts. Trois rituels, trois sceaux, un Grand Œuvre." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=UnifrakturMaguntia&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=2" />
+</head>
+<body>
+  <canvas id="dust"></canvas>
+  <div class="candle c1"><i class="flame"></i></div>
+  <div class="candle c2"><i class="flame"></i></div>
+  <div class="glow"></div>
+
+  <div id="stage">
+    <div class="book" id="book">
+
+      <!-- feuillet 0 : couverture / page de garde -->
+      <div class="leaf" data-i="0">
+        <div class="face front cover">
+          <div class="cv-frame">
+            <div class="cv-moon">☾</div>
+            <h1>Grimoire</h1>
+            <p class="cv-sub">des sortilèges ordinaires</p>
+            <div class="seals"><i id="seal1"></i><i id="seal2"></i><i id="seal3"></i></div>
+            <p class="cv-hint">Ouvrir le livre</p>
+          </div>
+        </div>
+        <div class="face back page">
+          <p class="small-caps">Ex libris</p>
+          <h2 class="goth">Avertissement</h2>
+          <p>Quiconque ouvre ce livre accepte d'en accomplir les trois rituels, dans l'ordre et sans tricher.</p>
+          <p>Chaque rituel réussi imprime un <em>sceau</em> sur la couverture. Trois sceaux réunis éveillent le <em>Grand Œuvre</em>.</p>
+          <p class="note">Tournez les pages en cliquant sur leurs coins, ou avec les flèches du clavier.</p>
+          <div class="orn">❦</div>
+        </div>
+      </div>
+
+      <!-- feuillet 1 : le sceau -->
+      <div class="leaf" data-i="1">
+        <div class="face front page">
+          <p class="small-caps">Premier rituel</p>
+          <h2 class="goth">Le Sceau</h2>
+          <p class="rubric">Trace l'étoile d'un seul geste, de pointe en pointe, en sautant toujours une branche.</p>
+          <canvas class="ritual" id="pentacle" width="420" height="420"></canvas>
+          <p class="status" id="st1">Commence par la pointe du haut.</p>
+        </div>
+        <div class="face back page">
+          <p class="small-caps">Second rituel</p>
+          <h2 class="goth">Le Philtre</h2>
+          <p class="rubric">Verse dans le chaudron, et dans cet ordre&nbsp;:</p>
+          <p class="riddle">D'abord ce qui tombe de la lune,<br/>puis ce qui vole quand tout dort,<br/>ensuite ce qui hurle qu'on l'arrache,<br/>enfin ce qui garde la mer.</p>
+          <p class="note">Glisse chaque ingrédient sur le chaudron. Une erreur, et tout est à recommencer.</p>
+          <div class="orn">❦</div>
+        </div>
+      </div>
+
+      <!-- feuillet 2 : le chaudron -->
+      <div class="leaf" data-i="2">
+        <div class="face front page">
+          <div class="shelf" id="shelf"></div>
+          <div class="cauldron" id="cauldron">
+            <svg viewBox="0 0 300 240" aria-hidden="true">
+              <defs><radialGradient id="liq" cx=".5" cy=".4" r=".6"><stop offset="0" id="liqA" stop-color="#6b5a3a"/><stop offset="1" id="liqB" stop-color="#2d2416"/></radialGradient></defs>
+              <path d="M40 90 Q40 220 150 225 Q260 220 260 90 Z" fill="#1b1612" stroke="#3b2414" stroke-width="4"/>
+              <ellipse cx="150" cy="90" rx="112" ry="22" fill="url(#liq)" stroke="#3b2414" stroke-width="5"/>
+              <path d="M70 210 l-14 26 M230 210 l14 26 M150 224 v14" stroke="#3b2414" stroke-width="7" stroke-linecap="round"/>
+              <path d="M40 98 q-22 4 -18 -16 M260 98 q22 4 18 -16" stroke="#3b2414" stroke-width="5" fill="none"/>
+              <g id="bubbles"></g>
+            </svg>
+            <div class="steam" id="steam"></div>
+          </div>
+          <p class="status" id="st2">Le chaudron attend.</p>
+        </div>
+        <div class="face back page">
+          <p class="small-caps">Troisième rituel</p>
+          <h2 class="goth">L'Incantation</h2>
+          <p class="rubric">Penche-toi sur la page et prononce, d'une voix claire&nbsp;:</p>
+          <p class="formula">Lumen ex tenebris</p>
+          <p class="translation">« La lumière naît des ténèbres. »</p>
+          <p class="note">Le livre t'écoute (micro). Si tu préfères, tu peux aussi l'écrire à la plume.</p>
+          <div class="orn">❦</div>
+        </div>
+      </div>
+
+      <!-- feuillet 3 : l'incantation -->
+      <div class="leaf" data-i="3">
+        <div class="face front page">
+          <div class="mouth" id="mouth">
+            <div class="ring"></div><div class="ring r2"></div>
+            <button type="button" id="speak" class="ink-btn">🎙 Prononcer</button>
+          </div>
+          <form id="writeForm" class="write"><input id="write" placeholder="… ou l'écrire ici" autocomplete="off" /><button class="ink-btn small" type="submit">✒</button></form>
+          <p class="status" id="st3">Le livre écoute.</p>
+        </div>
+        <div class="face back page">
+          <p class="small-caps">Dernière page</p>
+          <h2 class="goth">Le Grand Œuvre</h2>
+          <p>Lorsque le Sceau, le Philtre et l'Incantation ont été accomplis, il ne reste qu'à poser la main sur la page voisine.</p>
+          <p>Ce qui suit ne peut être décrit, seulement vécu.</p>
+          <div class="orn">❦</div>
+        </div>
+      </div>
+
+      <!-- feuillet 4 : le grand œuvre -->
+      <div class="leaf" data-i="4">
+        <div class="face front page final">
+          <div class="hand" id="hand">
+            <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="#7a1f12" stroke-width="2"/><circle cx="100" cy="100" r="70" fill="none" stroke="#7a1f12" stroke-width="1"/><path id="handStar" d="M100 30 L141 157 L33 79 L167 79 L59 157 Z" fill="none" stroke="#7a1f12" stroke-width="1.5"/><text x="100" y="112" text-anchor="middle" font-family="UnifrakturMaguntia" font-size="40" fill="#3b2414">✋</text></svg>
+          </div>
+          <p class="status" id="st4">Il manque encore des sceaux.</p>
+        </div>
+        <div class="face back page endpaper"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <canvas id="magic"></canvas>
+  <div class="nav"><button type="button" id="prev" aria-label="Page précédente">‹</button><button type="button" id="next" aria-label="Page suivante">›</button></div>
+  <button type="button" id="mute" class="mute">son</button>
+
+  <script src="./app.js?v=2"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
