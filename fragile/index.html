@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Fragile · Devtober 13</title>
+  <meta name="description" content="Un vélo cargo, un colis marqué FRAGILE, une ville pleine de nids-de-poule. On ouvre à l'arrivée." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=DM+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1d1a17; font-family: 'DM Sans', system-ui, sans-serif; color: #2b2118; user-select: none; -webkit-user-select: none; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .panel { position: fixed; inset: 0; display: grid; place-items: center; z-index: 5; padding: 16px; background: rgba(29, 26, 23, .5); backdrop-filter: blur(3px); }
+    .card { background: #f4e7cf; border-radius: 6px; padding: 28px 32px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.55); position: relative; border: 2px solid #c9a46a; }
+    .card::before { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 70px; transform: translateX(-50%); background: rgba(214, 180, 120, .55); z-index: 0; }
+    .card > * { position: relative; z-index: 1; }
+    .stamp { display: inline-block; font: 400 34px 'Permanent Marker', cursive; color: #c8281f; border: 4px solid #c8281f; padding: 2px 16px; transform: rotate(-4deg); margin: 4px 0 12px; letter-spacing: .06em; }
+    .card h2 { font: 800 22px 'DM Sans'; margin: 4px 0 8px; }
+    .card p { margin: 0 0 12px; line-height: 1.45; font-size: 15px; }
+    .slip { background: #fffaf0; border: 1px dashed #b08a50; padding: 10px 14px; text-align: left; font-size: 14px; margin-bottom: 14px; }
+    .slip b { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8a6a3a; margin-bottom: 2px; }
+    .how { font-size: 13px !important; color: #5a4632; }
+    .btn { font: 800 16px 'DM Sans'; background: #2b2118; color: #f4e7cf; border: 0; border-radius: 999px; padding: 12px 26px; cursor: pointer; }
+    .btn:hover { background: #c8281f; }
+    #end { place-items: end center; background: transparent; backdrop-filter: none; pointer-events: none; padding-bottom: 3vh; }
+    #end .card { pointer-events: auto; max-width: 560px; padding: 18px 24px; }
+    .stars { font-size: 26px; letter-spacing: .1em; color: #e0a020; margin: 2px 0 6px; }
+    .review { font-style: italic; }
+    .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    #mute { position: fixed; right: 14px; top: 14px; z-index: 6; background: rgba(43,33,24,.7); border: 0; color: #f4e7cf; border-radius: 999px; padding: 8px 12px; font: 800 11px 'DM Sans'; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="panel" id="intro">
+    <div class="card">
+      <div class="stamp">FRAGILE</div>
+      <h2 id="pkgTitle">Livraison</h2>
+      <div class="slip"><b>Destinataire</b><span id="pkgTo"></span><br/><b style="margin-top:8px">Contenu déclaré</b><span id="pkgWhat"></span></div>
+      <p class="how">Maintiens <b>à droite</b> (ou →) pour pédaler, <b>à gauche</b> (ou ←) pour freiner. Ralentis avant les nids-de-poule, les pavés et les trottoirs. Le client attend, mais il ouvrira le colis devant toi.</p>
+      <button class="btn" id="go" type="button">Enfourcher le vélo</button>
+    </div>
+  </div>
+  <div class="panel" id="end" hidden><div class="card" id="endCard"></div></div>
+  <button id="mute" type="button">son</button>
+  <script src="./app.js?v=5"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
