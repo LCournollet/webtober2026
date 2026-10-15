@@ -34,6 +34,9 @@ body.flare .flame { animation: flare 1.4s ease-out, flick 1.6s ease-in-out infin
 .leaf.flipped { transform: rotateY(-180deg); }
 .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
 .face.back { transform: rotateY(180deg); }
+/* Chrome laisse transparaître les éléments composités (boutons, filtres) malgré backface-visibility : on masque la face cachée à mi-rotation */
+.face { transition: visibility 0s .57s; }
+.leaf.flipped > .face.front, .leaf:not(.flipped) > .face.back { visibility: hidden; }
 
 .page {
   padding: 46px 48px 40px; display: flex; flex-direction: column; align-items: center; text-align: center;
