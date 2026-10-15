@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Dame Nature · Devtober 14</title>
+  <meta name="description" content="Une petite planète vivante. Pluie, soleil, vent et saisons : à vous de jouer les Dame Nature." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #05060c; color: #eef1ea; font-family: Inter, system-ui, sans-serif; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .top { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; width: min(92vw, 640px); }
+    .top h1 { margin: 0; font: italic 500 30px/1 'Cormorant Garamond', serif; letter-spacing: .02em; }
+    .season { font: 600 11px Inter; letter-spacing: .24em; text-transform: uppercase; opacity: .7; margin-top: 6px; }
+    .mood { font: italic 400 19px 'Cormorant Garamond', serif; margin-top: 8px; min-height: 24px; transition: opacity .8s; }
+    .stats { text-shadow: 0 1px 6px #000; position: fixed; right: 16px; top: 16px; font: 500 12px Inter; line-height: 1.7; text-align: right; opacity: .85; pointer-events: none; }
+    .stats i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; }
+    .panel { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap; justify-content: center; background: rgba(12, 16, 22, .62); backdrop-filter: blur(8px); border: 1px solid rgba(238, 241, 234, .12); border-radius: 18px; padding: 12px 18px; width: max-content; max-width: calc(100vw - 24px); }
+    .ctl { display: flex; flex-direction: column; gap: 6px; min-width: 120px; }
+    .ctl label { font: 600 10px Inter; letter-spacing: .2em; text-transform: uppercase; opacity: .75; display: flex; justify-content: space-between; }
+    .ctl label b { font-weight: 500; letter-spacing: 0; text-transform: none; opacity: .9; }
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 140px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.18); outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--k, #fff); border: 2px solid #0b0e14; box-shadow: 0 0 12px var(--k, #fff); cursor: pointer; }
+    input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--k, #fff); border: 2px solid #0b0e14; cursor: pointer; }
+    .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btns button { background: rgba(255,255,255,.08); color: #eef1ea; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 6px 11px; font: 500 12px Inter; cursor: pointer; }
+    .btns button:hover, .btns button.on { background: rgba(255,255,255,.2); }
+    .hint { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); font: italic 400 16px 'Cormorant Garamond', serif; opacity: .7; pointer-events: none; transition: opacity 1s; text-align: center; width: 90vw; }
+    #mute { position: fixed; left: 16px; bottom: 16px; background: rgba(255,255,255,.08); color: #eef1ea; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 7px 12px; font: 600 10px Inter; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
+    @media (max-width: 720px) {
+      .top h1 { font-size: 24px; } .top { top: 58px; } .stats { top: 150px; right: 12px; font-size: 10.5px; text-shadow: 0 1px 6px #000; }
+      .panel { gap: 10px 14px; padding: 10px 12px; bottom: 10px; } .ctl { min-width: 0; } input[type=range] { width: 120px; } .hint { bottom: 200px; } #mute { bottom: auto; top: 16px; left: auto; right: 12px; }
+    }
+  </style>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="top"><h1>Dame Nature</h1><div class="season" id="season">Printemps · An 1</div><div class="mood" id="mood"></div></div>
+  <div class="stats" id="stats"></div>
+  <div class="hint" id="hint">Touche la planète pour y semer la vie. Fais tourner le monde en le glissant.</div>
+  <div class="panel">
+    <div class="ctl"><label>Pluie <b id="vRain"></b></label><input type="range" id="rain" min="0" max="100" value="50" style="--k:#7cc4ff" /></div>
+    <div class="ctl"><label>Soleil <b id="vSun"></b></label><input type="range" id="sun" min="0" max="100" value="60" style="--k:#ffd36b" /></div>
+    <div class="ctl"><label>Vent <b id="vWind"></b></label><input type="range" id="wind" min="0" max="100" value="40" style="--k:#d8e6e0" /></div>
+    <div class="ctl"><label>Saisons</label><div class="btns" id="speed"><button type="button" data-s="0">❚❚</button><button type="button" data-s="1" class="on">×1</button><button type="button" data-s="4">×4</button></div></div>
+    <div class="ctl"><label>Humeurs</label><div class="btns"><button type="button" data-p="glace">Glaciation</button><button type="button" data-p="canicule">Canicule</button><button type="button" data-p="eden">Éden</button></div></div>
+  </div>
+  <button id="mute" type="button">son</button>
+  <script type="module" src="./app.js?v=5"></script>
+  <script src="/retour.js" data-pos="tl" defer></script>
+</body>
+</html>
